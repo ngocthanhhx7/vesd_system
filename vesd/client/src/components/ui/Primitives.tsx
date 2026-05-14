@@ -11,7 +11,7 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
     neutral: 'bg-soft text-muted',
     success: 'bg-soft text-brand',
     warning: 'bg-amber-50 text-amber-700',
-    danger: 'bg-red-50 text-red-700',
+    danger: 'bg-soft text-secondary',
     premium: 'bg-yellow-50 text-premium',
     info: 'bg-soft text-action'
   };

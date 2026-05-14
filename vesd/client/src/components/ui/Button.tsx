@@ -9,7 +9,7 @@ export function Button({ className, variant = 'primary', ...props }: ButtonHTMLA
         variant === 'primary' && 'bg-brand text-white shadow-soft hover:bg-secondary',
         variant === 'secondary' && 'border border-line bg-white text-ink hover:bg-soft',
         variant === 'ghost' && 'text-ink hover:bg-white',
-        variant === 'danger' && 'bg-red-600 text-white hover:bg-red-700',
+        variant === 'danger' && 'bg-secondary text-white hover:bg-night',
         className
       )}
       {...props}
