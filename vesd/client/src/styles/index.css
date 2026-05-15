@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600&family=Poppins:wght@400;500;600;700&family=Zen+Dots&family=Zen+Tokyo+Zoo&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -50,4 +50,107 @@ img {
     radial-gradient(circle at 28% 92%, rgba(127,161,249,.55) 0 310px, transparent 312px),
     radial-gradient(circle at 82% 78%, rgba(127,161,249,.26) 0 360px, transparent 362px),
     #2c3d8f;
+}
+
+.home-orb-bg {
+  background:
+    radial-gradient(circle at 135% 76%, rgba(255, 255, 255, .06) 0 50px, transparent 51px),
+    radial-gradient(circle at 135% 76%, transparent 0 100px, rgba(255, 255, 255, .06) 101px 150px, transparent 151px),
+    radial-gradient(circle at 135% 76%, transparent 0 250px, rgba(255, 255, 255, .06) 251px 275px, transparent 276px),
+    radial-gradient(circle at 135% 76%, transparent 0 398px, rgba(255, 255, 255, .06) 399px 400px, transparent 401px),
+    radial-gradient(circle at -39% 103%, rgba(255, 255, 255, .06) 0 50px, transparent 51px),
+    radial-gradient(circle at -39% 103%, transparent 0 100px, rgba(255, 255, 255, .06) 101px 150px, transparent 151px),
+    radial-gradient(circle at -39% 103%, transparent 0 250px, rgba(255, 255, 255, .06) 251px 275px, transparent 276px),
+    radial-gradient(circle at -39% 103%, transparent 0 398px, rgba(255, 255, 255, .06) 399px 400px, transparent 401px),
+    #2453d6;
+}
+
+.home-hero-panels .hero-main {
+  flex: 0 0 51%;
+  transition: flex-basis 360ms ease;
+}
+
+.home-hero-panels .hero-action {
+  flex: 1 1 24.5%;
+  transition: flex-basis 360ms ease, filter 360ms ease;
+}
+
+.home-hero-panels .hero-action-image {
+  transition: transform 360ms ease;
+}
+
+.home-hero-panels:has(.hero-action:hover) .hero-main {
+  flex-basis: 48%;
+}
+
+.home-hero-panels .hero-action:hover {
+  flex-basis: 28%;
+  filter: saturate(1.08) contrast(1.03);
+}
+
+.home-hero-panels .hero-action:hover .hero-action-image {
+  transform: scale(1.06);
+}
+
+@media (max-width: 1023px) {
+  .home-hero-panels {
+    height: auto;
+  }
+
+  .home-hero-panels > div {
+    flex-direction: column;
+  }
+
+  .home-hero-panels .hero-main,
+  .home-hero-panels .hero-action,
+  .home-hero-panels:has(.hero-action:hover) .hero-main,
+  .home-hero-panels .hero-action:hover {
+    flex: none;
+    height: 520px;
+  }
+}
+
+.home-milestone-bg {
+  background:
+    linear-gradient(rgba(36, 83, 214, .92), rgba(36, 83, 214, .92)),
+    url('/assets/figma-blue-board.png') center / cover no-repeat,
+    #2453d6;
+}
+
+.home-premium-banner {
+  background:
+    radial-gradient(circle at 32% 5%, rgba(251, 173, 57, 1) 0%, rgba(255, 255, 255, 0) 48%),
+    linear-gradient(180deg, rgba(57, 101, 224, .96), rgba(3, 11, 53, .96)),
+    #3965e0;
+}
+
+.home-cta-pattern {
+  background-color: #2453d6;
+  background-image:
+    linear-gradient(120deg, rgba(255, 255, 255, .09) 0 18px, transparent 18px 99px),
+    linear-gradient(120deg, rgba(255, 255, 255, .09) 0 18px, transparent 18px 99px);
+  background-position: -55px -90px, -55px 306px;
+  background-size: 871px 396px;
+}
+
+.home-cta-pattern::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #2453d6 0%, #2453d6 53%, rgba(36, 83, 214, 0) 70%);
+  pointer-events: none;
+}
+
+.home-testimonial-bg {
+  background:
+    linear-gradient(rgba(36, 83, 214, .88), rgba(36, 83, 214, .88)),
+    url('/assets/figma-blue-board.png') center 44% / cover no-repeat,
+    #2453d6;
+}
+
+.home-news-bg {
+  background:
+    linear-gradient(rgba(157, 175, 229, .9), rgba(157, 175, 229, .9)),
+    url('/assets/pattern-chevron.png') left top / 640px 359px repeat,
+    #9dafe5;
 }

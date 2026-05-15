@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
+import { uploadToS3 } from '../utils/s3.js';
 import slugify from 'slugify';
 import { requireAuth, requireRole } from '../middlewares/auth.js';
 import { asyncHandler, ApiError } from '../utils/apiError.js';
@@ -23,7 +24,7 @@ import {
 import { approveMilestone, completeProject, fundEscrow, getOwnedProject, refundProject, requestRevision } from '../services/projectService.js';
 
 export const mainRoutes = Router();
-const upload = multer({ dest: 'uploads/', limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const pageParams = (req) => ({ page: Math.max(Number(req.query.page || 1), 1), limit: Math.min(Number(req.query.limit || 12), 50) });
 
@@ -201,8 +202,14 @@ mainRoutes.get('/checklists/:category', asyncHandler(async (req, res) => res.jso
 mainRoutes.get('/notifications', requireAuth, asyncHandler(async (req, res) => res.json(await Notification.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(30))));
 mainRoutes.patch('/notifications/:id/read', requireAuth, asyncHandler(async (req, res) => res.json(await Notification.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, { isRead: true }, { new: true }))));
 
-mainRoutes.post('/uploads/image', requireAuth, upload.single('file'), (req, res) => res.status(201).json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname, type: req.file.mimetype, size: req.file.size }));
-mainRoutes.post('/uploads/file', requireAuth, upload.single('file'), (req, res) => res.status(201).json({ url: `/uploads/${req.file.filename}`, name: req.file.originalname, type: req.file.mimetype, size: req.file.size }));
+mainRoutes.post('/uploads/image', requireAuth, upload.single('file'), async (req, res) => {
+  const result = await uploadToS3(req.file, 'images');
+  res.status(201).json(result);
+});
+mainRoutes.post('/uploads/file', requireAuth, upload.single('file'), async (req, res) => {
+  const result = await uploadToS3(req.file, 'files');
+  res.status(201).json(result);
+});
 
 mainRoutes.get('/admin/users', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await User.find(req.query.role ? { roles: req.query.role } : {}).select('-passwordHash').sort({ createdAt: -1 }))));
 mainRoutes.patch('/admin/users/:id/status', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await User.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true }).select('-passwordHash'))));
