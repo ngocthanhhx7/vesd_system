@@ -37,3 +37,6 @@ coverage/
 skills/
 figma/
 uploads/
+
+# Fonts (large binary files)
+**/fonts/
