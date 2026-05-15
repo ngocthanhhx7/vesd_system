@@ -1,5 +1,6 @@
 import { ChecklistTemplate, Project, ProjectComment, Transaction, Wallet } from '../models/index.js';
 import { ApiError } from '../utils/apiError.js';
+import { validateDiscount } from './discountService.js';
 
 export function canAccessProject(user, project) {
   return user.roles.includes('admin') || String(project.clientId) === String(user._id) || String(project.designerId) === String(user._id);
@@ -12,15 +13,20 @@ export async function getOwnedProject(user, id) {
   return project;
 }
 
-export async function fundEscrow({ projectId, userId, paymentMethod = 'mock' }) {
+export async function fundEscrow({ projectId, userId, paymentMethod = 'mock', discountCode }) {
   const project = await Project.findById(projectId);
   if (!project) throw new ApiError(404, 'Khong tim thay du an');
   if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client cua du an duoc thanh toan');
   const amount = project.agreement?.price || project.budget?.agreed || project.budget?.max || 0;
   if (amount <= 0) throw new ApiError(400, 'Du an chua co so tien hop le');
-  const platformFee = Math.round(amount * 0.08);
-  await Transaction.create({ userId, projectId, type: 'deposit', amount, platformFee, status: 'success', paymentMethod });
-  await Wallet.findOneAndUpdate({ userId }, { $inc: { escrowBalance: amount, totalSpent: amount + platformFee } }, { upsert: true });
+  const { discount, discountAmount, finalAmount } = await validateDiscount({ code: discountCode, amount, appliesTo: 'project', role: 'client' });
+  const platformFee = Math.round(finalAmount * 0.08);
+  await Transaction.create({ userId, projectId, type: 'deposit', amount: finalAmount, platformFee, status: 'success', paymentMethod, metadata: { originalAmount: amount, discountCode: discount?.code, discountAmount } });
+  if (discount) {
+    discount.usedCount += 1;
+    await discount.save();
+  }
+  await Wallet.findOneAndUpdate({ userId }, { $inc: { escrowBalance: finalAmount, totalSpent: finalAmount + platformFee } }, { upsert: true });
   project.status = 'escrow_funded';
   await project.save();
   return project;
@@ -77,4 +83,3 @@ export async function refundProject({ projectId, adminId, amount, resolutionType
   await project.save();
   return project;
 }
-

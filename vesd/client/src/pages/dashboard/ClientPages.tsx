@@ -8,13 +8,14 @@ import { ProjectCard } from './shared/ProjectCard';
 
 export function ClientDashboard() {
   const { data = [] } = useQuery({ queryKey: ['my-projects'], queryFn: endpoints.myProjects });
+  const { data: summary } = useQuery({ queryKey: ['dashboard-summary'], queryFn: endpoints.dashboardSummary });
 
   return (
     <Dashboard title="Client Dashboard">
       <div className="grid gap-4 md:grid-cols-4">
-        <Metric label="Active projects" value={data.filter((p: any) => p.status !== 'completed').length} icon={FolderKanban} />
-        <Metric label="Pending approvals" value={data.filter((p: any) => p.status === 'submitted').length} icon={Clock} />
-        <Metric label="Total spent" value="18M" icon={CreditCard} />
+        <Metric label="Active projects" value={summary?.activeProjects ?? data.filter((p: any) => p.status !== 'completed').length} icon={FolderKanban} />
+        <Metric label="Pending approvals" value={summary?.pendingApprovals ?? data.filter((p: any) => p.status === 'submitted').length} icon={Clock} />
+        <Metric label="Total spent" value={(summary?.totalSpent || 0).toLocaleString('vi-VN')} icon={CreditCard} />
         <Metric label="Saved designers" value="12" icon={Users} />
       </div>
       <Section title="Du an gan day">

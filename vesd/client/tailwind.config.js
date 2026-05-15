@@ -18,7 +18,7 @@ export default {
         night: '#1F1F1F'
       },
       fontFamily: {
-        sans: ['Poppins', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']
+        sans: ['SF Pro Text', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif']
       },
       boxShadow: {
         soft: '0 18px 45px rgba(90, 143, 250, 0.16)'

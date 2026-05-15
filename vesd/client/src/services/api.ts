@@ -32,8 +32,11 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
 export const endpoints = {
   designers: (query = '') => api<any>(`/designers${query}`),
   designer: (id: string) => api<any>(`/designers/${id}`),
+  publicStats: () => api<any>('/stats/public'),
+  dashboardSummary: () => api<any>('/dashboard/summary'),
   me: () => api<{ user: ApiUser }>('/auth/me'),
   login: (body: unknown) => api<{ user: ApiUser; token: string }>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  loginGoogle: (credential: string) => api<{ user: ApiUser; token: string }>('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }),
   register: (body: unknown) => api<{ user: ApiUser; token: string }>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
   myProjects: () => api<any[]>('/projects/my'),
   createProject: (body: unknown) => api<any>('/projects', { method: 'POST', body: JSON.stringify(body) }),
@@ -41,9 +44,10 @@ export const endpoints = {
   wallet: () => api<any>('/wallet/my'),
   transactions: () => api<any[]>('/transactions/my'),
   premiumPlans: () => api<any[]>('/premium/plans'),
+  activeDiscounts: (query = '') => api<any[]>(`/discounts/active${query}`),
+  validateDiscount: (body: unknown) => api<any>('/discounts/validate', { method: 'POST', body: JSON.stringify(body) }),
   subscribe: (body: unknown) => api<any>('/premium/subscribe', { method: 'POST', body: JSON.stringify(body) }),
   adminUsers: () => api<any[]>('/admin/users'),
   adminProjects: () => api<any[]>('/admin/projects'),
   adminDisputes: () => api<any[]>('/admin/disputes')
 };
-

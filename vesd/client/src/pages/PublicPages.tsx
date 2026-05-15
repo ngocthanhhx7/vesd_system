@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, CheckCircle2, Filter, Folder, Heart, Search, Send, Star, Users } from 'lucide-react';
@@ -8,6 +9,77 @@ import { DesignerCard } from '../components/cards/DesignerCard';
 import { Seo } from '../components/seo/Seo';
 
 export { DesignerCard };
+
+function parseMilestoneValue(value: string) {
+  return /^\d{1,3}(\.\d{3})+$/.test(value) ? Number(value.replace(/\./g, '')) : Number(value);
+}
+
+function formatMilestoneValue(current: number, finalValue: string) {
+  if (/^\d{1,3}(\.\d{3})+$/.test(finalValue)) {
+    return Math.round(current).toLocaleString('vi-VN');
+  }
+
+  if (finalValue.includes('.')) {
+    const decimalPlaces = finalValue.split('.')[1]?.length || 0;
+    return current.toFixed(decimalPlaces);
+  }
+
+  return String(Math.round(current));
+}
+
+function CountUpNumber({ value }: { value: string }) {
+  const ref = useRef<HTMLSpanElement | null>(null);
+  const frameRef = useRef<number>();
+  const [displayValue, setDisplayValue] = useState('0');
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return undefined;
+
+    const targetValue = parseMilestoneValue(value);
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (!Number.isFinite(targetValue) || prefersReducedMotion) {
+      setDisplayValue(value);
+      return undefined;
+    }
+
+    const animate = () => {
+      const duration = 1400;
+      const startedAt = performance.now();
+
+      const step = (now: number) => {
+        const progress = Math.min((now - startedAt) / duration, 1);
+        const easedProgress = 1 - Math.pow(1 - progress, 3);
+        setDisplayValue(progress === 1 ? value : formatMilestoneValue(targetValue * easedProgress, value));
+
+        if (progress < 1) {
+          frameRef.current = requestAnimationFrame(step);
+        }
+      };
+
+      frameRef.current = requestAnimationFrame(step);
+    };
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        animate();
+        observer.disconnect();
+      },
+      { threshold: 0.35 }
+    );
+
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
+  }, [value]);
+
+  return <span ref={ref}>{displayValue}</span>;
+}
 
 const categories = [
   ['logo-design', 'Logo design'],
@@ -20,6 +92,7 @@ const categories = [
 
 export function HomePage() {
   const { data } = useQuery({ queryKey: ['featured-designers'], queryFn: () => endpoints.designers('?limit=4&sort=popularity') });
+  const { data: stats } = useQuery({ queryKey: ['public-stats'], queryFn: endpoints.publicStats });
   const featured = data?.items?.length ? data.items : Array.from({ length: 3 }).map((_, index) => ({
     _id: `static-${index}`,
     title: 'Graphic Designer',
@@ -42,10 +115,10 @@ export function HomePage() {
   ];
 
   const milestoneItems = [
-    { icon: Users, value: '5.000', label: 'Freelancer trên cả nước' },
-    { icon: Send, value: '12.000', label: 'Khách hàng' },
-    { icon: Folder, value: '1302', label: 'Dự án đang diễn ra' },
-    { icon: Star, value: '4.97', label: 'Trung bình Rating' }
+    { icon: Users, value: (stats?.freelancers ?? 5000).toLocaleString('vi-VN'), label: 'Freelancer trên cả nước' },
+    { icon: Send, value: (stats?.clients ?? 12000).toLocaleString('vi-VN'), label: 'Khách hàng' },
+    { icon: Folder, value: (stats?.activeProjects ?? 1302).toLocaleString('vi-VN'), label: 'Dự án đang diễn ra' },
+    { icon: Star, value: String(stats?.averageRating ?? 4.97), label: 'Trung bình Rating' }
   ];
 
   const testimonials = [
@@ -117,7 +190,7 @@ export function HomePage() {
                 <div key={label} className="flex flex-col items-center gap-3">
                   <Icon className="h-[69px] w-[69px] stroke-[1.8]" />
                   <div>
-                    <p className="text-[34px] font-semibold leading-[41px] tracking-wide">{value}</p>
+                    <p className="text-[34px] font-semibold leading-[41px] tracking-wide"><CountUpNumber value={value} /></p>
                     <p className="mt-[14px] text-[17px] font-medium leading-5">{label}</p>
                   </div>
                 </div>
@@ -135,7 +208,7 @@ export function HomePage() {
               <div className="grid grid-cols-4 text-center">
                 {['2 Ngày', '16 Giờ', '41 Phút', '11 Giây'].map((item) => {
                   const [value, label] = item.split(' ');
-                  return <div key={item} className="flex flex-col justify-center border-l border-white/25 px-2 py-8"><span className="font-['Zen_Dots'] text-4xl leading-[43px] tracking-[.02em]">{value}</span><span className="mt-4 text-2xl font-bold leading-7 tracking-[.02em]">{label}</span></div>;
+                  return <div key={item} className="flex flex-col items-center justify-center border-l border-white/25 px-2 py-8"><span className="font-['Zen_Dots'] text-4xl italic leading-[43px] tracking-[.02em]">{value}</span><span className="mt-4 text-2xl font-bold leading-7 tracking-[.02em]">{label}</span></div>;
                 })}
               </div>
             </div>
@@ -201,12 +274,12 @@ export function HomePage() {
           <h2 className="text-center text-[28px] font-bold leading-[34px] text-white">Tin tức mới nhất</h2>
           <div className="mt-[18px] grid justify-center gap-[19px] lg:grid-cols-[346px_346px_346px]">
             {figmaNewsCards.map(([title, description], index) => (
-              <article key={`${title}-${index}`} className="relative h-[416px] overflow-hidden rounded-[8px] bg-brand text-white shadow-[0_5px_18px_rgba(9,30,92,0.5)]">
+              <article key={`${title}-${index}`} className="relative h-[416px] overflow-hidden rounded-[16px] bg-brand text-white shadow-[0_5px_18px_rgba(9,30,92,0.3)]">
                 <img className="absolute left-1/2 top-1/2 h-[470px] w-[397px] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover object-center" src="/assets/news-card.png" alt={title} loading="lazy" />
-                <div className="relative z-10 h-full">
-                  <h3 className="absolute left-[22px] top-[31px] max-w-[305px] font-['Plus_Jakarta_Sans'] text-[29px] font-semibold leading-[36px] tracking-[-.04em]">{title}</h3>
-                  <p className={`absolute left-[22px] max-w-[282px] font-['Plus_Jakarta_Sans'] text-[16px] font-medium leading-[21px] tracking-[-.04em] ${index === 0 ? 'top-[143px]' : 'top-[87px]'}`}>{description}</p>
-                  <Link className={`absolute left-[22px] flex h-[38px] w-[106px] items-center justify-center rounded-[8px] bg-white font-['Plus_Jakarta_Sans'] text-[14px] font-semibold text-brand ${index === 0 ? 'top-[254px]' : 'top-[187px]'}`} to="/help">Xem tin</Link>
+                <div className="relative z-10 flex h-full flex-col px-[22px] pt-[31px]">
+                  <h3 className="max-w-[305px] font-['Plus_Jakarta_Sans'] text-[29px] font-semibold leading-[36px] tracking-[-.04em]">{title}</h3>
+                  <p className="mt-[16px] max-w-[282px] font-['Plus_Jakarta_Sans'] text-[16px] font-medium leading-[21px] tracking-[-.04em]">{description}</p>
+                  <Link className="mt-auto mb-[200px] flex h-[38px] w-[106px] items-center justify-center rounded-[8px] bg-white font-['Plus_Jakarta_Sans'] text-[14px] font-semibold text-brand" to="/help">Xem tin</Link>
                 </div>
               </article>
             ))}

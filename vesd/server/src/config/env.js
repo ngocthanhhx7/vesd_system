@@ -1,6 +1,10 @@
 import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 export const env = {
   port: process.env.PORT || 5000,
@@ -14,6 +18,6 @@ export const env = {
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     region: process.env.AWS_REGION || 'us-east-1',
     s3Bucket: process.env.AWS_S3_BUCKET || 'vesd-bucket'
-  }
+  },
+  googleClientId: process.env.GOOGLE_CLIENT_ID
 };
-

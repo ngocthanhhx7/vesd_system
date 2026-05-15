@@ -7,6 +7,7 @@ import { asyncHandler, ApiError } from '../utils/apiError.js';
 import {
   ChecklistTemplate,
   ClientProfile,
+  Discount,
   DesignerProfile,
   Dispute,
   Notification,
@@ -22,11 +23,27 @@ import {
   Withdrawal
 } from '../models/index.js';
 import { approveMilestone, completeProject, fundEscrow, getOwnedProject, refundProject, requestRevision } from '../services/projectService.js';
+import { validateDiscount } from '../services/discountService.js';
 
 export const mainRoutes = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const pageParams = (req) => ({ page: Math.max(Number(req.query.page || 1), 1), limit: Math.min(Number(req.query.limit || 12), 50) });
+
+mainRoutes.get('/stats/public', asyncHandler(async (_req, res) => {
+  const [freelancers, clients, activeProjects, ratingStats] = await Promise.all([
+    DesignerProfile.countDocuments(),
+    ClientProfile.countDocuments(),
+    Project.countDocuments({ status: { $nin: ['draft', 'completed', 'cancelled'] } }),
+    DesignerProfile.aggregate([{ $group: { _id: null, average: { $avg: '$ratingAverage' } } }])
+  ]);
+  res.json({
+    freelancers,
+    clients,
+    activeProjects,
+    averageRating: Number((ratingStats[0]?.average || 0).toFixed(2))
+  });
+}));
 
 mainRoutes.get('/users/me', requireAuth, asyncHandler(async (req, res) => {
   const clientProfile = await ClientProfile.findOne({ userId: req.user._id });
@@ -34,11 +51,46 @@ mainRoutes.get('/users/me', requireAuth, asyncHandler(async (req, res) => {
   res.json({ user: req.user, clientProfile, designerProfile });
 }));
 
+mainRoutes.get('/dashboard/summary', requireAuth, asyncHandler(async (req, res) => {
+  if (req.user.roles.includes('admin')) {
+    const [users, activeProjects, disputes, revenue] = await Promise.all([
+      User.countDocuments(),
+      Project.countDocuments({ status: { $nin: ['draft', 'completed', 'cancelled'] } }),
+      Dispute.countDocuments({ status: { $in: ['open', 'under_review'] } }),
+      Transaction.aggregate([{ $match: { status: 'success' } }, { $group: { _id: null, total: { $sum: '$platformFee' } } }])
+    ]);
+    return res.json({ users, activeProjects, disputes, revenue: revenue[0]?.total || 0 });
+  }
+
+  const projectQuery = req.user.roles.includes('designer') ? { designerId: req.user._id } : { clientId: req.user._id };
+  const [projects, wallet, designerProfile] = await Promise.all([
+    Project.find(projectQuery).select('status budget agreement'),
+    Wallet.findOne({ userId: req.user._id }),
+    DesignerProfile.findOne({ userId: req.user._id })
+  ]);
+  res.json({
+    activeProjects: projects.filter((project) => !['completed', 'cancelled'].includes(project.status)).length,
+    pendingApprovals: projects.filter((project) => project.status === 'submitted').length,
+    newRequests: projects.filter((project) => project.status === 'pending_designer').length,
+    totalSpent: wallet?.totalSpent || 0,
+    totalEarned: wallet?.totalEarned || 0,
+    pendingPayouts: wallet?.pendingBalance || 0,
+    profileViews: designerProfile?.profileViews || 0
+  });
+}));
+
 mainRoutes.patch('/users/me', requireAuth, asyncHandler(async (req, res) => {
   const allowed = ['name', 'phone', 'avatar'];
   const patch = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
   const user = await User.findByIdAndUpdate(req.user._id, patch, { new: true }).select('-passwordHash');
   res.json(user);
+}));
+
+mainRoutes.patch('/clients/profile', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
+  const allowed = ['companyName', 'businessType', 'address', 'taxCode', 'billingInfo'];
+  const patch = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+  const profile = await ClientProfile.findOneAndUpdate({ userId: req.user._id }, { ...patch, userId: req.user._id }, { upsert: true, new: true });
+  res.json(profile);
 }));
 
 mainRoutes.get('/designers', asyncHandler(async (req, res) => {
@@ -143,6 +195,20 @@ mainRoutes.post('/projects/:id/agreement', requireAuth, asyncHandler(async (req,
   await project.save();
   res.json(project);
 }));
+mainRoutes.post('/projects/:id/start', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
+  const project = await getOwnedProject(req.user, req.params.id);
+  if (String(project.designerId) !== String(req.user._id)) throw new ApiError(403, 'Khong phai designer cua du an');
+  if (!['escrow_funded', 'revision_requested'].includes(project.status)) throw new ApiError(400, 'Du an chua san sang de bat dau');
+  project.status = 'in_progress';
+  await project.save();
+  await ProjectComment.create({ projectId: project._id, senderId: req.user._id, content: req.body.content || 'Designer da bat dau thuc hien du an', type: 'system' });
+  res.json(project);
+}));
+mainRoutes.post('/projects/:id/comments', requireAuth, asyncHandler(async (req, res) => {
+  const project = await getOwnedProject(req.user, req.params.id);
+  const comment = await ProjectComment.create({ projectId: project._id, senderId: req.user._id, content: req.body.content, attachments: req.body.attachments || [], type: req.body.type || 'message' });
+  res.status(201).json(comment);
+}));
 mainRoutes.post('/projects/:id/milestones/:milestoneId/submit', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
   const milestone = project.milestones.id(req.params.milestoneId);
@@ -153,11 +219,20 @@ mainRoutes.post('/projects/:id/milestones/:milestoneId/submit', requireAuth, req
   await project.save();
   res.json(project);
 }));
+mainRoutes.post('/projects/:id/final-files', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
+  const project = await getOwnedProject(req.user, req.params.id);
+  if (String(project.designerId) !== String(req.user._id)) throw new ApiError(403, 'Khong phai designer cua du an');
+  project.finalFiles = req.body.files || [];
+  project.status = 'final_submitted';
+  await project.save();
+  await ProjectComment.create({ projectId: project._id, senderId: req.user._id, content: req.body.note || 'Designer da ban giao file cuoi', attachments: req.body.files || [], type: 'system' });
+  res.json(project);
+}));
 mainRoutes.post('/projects/:id/milestones/:milestoneId/approve', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await approveMilestone({ project: await getOwnedProject(req.user, req.params.id), milestoneId: req.params.milestoneId, userId: req.user._id }))));
 mainRoutes.post('/projects/:id/revision', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await requestRevision({ project: await getOwnedProject(req.user, req.params.id), userId: req.user._id, content: req.body.content }))));
 mainRoutes.post('/projects/:id/complete', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await completeProject({ project: await getOwnedProject(req.user, req.params.id), userId: req.user._id }))));
 
-mainRoutes.post('/payments/escrow', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await fundEscrow({ projectId: req.body.projectId, userId: req.user._id, paymentMethod: req.body.paymentMethod }))));
+mainRoutes.post('/payments/escrow', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await fundEscrow({ projectId: req.body.projectId, userId: req.user._id, paymentMethod: req.body.paymentMethod, discountCode: req.body.discountCode }))));
 mainRoutes.post('/payments/mock-success', requireAuth, asyncHandler(async (_req, res) => res.json({ status: 'success' })));
 mainRoutes.post('/payments/release', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await approveMilestone({ project: await Project.findById(req.body.projectId), milestoneId: req.body.milestoneId, userId: req.body.clientId }))));
 mainRoutes.post('/payments/refund', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await refundProject({ projectId: req.body.projectId, adminId: req.user._id, amount: req.body.amount }))));
@@ -185,12 +260,35 @@ mainRoutes.get('/disputes/my', requireAuth, asyncHandler(async (req, res) => {
 }));
 
 mainRoutes.get('/premium/plans', asyncHandler(async (_req, res) => res.json(await PremiumPlan.find({ isActive: true }))));
+mainRoutes.get('/discounts/active', asyncHandler(async (req, res) => {
+  const now = new Date();
+  const roleTarget = req.query.role || 'both';
+  const appliesTo = req.query.appliesTo || 'all';
+  res.json(await Discount.find({
+    isActive: true,
+    $or: [{ startsAt: null }, { startsAt: { $lte: now } }],
+    $and: [{ $or: [{ endsAt: null }, { endsAt: { $gte: now } }] }],
+    roleTarget: { $in: [roleTarget, 'both'] },
+    appliesTo: { $in: [appliesTo, 'all'] }
+  }).sort({ createdAt: -1 }));
+}));
+mainRoutes.post('/discounts/validate', requireAuth, asyncHandler(async (req, res) => {
+  const role = req.user.roles.includes('designer') ? 'designer' : 'client';
+  const result = await validateDiscount({ code: req.body.code, amount: Number(req.body.amount || 0), appliesTo: req.body.appliesTo || 'all', role });
+  res.json({ code: result.discount?.code, discountAmount: result.discountAmount, finalAmount: result.finalAmount });
+}));
 mainRoutes.post('/premium/subscribe', requireAuth, asyncHandler(async (req, res) => {
   const plan = await PremiumPlan.findById(req.body.planId);
   if (!plan) throw new ApiError(404, 'Khong tim thay goi Premium');
+  const role = req.user.roles.includes('designer') ? 'designer' : 'client';
+  const { discount, discountAmount, finalAmount } = await validateDiscount({ code: req.body.discountCode, amount: plan.price, appliesTo: 'premium', role });
   const startDate = new Date();
   const endDate = new Date(Date.now() + plan.durationDays * 86400000);
-  await Transaction.create({ userId: req.user._id, type: 'premium', amount: plan.price, status: 'success', paymentMethod: req.body.paymentMethod || 'mock' });
+  await Transaction.create({ userId: req.user._id, type: 'premium', amount: finalAmount, status: 'success', paymentMethod: req.body.paymentMethod || 'mock', metadata: { originalAmount: plan.price, discountCode: discount?.code, discountAmount } });
+  if (discount) {
+    discount.usedCount += 1;
+    await discount.save();
+  }
   const subscription = await Subscription.create({ userId: req.user._id, planId: plan._id, startDate, endDate, status: 'active' });
   if (req.user.roles.includes('designer')) await DesignerProfile.findOneAndUpdate({ userId: req.user._id }, { premiumStatus: 'premium', premiumExpiresAt: endDate });
   if (req.user.roles.includes('client')) await ClientProfile.findOneAndUpdate({ userId: req.user._id }, { premiumStatus: 'premium', premiumExpiresAt: endDate });
@@ -240,4 +338,6 @@ mainRoutes.post('/admin/checklists', requireAuth, requireRole('admin'), asyncHan
 mainRoutes.patch('/admin/checklists/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await ChecklistTemplate.findByIdAndUpdate(req.params.id, req.body, { new: true }))));
 mainRoutes.post('/admin/premium-plans', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.status(201).json(await PremiumPlan.create(req.body))));
 mainRoutes.patch('/admin/premium-plans/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await PremiumPlan.findByIdAndUpdate(req.params.id, req.body, { new: true }))));
-
+mainRoutes.get('/admin/discounts', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Discount.find().sort({ createdAt: -1 }))));
+mainRoutes.post('/admin/discounts', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.status(201).json(await Discount.create(req.body))));
+mainRoutes.patch('/admin/discounts/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Discount.findByIdAndUpdate(req.params.id, req.body, { new: true }))));

@@ -25,7 +25,6 @@ const userSchema = new Schema(
   },
   { timestamps: true }
 );
-userSchema.index({ email: 1 }, { unique: true });
 
 const clientProfileSchema = new Schema(
   {
@@ -65,7 +64,9 @@ const designerProfileSchema = new Schema(
   },
   { timestamps: true }
 );
-designerProfileSchema.index({ categories: 1, skills: 1, styleTags: 1, ratingAverage: -1, premiumStatus: 1 });
+designerProfileSchema.index({ categories: 1, ratingAverage: -1, premiumStatus: 1 });
+designerProfileSchema.index({ skills: 1 });
+designerProfileSchema.index({ styleTags: 1 });
 designerProfileSchema.index({ title: 'text', bio: 'text', skills: 'text', categories: 'text', styleTags: 'text' });
 
 const portfolioSchema = new Schema(
@@ -232,6 +233,27 @@ const premiumPlanSchema = new Schema(
   { timestamps: true }
 );
 
+const discountSchema = new Schema(
+  {
+    code: { type: String, required: true, unique: true, uppercase: true, trim: true },
+    name: String,
+    description: String,
+    discountType: { type: String, enum: ['percent', 'fixed'], default: 'percent' },
+    value: { type: Number, required: true },
+    maxDiscount: Number,
+    minOrderAmount: { type: Number, default: 0 },
+    appliesTo: { type: String, enum: ['premium', 'project', 'all'], default: 'all' },
+    roleTarget: { type: String, enum: ['client', 'designer', 'both'], default: 'both' },
+    usageLimit: Number,
+    usedCount: { type: Number, default: 0 },
+    startsAt: Date,
+    endsAt: Date,
+    isActive: { type: Boolean, default: true }
+  },
+  { timestamps: true }
+);
+discountSchema.index({ appliesTo: 1, roleTarget: 1, isActive: 1 });
+
 const subscriptionSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -282,7 +304,7 @@ export const Review = model('Review', reviewSchema);
 export const Dispute = model('Dispute', disputeSchema);
 export const Notification = model('Notification', notificationSchema);
 export const PremiumPlan = model('PremiumPlan', premiumPlanSchema);
+export const Discount = model('Discount', discountSchema);
 export const Subscription = model('Subscription', subscriptionSchema);
 export const ChecklistTemplate = model('ChecklistTemplate', checklistTemplateSchema);
 export const ProjectComment = model('ProjectComment', projectCommentSchema);
-

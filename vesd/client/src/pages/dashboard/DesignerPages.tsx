@@ -9,7 +9,8 @@ import { ProjectCard } from './shared/ProjectCard';
 
 export function DesignerDashboard() {
   const { data = [] } = useQuery({ queryKey: ['designer-projects'], queryFn: endpoints.myProjects });
-  return <Dashboard title="Designer Dashboard"><div className="grid gap-4 md:grid-cols-5"><Metric label="Active projects" value={data.length} icon={FolderKanban} /><Metric label="New requests" value="4" icon={Clock} /><Metric label="Earnings" value="12M" icon={CreditCard} /><Metric label="Profile views" value="840" icon={BarChart3} /><Metric label="Pending payouts" value="2M" icon={WalletIcon} /></div><Section title="Project requests">{data.slice(0, 4).map((p: any) => <ProjectCard key={p._id} project={p} />)}</Section></Dashboard>;
+  const { data: summary } = useQuery({ queryKey: ['dashboard-summary'], queryFn: endpoints.dashboardSummary });
+  return <Dashboard title="Designer Dashboard"><div className="grid gap-4 md:grid-cols-5"><Metric label="Active projects" value={summary?.activeProjects ?? data.length} icon={FolderKanban} /><Metric label="New requests" value={summary?.newRequests ?? 0} icon={Clock} /><Metric label="Earnings" value={(summary?.totalEarned || 0).toLocaleString('vi-VN')} icon={CreditCard} /><Metric label="Profile views" value={summary?.profileViews ?? 0} icon={BarChart3} /><Metric label="Pending payouts" value={(summary?.pendingPayouts || 0).toLocaleString('vi-VN')} icon={WalletIcon} /></div><Section title="Project requests">{data.slice(0, 4).map((p: any) => <ProjectCard key={p._id} project={p} />)}</Section></Dashboard>;
 }
 
 function WalletIcon(props: any) { return <CreditCard {...props} />; }

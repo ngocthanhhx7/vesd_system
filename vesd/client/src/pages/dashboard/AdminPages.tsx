@@ -7,7 +7,8 @@ import { Dashboard } from './shared/Dashboard';
 import { Metric } from './shared/Metric';
 
 export function AdminDashboard() {
-  return <Dashboard title="Admin Dashboard"><div className="grid gap-4 md:grid-cols-4"><Metric label="Users" value="16" icon={Users} /><Metric label="Active projects" value="10" icon={FolderKanban} /><Metric label="Revenue" value="4.2M" icon={CreditCard} /><Metric label="Disputes" value="2" icon={ShieldAlert} /></div></Dashboard>;
+  const { data } = useQuery({ queryKey: ['admin-summary'], queryFn: endpoints.dashboardSummary });
+  return <Dashboard title="Admin Dashboard"><div className="grid gap-4 md:grid-cols-4"><Metric label="Users" value={data?.users ?? 0} icon={Users} /><Metric label="Active projects" value={data?.activeProjects ?? 0} icon={FolderKanban} /><Metric label="Revenue" value={(data?.revenue || 0).toLocaleString('vi-VN')} icon={CreditCard} /><Metric label="Disputes" value={data?.disputes ?? 0} icon={ShieldAlert} /></div></Dashboard>;
 }
 
 export function AdminListPage({ type }: { type: string }) {

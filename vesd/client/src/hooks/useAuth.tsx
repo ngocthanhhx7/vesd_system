@@ -5,6 +5,7 @@ type AuthContextValue = {
   user: ApiUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   register: (body: { name: string; email: string; password: string; role: string }) => Promise<void>;
   logout: () => void;
   hasRole: (role: string) => boolean;
@@ -34,6 +35,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     register: async (body) => {
       const data = await endpoints.register(body);
+      setToken(data.token);
+      setUser(data.user);
+    },
+    loginWithGoogle: async (credential) => {
+      const data = await endpoints.loginGoogle(credential);
       setToken(data.token);
       setUser(data.user);
     },

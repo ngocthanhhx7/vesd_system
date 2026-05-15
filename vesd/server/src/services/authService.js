@@ -1,8 +1,12 @@
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
+import { OAuth2Client } from 'google-auth-library';
 import { User, Wallet, ClientProfile, DesignerProfile } from '../models/index.js';
 import { ApiError } from '../utils/apiError.js';
 import { signToken } from '../utils/token.js';
+import { env } from '../config/env.js';
+
+const googleClient = new OAuth2Client(env.googleClientId);
 
 export const registerSchema = z.object({
   name: z.string().min(2),
@@ -42,5 +46,52 @@ export function sanitizeUser(user) {
   const obj = user.toObject ? user.toObject() : user;
   delete obj.passwordHash;
   return obj;
+}
+
+export async function googleLogin(credential) {
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: env.googleClientId
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) throw new ApiError(400, 'Khong the xac thuc tu Google');
+
+    const email = payload.email.toLowerCase();
+    const name = payload.name || 'Google User';
+    const avatar = payload.picture;
+
+    let user = await User.findOne({ email }).select('+passwordHash');
+
+    if (!user) {
+      // Create new user if not exists
+      // Generate a random strong password for google users to satisfy required schema
+      const randomPassword = Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10) + 'Aa1@';
+      const passwordHash = await bcrypt.hash(randomPassword, 12);
+      
+      user = await User.create({ 
+        name, 
+        email, 
+        passwordHash, 
+        roles: ['client'],
+        avatar,
+        status: 'active'
+      });
+      await Wallet.create({ userId: user._id });
+      await ClientProfile.create({ userId: user._id });
+    } else if (!user.avatar && avatar) {
+      // Update avatar if missing
+      user.avatar = avatar;
+      await user.save();
+    }
+
+    if (user.status !== 'active') throw new ApiError(403, 'Tai khoan dang bi khoa');
+
+    return { user: sanitizeUser(user), token: signToken(user) };
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    console.error('Google Auth Error:', error);
+    throw new ApiError(401, 'Xac thuc Google that bai');
+  }
 }
 
