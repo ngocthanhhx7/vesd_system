@@ -62,5 +62,8 @@ export const endpoints = {
   premiumMy: () => api<any[]>('/premium/my'),
   adminUsers: () => api<any[]>('/admin/users'),
   adminProjects: () => api<any[]>('/admin/projects'),
-  adminDisputes: () => api<any[]>('/admin/disputes')
+  adminDisputes: () => api<any[]>('/admin/disputes'),
+  adminDiscounts: () => api<any[]>('/admin/discounts'),
+  createDiscount: (body: unknown) => api<any>('/admin/discounts', { method: 'POST', body: JSON.stringify(body) }),
+  updateDiscount: (id: string, body: unknown) => api<any>(`/admin/discounts/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
 };

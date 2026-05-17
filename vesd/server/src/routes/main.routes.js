@@ -30,6 +30,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 const pageParams = (req) => ({ page: Math.max(Number(req.query.page || 1), 1), limit: Math.min(Number(req.query.limit || 12), 50) });
 const premiumAccountTypeForRole = (role) => (role === 'designer' ? 'designer_premium' : 'business_premium');
+const listQuery = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
 
 mainRoutes.get('/stats/public', asyncHandler(async (_req, res) => {
   const [freelancers, clients, activeProjects, ratingStats] = await Promise.all([
@@ -97,10 +98,30 @@ mainRoutes.patch('/clients/profile', requireAuth, requireRole('client'), asyncHa
 mainRoutes.get('/designers', asyncHandler(async (req, res) => {
   const { page, limit } = pageParams(req);
   const query = {};
-  if (req.query.category) query.categories = req.query.category;
+  const categories = listQuery(req.query.category);
+  const tags = listQuery(req.query.tags);
+  const experience = listQuery(req.query.experience);
+  if (categories.length) query.categories = { $in: categories };
   if (req.query.verified === 'true') query.verificationStatus = 'verified';
   if (req.query.style) query.styleTags = req.query.style;
+  if (tags.length) query.styleTags = { $in: tags };
   if (req.query.rating) query.ratingAverage = { $gte: Number(req.query.rating) };
+  if (req.query.minPrice || req.query.maxPrice) {
+    query.startingPrice = {};
+    if (req.query.minPrice) query.startingPrice.$gte = Number(req.query.minPrice);
+    if (req.query.maxPrice) query.startingPrice.$lte = Number(req.query.maxPrice);
+  }
+  if (req.query.dateRange && req.query.dateRange !== 'all') {
+    const days = Number(req.query.dateRange);
+    if (Number.isFinite(days) && days > 0) query.createdAt = { $gte: new Date(Date.now() - days * 86400000) };
+  }
+  if (experience.length) {
+    const experienceRegex = [];
+    if (experience.includes('beginner')) experienceRegex.push(/^[1-2]\s/);
+    if (experience.includes('intermediate')) experienceRegex.push(/^[3-5]\s/);
+    if (experience.includes('expert')) experienceRegex.push(/^[6-9]\s/);
+    if (experienceRegex.length) query.experience = { $in: experienceRegex };
+  }
   if (req.query.q) query.$text = { $search: req.query.q };
   const sortMap = {
     rating: { premiumStatus: -1, ratingAverage: -1 },
@@ -109,11 +130,18 @@ mainRoutes.get('/designers', asyncHandler(async (req, res) => {
     popularity: { premiumStatus: -1, profileViews: -1 }
   };
   const sort = sortMap[req.query.sort] || { premiumStatus: -1, ratingAverage: -1, completedProjects: -1 };
-  const [items, total] = await Promise.all([
+  const [items, total, categoryFacets] = await Promise.all([
     DesignerProfile.find(query).populate('userId', 'name avatar').sort(sort).skip((page - 1) * limit).limit(limit).lean(),
-    DesignerProfile.countDocuments(query)
+    DesignerProfile.countDocuments(query),
+    DesignerProfile.aggregate([{ $unwind: '$categories' }, { $group: { _id: '$categories', count: { $sum: 1 } } }])
   ]);
-  res.json({ items, total, page, pages: Math.ceil(total / limit) });
+  res.json({
+    items,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+    facets: { categories: Object.fromEntries(categoryFacets.map((item) => [item._id, item.count])) }
+  });
 }));
 
 mainRoutes.get('/designers/:idOrSlug', asyncHandler(async (req, res) => {

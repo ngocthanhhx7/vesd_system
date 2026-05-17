@@ -56,6 +56,7 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
   const copy = premiumCopy[roleTarget];
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [discountCode, setDiscountCode] = useState('');
+  const [discountResult, setDiscountResult] = useState<any>(null);
   const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
   const [message, setMessage] = useState('');
   const { data: plans = [] } = useQuery({ queryKey: ['plans', roleTarget], queryFn: () => endpoints.premiumPlans(`?role=${roleTarget}`) });
@@ -64,6 +65,18 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
   const activeProfile = roleTarget === 'designer' ? account?.designerProfile : account?.clientProfile;
   const activeSubscription = subscriptions.find((item: any) => item.status === 'active');
   const selectedPlan = plans.find((plan) => plan._id === selectedPlanId) || plans[0];
+  const finalAmount = discountResult?.finalAmount ?? selectedPlan?.price ?? 0;
+  const validateDiscount = useMutation({
+    mutationFn: () => endpoints.validateDiscount({ code: discountCode.trim(), amount: selectedPlan?.price || 0, appliesTo: 'premium' }),
+    onSuccess: (result) => {
+      setDiscountResult(result);
+      setMessage(result.discountAmount > 0 ? `Đã áp dụng mã ${result.code}, giảm ${formatVnd(result.discountAmount)}.` : 'Mã giảm giá hợp lệ.');
+    },
+    onError: (error) => {
+      setDiscountResult(null);
+      setMessage(error instanceof Error ? error.message : 'Không thể áp dụng mã giảm giá');
+    }
+  });
   const subscribe = useMutation({
     mutationFn: (plan: PremiumPlan) => endpoints.subscribe({ planId: plan._id, discountCode: discountCode.trim() || undefined, paymentMethod }),
     onSuccess: async () => {
@@ -132,7 +145,10 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
             <Select value={selectedPlan?._id || ''} onChange={(event) => setSelectedPlanId(event.target.value)}>
               {plans.map((plan) => <option key={plan._id} value={plan._id}>{plan.name}</option>)}
             </Select>
-            <Input value={discountCode} onChange={(event) => setDiscountCode(event.target.value)} placeholder="Mã giảm giá nếu có" />
+            <div className="flex gap-2">
+              <Input value={discountCode} onChange={(event) => { setDiscountCode(event.target.value); setDiscountResult(null); }} placeholder="Mã giảm giá nếu có" />
+              <Button variant="secondary" disabled={!discountCode.trim() || !selectedPlan || validateDiscount.isPending} onClick={() => validateDiscount.mutate()}>Áp dụng</Button>
+            </div>
             <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
               <option value="bank_transfer">Chuyển khoản ngân hàng</option>
               <option value="momo">MoMo</option>
@@ -141,7 +157,8 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
           </div>
           <div className="mt-5 rounded-lg bg-soft p-4">
             <p className="text-sm text-muted">Tổng thanh toán</p>
-            <p className="text-2xl font-black">{formatVnd(selectedPlan?.price)}</p>
+            <p className="text-2xl font-black">{formatVnd(finalAmount)}</p>
+            {discountResult?.discountAmount > 0 && <p className="mt-1 text-sm text-brand">Đã giảm {formatVnd(discountResult.discountAmount)} từ {formatVnd(selectedPlan?.price)}</p>}
             <p className="mt-1 text-sm text-muted">Hiệu lực 3 tháng sau khi thanh toán mock thành công.</p>
           </div>
           <Button className="mt-5 w-full" disabled={!selectedPlan || subscribe.isPending} onClick={() => selectedPlan && subscribe.mutate(selectedPlan)}>

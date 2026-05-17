@@ -25,6 +25,7 @@ export const dashboardLinks: Record<DashboardRole, string[][]> = {
     ['/admin/disputes', 'Disputes'],
     ['/admin/reviews', 'Reviews'],
     ['/admin/checklists', 'Checklist'],
-    ['/admin/premium', 'Premium']
+    ['/admin/premium', 'Premium'],
+    ['/admin/discounts', 'Mã giảm giá']
   ]
 };

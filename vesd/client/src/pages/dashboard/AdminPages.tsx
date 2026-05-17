@@ -1,6 +1,7 @@
-import { useQuery } from '@tanstack/react-query';
+import { FormEvent, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CreditCard, FolderKanban, ShieldAlert, Users } from 'lucide-react';
-import { Card, Input, StatusBadge } from '../../components/ui/Primitives';
+import { Card, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
 import { endpoints } from '../../services/api';
 import { Dashboard } from './shared/Dashboard';
@@ -19,4 +20,126 @@ export function AdminListPage({ type }: { type: string }) {
 
 export function AdminSimplePage({ title }: { title: string }) {
   return <Dashboard title={title}><Card><p className="text-muted">Quan ly, tim kiem, loc va cap nhat du lieu {title.toLowerCase()}.</p><div className="mt-4 flex gap-3"><Input placeholder="Search" /><Button>Save changes</Button></div></Card></Dashboard>;
+}
+
+const emptyDiscount = {
+  code: '',
+  name: '',
+  description: '',
+  discountType: 'percent',
+  value: '20',
+  maxDiscount: '',
+  minOrderAmount: '',
+  appliesTo: 'premium',
+  roleTarget: 'both',
+  usageLimit: '',
+  endsAt: '',
+  isActive: true
+};
+
+export function AdminDiscountsPage() {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState(emptyDiscount);
+  const { data = [] } = useQuery({ queryKey: ['admin-discounts'], queryFn: endpoints.adminDiscounts });
+  const createDiscount = useMutation({
+    mutationFn: () => endpoints.createDiscount(toDiscountPayload(form)),
+    onSuccess: async () => {
+      setForm(emptyDiscount);
+      await queryClient.invalidateQueries({ queryKey: ['admin-discounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['public-premium-discounts'] });
+    }
+  });
+  const updateDiscount = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: unknown }) => endpoints.updateDiscount(id, patch),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin-discounts'] });
+      await queryClient.invalidateQueries({ queryKey: ['public-premium-discounts'] });
+    }
+  });
+
+  function setField(key: keyof typeof emptyDiscount, value: string | boolean) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    createDiscount.mutate();
+  }
+
+  return (
+    <Dashboard title="Discount Management">
+      <div className="grid gap-4 lg:grid-cols-[420px_1fr]">
+        <Card>
+          <h2 className="text-xl font-black">Thêm mã giảm giá</h2>
+          <form className="mt-4 grid gap-3" onSubmit={submit}>
+            <Input placeholder="Code, ví dụ VESD20" value={form.code} onChange={(event) => setField('code', event.target.value.toUpperCase())} required />
+            <Input placeholder="Tên chương trình" value={form.name} onChange={(event) => setField('name', event.target.value)} />
+            <Textarea placeholder="Mô tả" value={form.description} onChange={(event) => setField('description', event.target.value)} />
+            <div className="grid gap-3 md:grid-cols-2">
+              <Select value={form.discountType} onChange={(event) => setField('discountType', event.target.value)}>
+                <option value="percent">Phần trăm</option>
+                <option value="fixed">Số tiền cố định</option>
+              </Select>
+              <Input type="number" min="0" placeholder="Giá trị" value={form.value} onChange={(event) => setField('value', event.target.value)} required />
+              <Input type="number" min="0" placeholder="Giảm tối đa" value={form.maxDiscount} onChange={(event) => setField('maxDiscount', event.target.value)} />
+              <Input type="number" min="0" placeholder="Đơn tối thiểu" value={form.minOrderAmount} onChange={(event) => setField('minOrderAmount', event.target.value)} />
+              <Select value={form.appliesTo} onChange={(event) => setField('appliesTo', event.target.value)}>
+                <option value="premium">Premium</option>
+                <option value="project">Project escrow</option>
+                <option value="all">Tất cả</option>
+              </Select>
+              <Select value={form.roleTarget} onChange={(event) => setField('roleTarget', event.target.value)}>
+                <option value="both">Designer & Business</option>
+                <option value="designer">Designer</option>
+                <option value="client">Business</option>
+              </Select>
+              <Input type="number" min="0" placeholder="Giới hạn lượt dùng" value={form.usageLimit} onChange={(event) => setField('usageLimit', event.target.value)} />
+              <Input type="date" value={form.endsAt} onChange={(event) => setField('endsAt', event.target.value)} />
+            </div>
+            <label className="flex items-center gap-2 text-base"><input className="h-5 w-5 accent-brand" type="checkbox" checked={form.isActive} onChange={(event) => setField('isActive', event.target.checked)} />Kích hoạt ngay</label>
+            <Button disabled={createDiscount.isPending}>{createDiscount.isPending ? 'Đang lưu...' : 'Tạo mã giảm giá'}</Button>
+          </form>
+        </Card>
+
+        <Card>
+          <h2 className="text-xl font-black">Mã đang có</h2>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-base">
+              <thead><tr className="border-b border-line"><th className="py-2">Code</th><th>Áp dụng</th><th>Giá trị</th><th>Lượt dùng</th><th>Trạng thái</th><th>Action</th></tr></thead>
+              <tbody>
+                {data.map((item: any) => (
+                  <tr key={item._id} className="border-b border-line">
+                    <td className="py-3 font-bold">{item.code}<p className="text-sm font-normal text-muted">{item.name}</p></td>
+                    <td>{item.appliesTo} / {item.roleTarget}</td>
+                    <td>{item.discountType === 'percent' ? `${item.value}%` : `${item.value?.toLocaleString('vi-VN')}đ`}</td>
+                    <td>{item.usedCount || 0}{item.usageLimit ? `/${item.usageLimit}` : ''}</td>
+                    <td><StatusBadge status={item.isActive ? 'active' : 'cancelled'} /></td>
+                    <td><Button variant="secondary" disabled={updateDiscount.isPending} onClick={() => updateDiscount.mutate({ id: item._id, patch: { isActive: !item.isActive } })}>{item.isActive ? 'Tắt' : 'Bật'}</Button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+    </Dashboard>
+  );
+}
+
+function toDiscountPayload(form: typeof emptyDiscount) {
+  return {
+    code: form.code,
+    name: form.name,
+    description: form.description,
+    discountType: form.discountType,
+    value: Number(form.value),
+    maxDiscount: form.maxDiscount ? Number(form.maxDiscount) : undefined,
+    minOrderAmount: form.minOrderAmount ? Number(form.minOrderAmount) : 0,
+    appliesTo: form.appliesTo,
+    roleTarget: form.roleTarget,
+    usageLimit: form.usageLimit ? Number(form.usageLimit) : undefined,
+    startsAt: new Date().toISOString(),
+    endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : undefined,
+    isActive: form.isActive
+  };
 }

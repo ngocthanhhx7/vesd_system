@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, CheckCircle2, Filter, Folder, Heart, Search, Send, Star, Users } from 'lucide-react';
@@ -291,6 +291,130 @@ export function HomePage() {
 }
 
 export function DesignersPage() {
+  const [params, setParams] = useSearchParams();
+  const page = Math.max(Number(params.get('page') || 1), 1);
+  const sort = params.get('sort') || 'rating';
+  const [keyword, setKeyword] = useState(params.get('q') || '');
+  const [maxPrice, setMaxPrice] = useState(params.get('maxPrice') || '1500000');
+  const query = `?${params.toString()}`;
+  const { data, isLoading } = useQuery({ queryKey: ['designers', query], queryFn: () => endpoints.designers(query) });
+  const { data: discounts = [] } = useQuery({ queryKey: ['public-premium-discounts'], queryFn: () => endpoints.activeDiscounts('?appliesTo=premium&role=designer') });
+  const designers = data?.items || [];
+  const pages = Math.max(data?.pages || 1, 1);
+  const total = data?.total || 0;
+  const selectedCategories = useMemo(() => new Set((params.get('category') || '').split(',').filter(Boolean)), [params]);
+  const selectedExperience = useMemo(() => new Set((params.get('experience') || '').split(',').filter(Boolean)), [params]);
+  const selectedTags = useMemo(() => new Set((params.get('tags') || '').split(',').filter(Boolean)), [params]);
+  const activeDiscount = discounts[0];
+  const discountLabel = activeDiscount ? (activeDiscount.discountType === 'percent' ? `Giảm tới ${activeDiscount.value}%` : `Giảm ${Number(activeDiscount.value).toLocaleString('vi-VN')}đ`) : 'Ưu đãi Premium';
+  const minOrderLabel = activeDiscount?.minOrderAmount ? `Đơn từ ${Number(activeDiscount.minOrderAmount).toLocaleString('vi-VN')}đ` : activeDiscount?.code ? `Mã ${activeDiscount.code}` : 'Mua ngay';
+
+  function replaceParams(updates: Record<string, string | null>) {
+    const next = new URLSearchParams(params);
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    });
+    setParams(next);
+  }
+
+  function toggleListParam(key: string, value: string, checked: boolean) {
+    const values = new Set((params.get(key) || '').split(',').filter(Boolean));
+    if (checked) values.add(value);
+    else values.delete(value);
+    replaceParams({ [key]: Array.from(values).join(','), page: '1' });
+  }
+
+  function applyFilters() {
+    replaceParams({ q: keyword.trim() || null, minPrice: '30000', maxPrice, page: '1' });
+  }
+
+  function goToPage(nextPage: number) {
+    replaceParams({ page: String(Math.min(Math.max(nextPage, 1), pages)) });
+  }
+
+  return (
+    <main className="bg-white">
+      <Seo title={'Explore designers Việt Nam | VESD'} description={'Tìm designer freelance và sinh viên thiết kế theo category, style, rating, budget và delivery time.'} />
+      <section className="vesd-pattern flex h-[204px] items-center justify-center text-white">
+        <p className="text-2xl tracking-wide">"Great design happens when great minds collaborate"</p>
+      </section>
+      <div className="container-page grid gap-8 py-14 lg:grid-cols-[320px_1fr]">
+        <aside className="self-start rounded-[20px] border border-[#CED8F4] bg-white px-6 py-7">
+          <div className="flex items-center justify-between gap-4"><h1 className="text-2xl font-bold">Tìm kiếm</h1><Button className="h-[42px] rounded-lg px-8" onClick={applyFilters}>Lọc</Button></div>
+          <div className="relative mt-7"><Search className="absolute left-4 top-3.5 text-brand" size={21} /><Input className="rounded-xl border-[#CED8F4] py-3 pl-12 text-base" placeholder="Tìm kiếm thông tin" value={keyword} onChange={(event) => setKeyword(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') applyFilters(); }} /></div>
+          <DesignerFilterSection title="Range giá"><input className="mt-5 h-1.5 w-full accent-brand" type="range" min={30000} max={1500000} step={10000} value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /><p className="mt-4 text-lg font-bold">Giá: 30K - {Number(maxPrice).toLocaleString('vi-VN')}</p></DesignerFilterSection>
+          <DesignerFilterSection title="Category">{categoryFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} count={data?.facets?.categories?.[item.value] || 0} checked={selectedCategories.has(item.value)} onChange={(checked) => toggleListParam('category', item.value, checked)} />)}</DesignerFilterSection>
+          <DesignerFilterSection title="Lọc theo"><Select className="border-0 px-0 text-brand" value={sort} onChange={(event) => replaceParams({ sort: event.target.value, page: '1' })}><option value="rating">Rating cao tới thấp</option><option value="price">Giá thấp</option><option value="popularity">Phổ biến</option><option value="newest">Mới nhất</option></Select></DesignerFilterSection>
+          <DesignerFilterSection title="Ngày đăng">{dateFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} count={item.value === 'all' ? total : undefined} checked={(params.get('dateRange') || 'all') === item.value} onChange={() => replaceParams({ dateRange: item.value === 'all' ? null : item.value, page: '1' })} />)}</DesignerFilterSection>
+          <DesignerFilterSection title="Trình độ kinh nghiệm">{experienceFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} checked={selectedExperience.has(item.value)} onChange={(checked) => toggleListParam('experience', item.value, checked)} />)}</DesignerFilterSection>
+          <DesignerFilterSection title="Các tags"><div className="flex flex-wrap gap-3">{tagFilters.map((tag) => <button key={tag.value} className={`rounded-full px-4 py-1.5 text-brand ${selectedTags.has(tag.value) ? 'bg-brand text-white' : 'bg-blue-50'}`} onClick={() => toggleListParam('tags', tag.value, !selectedTags.has(tag.value))}>{tag.label}</button>)}</div></DesignerFilterSection>
+          <Link className="relative mt-16 block min-h-[260px] overflow-hidden rounded-2xl text-white" to="/pricing">
+            <img className="absolute inset-0 h-full w-full object-cover" src="/assets/Frame 675679874.png" alt="" />
+            <span className="relative z-10 block p-7 text-xl font-bold">Mua Premium Ngay</span>
+            <span className="relative z-10 mx-auto mt-10 block w-36 text-center text-3xl font-black leading-tight">{discountLabel}</span>
+            <span className="relative z-10 mx-auto mt-6 block w-40 text-center text-xl font-bold">{minOrderLabel}</span>
+            <ArrowRight className="relative z-10 mx-auto mt-10" size={38} />
+          </Link>
+        </aside>
+        <section>
+          <div className="mb-7 flex items-center justify-between">
+            <h1 className="text-4xl font-bold">Kết quả ({total})</h1>
+            <Select className="w-auto border-0 text-brand" value={sort} onChange={(e) => replaceParams({ sort: e.target.value, page: '1' })}><option value="rating">Rating cao tới thấp</option><option value="price">Giá thấp</option><option value="popularity">Phổ biến</option><option value="newest">Mới nhất</option></Select>
+          </div>
+          <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">{isLoading ? Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="h-80" />) : designers.length ? designers.map((p: any) => <DesignerCard key={p._id} profile={p} />) : <div className="md:col-span-2 xl:col-span-3"><EmptyState title="Không tìm thấy designer phù hợp" description="Thử giảm điều kiện lọc hoặc đổi từ khóa tìm kiếm." /></div>}</div>
+          <DesignerPagination page={page} pages={pages} onPageChange={goToPage} />
+        </section>
+      </div>
+    </main>
+  );
+}
+
+const categoryFilters = [
+  { label: 'Graphic design', value: 'logo-design' },
+  { label: '3D Animation', value: 'poster-design' },
+  { label: 'Branding', value: 'brand-identity' },
+  { label: 'Illustration', value: 'social-media-design' }
+];
+
+const dateFilters = [
+  { label: 'Tất cả', value: 'all' },
+  { label: '24h Trước', value: '1' },
+  { label: '7 Ngày gần nhất', value: '7' },
+  { label: 'Tháng này', value: '30' }
+];
+
+const experienceFilters = [
+  { label: 'Mới bắt đầu', value: 'beginner' },
+  { label: 'Trung cấp', value: 'intermediate' },
+  { label: 'Chuyên gia', value: 'expert' }
+];
+
+const tagFilters = [
+  { label: 'giảm giá', value: 'premium' },
+  { label: 'App', value: 'modern' },
+  { label: 'thiết kế game', value: 'playful' },
+  { label: 'brand', value: 'corporate' },
+  { label: 'logo', value: 'minimal' },
+  { label: 'web', value: 'editorial' },
+  { label: 'ui ux', value: 'friendly' },
+  { label: 'Animation', value: 'bold' }
+];
+
+function DesignerFilterSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return <div className="mt-8"><div className="flex items-center justify-between"><h2 className="text-2xl font-bold">{title}</h2><ChevronIcon /></div><div className="mt-5 space-y-4">{children}</div></div>;
+}
+
+function DesignerCheckRow({ label, count, checked, onChange }: { label: string; count?: number; checked: boolean; onChange: (checked: boolean) => void }) {
+  return <label className="flex cursor-pointer items-center justify-between text-base"><span className="flex items-center gap-3"><input className="h-5 w-5 rounded border-slate-400 accent-brand" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />{label}</span>{typeof count === 'number' && <span className="text-slate-500">{count}</span>}</label>;
+}
+
+function DesignerPagination({ page, pages, onPageChange }: { page: number; pages: number; onPageChange: (page: number) => void }) {
+  const pageItems = Array.from(new Set([1, page - 1, page, page + 1, pages].filter((item) => item >= 1 && item <= pages)));
+  return <div className="mt-14 flex items-center justify-center gap-5 text-2xl text-brand">{pageItems.map((item, index) => <span key={item} className="flex items-center gap-5">{index > 0 && item - pageItems[index - 1] > 1 && <span>...</span>}<button className={item === page ? 'font-bold' : 'font-normal'} onClick={() => onPageChange(item)}>{item}</button></span>)}{page < pages && <button className="ml-4 inline-flex items-center gap-2 font-medium" onClick={() => onPageChange(page + 1)}>Trang kế <ArrowRight /></button>}</div>;
+}
+
+function LegacyDesignersPage() {
   const [params, setParams] = useSearchParams();
   const query = `?${params.toString()}`;
   const { data, isLoading } = useQuery({ queryKey: ['designers', query], queryFn: () => endpoints.designers(query) });

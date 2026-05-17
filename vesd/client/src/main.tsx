@@ -9,6 +9,7 @@ import { CategoryPage, DesignerProfilePage, DesignersPage, HelpPage, HomePage, P
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, RoleSelectionPage } from './pages/AuthPages';
 import {
   AdminDashboard,
+  AdminDiscountsPage,
   AdminListPage,
   AdminSimplePage,
   AgreementPage,
@@ -105,6 +106,7 @@ const router = createBrowserRouter([
         { path: 'reviews', element: <AdminSimplePage title="Review / Report Management" /> },
         { path: 'checklists', element: <AdminSimplePage title="Checklist Management" /> },
         { path: 'premium', element: <AdminSimplePage title="Premium Package Management" /> },
+        { path: 'discounts', element: <AdminDiscountsPage /> },
         { path: 'settings', element: <AdminSimplePage title="Admin Settings" /> }
       ]
     }]
