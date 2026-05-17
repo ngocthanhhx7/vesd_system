@@ -75,6 +75,7 @@ export async function googleLogin(credential) {
         passwordHash, 
         roles: ['client'],
         avatar,
+        emailVerified: Boolean(payload.email_verified),
         status: 'active'
       });
       await Wallet.create({ userId: user._id });
@@ -82,6 +83,7 @@ export async function googleLogin(credential) {
     } else if (!user.avatar && avatar) {
       // Update avatar if missing
       user.avatar = avatar;
+      user.emailVerified = user.emailVerified || Boolean(payload.email_verified);
       await user.save();
     }
 
@@ -94,4 +96,3 @@ export async function googleLogin(credential) {
     throw new ApiError(401, 'Xac thuc Google that bai');
   }
 }
-

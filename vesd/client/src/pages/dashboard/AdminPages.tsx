@@ -34,6 +34,7 @@ const emptyDiscount = {
   roleTarget: 'both',
   usageLimit: '',
   endsAt: '',
+  showOnHome: false,
   isActive: true
 };
 
@@ -97,6 +98,7 @@ export function AdminDiscountsPage() {
               <Input type="date" value={form.endsAt} onChange={(event) => setField('endsAt', event.target.value)} />
             </div>
             <label className="flex items-center gap-2 text-base"><input className="h-5 w-5 accent-brand" type="checkbox" checked={form.isActive} onChange={(event) => setField('isActive', event.target.checked)} />Kích hoạt ngay</label>
+            <label className="flex items-center gap-2 text-base"><input className="h-5 w-5 accent-brand" type="checkbox" checked={form.showOnHome} onChange={(event) => setField('showOnHome', event.target.checked)} />Hiển thị ở Home</label>
             <Button disabled={createDiscount.isPending}>{createDiscount.isPending ? 'Đang lưu...' : 'Tạo mã giảm giá'}</Button>
           </form>
         </Card>
@@ -105,7 +107,7 @@ export function AdminDiscountsPage() {
           <h2 className="text-xl font-black">Mã đang có</h2>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-base">
-              <thead><tr className="border-b border-line"><th className="py-2">Code</th><th>Áp dụng</th><th>Giá trị</th><th>Lượt dùng</th><th>Trạng thái</th><th>Action</th></tr></thead>
+              <thead><tr className="border-b border-line"><th className="py-2">Code</th><th>Áp dụng</th><th>Giá trị</th><th>Lượt dùng</th><th>Home</th><th>Trạng thái</th><th>Action</th></tr></thead>
               <tbody>
                 {data.map((item: any) => (
                   <tr key={item._id} className="border-b border-line">
@@ -113,6 +115,7 @@ export function AdminDiscountsPage() {
                     <td>{item.appliesTo} / {item.roleTarget}</td>
                     <td>{item.discountType === 'percent' ? `${item.value}%` : `${item.value?.toLocaleString('vi-VN')}đ`}</td>
                     <td>{item.usedCount || 0}{item.usageLimit ? `/${item.usageLimit}` : ''}</td>
+                    <td><Button variant={item.showOnHome ? 'primary' : 'secondary'} disabled={updateDiscount.isPending} onClick={() => updateDiscount.mutate({ id: item._id, patch: { showOnHome: !item.showOnHome } })}>{item.showOnHome ? 'Đang hiển thị' : 'Chọn'}</Button></td>
                     <td><StatusBadge status={item.isActive ? 'active' : 'cancelled'} /></td>
                     <td><Button variant="secondary" disabled={updateDiscount.isPending} onClick={() => updateDiscount.mutate({ id: item._id, patch: { isActive: !item.isActive } })}>{item.isActive ? 'Tắt' : 'Bật'}</Button></td>
                   </tr>
@@ -140,6 +143,7 @@ function toDiscountPayload(form: typeof emptyDiscount) {
     usageLimit: form.usageLimit ? Number(form.usageLimit) : undefined,
     startsAt: new Date().toISOString(),
     endsAt: form.endsAt ? new Date(form.endsAt).toISOString() : undefined,
+    showOnHome: form.showOnHome,
     isActive: form.isActive
   };
 }

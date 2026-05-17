@@ -21,6 +21,8 @@ const userSchema = new Schema(
     roles: [{ type: String, enum: ['client', 'designer', 'admin'], default: 'client' }],
     avatar: String,
     phone: String,
+    dateOfBirth: Date,
+    emailVerified: { type: Boolean, default: false },
     status: { type: String, enum: ['active', 'banned', 'pending'], default: 'active' }
   },
   { timestamps: true }
@@ -252,6 +254,7 @@ const discountSchema = new Schema(
     usedCount: { type: Number, default: 0 },
     startsAt: Date,
     endsAt: Date,
+    showOnHome: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }

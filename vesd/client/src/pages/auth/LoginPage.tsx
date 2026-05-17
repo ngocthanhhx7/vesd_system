@@ -19,7 +19,7 @@ export function LoginPage() {
     const fd = new FormData(e.currentTarget);
     try {
       await login(String(fd.get('email')), String(fd.get('password')));
-      navigate('/role-selection');
+      navigate('/');
     } catch (err: any) {
       setError(err.message);
     }
@@ -29,7 +29,7 @@ export function LoginPage() {
     try {
       setError('');
       await loginWithGoogle(credentialResponse.credential);
-      navigate('/role-selection');
+      navigate('/');
     } catch (err: any) {
       setError(err.message);
     }

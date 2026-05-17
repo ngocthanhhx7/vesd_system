@@ -45,6 +45,7 @@ async function createUser({ name, email, roles, avatarSeed = name }) {
     roles,
     passwordHash,
     avatar: `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(avatarSeed)}`,
+    emailVerified: true,
     status: 'active'
   });
   await Wallet.create({
@@ -155,7 +156,7 @@ async function run() {
   ]);
 
   await Discount.insertMany([
-    { code: 'VESD20', name: 'Giam gia VESD premium', description: 'Giam 20% cho goi Premium', discountType: 'percent', value: 20, maxDiscount: 150000, appliesTo: 'premium', roleTarget: 'both', usageLimit: 500, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 14 * 86400000) },
+    { code: 'VESD20', name: 'Giam gia VESD premium', description: 'Giam 20% cho goi Premium', discountType: 'percent', value: 20, maxDiscount: 150000, appliesTo: 'premium', roleTarget: 'both', usageLimit: 500, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 14 * 86400000), showOnHome: true },
     { code: 'FIRSTPROJECT', name: 'Du an dau tien', description: 'Giam 10% phi escrow cho doanh nghiep moi', discountType: 'percent', value: 10, maxDiscount: 300000, minOrderAmount: 1000000, appliesTo: 'project', roleTarget: 'client', usageLimit: 300, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 30 * 86400000) },
     { code: 'DESIGNER50K', name: 'Designer onboarding', description: 'Giam 50.000d cho designer nang cap Premium', discountType: 'fixed', value: 50000, appliesTo: 'premium', roleTarget: 'designer', usageLimit: 200, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 21 * 86400000) }
   ]);

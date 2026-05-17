@@ -9,6 +9,7 @@ type AuthContextValue = {
   register: (body: { name: string; email: string; password: string; role: string }) => Promise<void>;
   logout: () => void;
   hasRole: (role: string) => boolean;
+  updateUser: (user: ApiUser) => void;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -47,7 +48,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setToken(null);
       setUser(null);
     },
-    hasRole: (role) => Boolean(user?.roles.includes(role))
+    hasRole: (role) => Boolean(user?.roles.includes(role)),
+    updateUser: (nextUser) => setUser(nextUser)
   }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -58,4 +60,3 @@ export function useAuth() {
   if (!value) throw new Error('useAuth must be used inside AuthProvider');
   return value;
 }
-

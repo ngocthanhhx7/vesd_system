@@ -6,6 +6,9 @@ export type ApiUser = {
   email: string;
   roles: string[];
   avatar?: string;
+  phone?: string;
+  dateOfBirth?: string;
+  emailVerified?: boolean;
   status?: string;
 };
 
@@ -47,6 +50,8 @@ export const endpoints = {
   dashboardSummary: () => api<any>('/dashboard/summary'),
   me: () => api<{ user: ApiUser }>('/auth/me'),
   myAccount: () => api<{ user: ApiUser; clientProfile?: any; designerProfile?: any }>('/users/me'),
+  updateMe: (body: unknown) => api<ApiUser>('/users/me', { method: 'PATCH', body: JSON.stringify(body) }),
+  changePassword: (body: unknown) => api<any>('/users/me/password', { method: 'PATCH', body: JSON.stringify(body) }),
   login: (body: unknown) => api<{ user: ApiUser; token: string }>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   loginGoogle: (credential: string) => api<{ user: ApiUser; token: string }>('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }),
   register: (body: unknown) => api<{ user: ApiUser; token: string }>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),

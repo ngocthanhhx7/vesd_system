@@ -14,6 +14,7 @@ import {
   AdminSimplePage,
   AgreementPage,
   ChecklistPage,
+  ChangePasswordPage,
   ClientDashboard,
   CreateProjectPage,
   DesignerDashboard,
@@ -70,7 +71,8 @@ const router = createBrowserRouter([
         { path: 'wallet', element: <WalletPage /> },
         { path: 'premium', element: <PremiumPage roleTarget="client" /> },
         { path: 'reviews', element: <ReviewsPage /> },
-        { path: 'settings', element: <SettingsPage /> }
+        { path: 'settings', element: <SettingsPage /> },
+        { path: 'password', element: <ChangePasswordPage /> }
       ]
     }]
   },
@@ -87,7 +89,8 @@ const router = createBrowserRouter([
         { path: 'workspace/:id', element: <WorkspacePage designer /> },
         { path: 'earnings', element: <WalletPage /> },
         { path: 'premium', element: <PremiumPage roleTarget="designer" /> },
-        { path: 'settings', element: <SettingsPage /> }
+        { path: 'settings', element: <SettingsPage /> },
+        { path: 'password', element: <ChangePasswordPage /> }
       ]
     }]
   },
@@ -107,7 +110,8 @@ const router = createBrowserRouter([
         { path: 'checklists', element: <AdminSimplePage title="Checklist Management" /> },
         { path: 'premium', element: <AdminSimplePage title="Premium Package Management" /> },
         { path: 'discounts', element: <AdminDiscountsPage /> },
-        { path: 'settings', element: <AdminSimplePage title="Admin Settings" /> }
+        { path: 'settings', element: <SettingsPage /> },
+        { path: 'password', element: <ChangePasswordPage /> }
       ]
     }]
   }

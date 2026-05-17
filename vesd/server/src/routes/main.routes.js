@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
+import bcrypt from 'bcryptjs';
 import { uploadToS3 } from '../utils/s3.js';
 import slugify from 'slugify';
 import { requireAuth, requireRole } from '../middlewares/auth.js';
@@ -82,10 +83,27 @@ mainRoutes.get('/dashboard/summary', requireAuth, asyncHandler(async (req, res) 
 }));
 
 mainRoutes.patch('/users/me', requireAuth, asyncHandler(async (req, res) => {
-  const allowed = ['name', 'phone', 'avatar'];
+  const allowed = ['name', 'email', 'phone', 'avatar', 'dateOfBirth'];
   const patch = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
+  if (patch.email && patch.email !== req.user.email) {
+    const exists = await User.findOne({ email: String(patch.email).toLowerCase().trim(), _id: { $ne: req.user._id } });
+    if (exists) throw new ApiError(409, 'Email da duoc su dung');
+    patch.emailVerified = false;
+  }
   const user = await User.findByIdAndUpdate(req.user._id, patch, { new: true }).select('-passwordHash');
   res.json(user);
+}));
+
+mainRoutes.patch('/users/me/password', requireAuth, asyncHandler(async (req, res) => {
+  const currentPassword = String(req.body.currentPassword || '');
+  const newPassword = String(req.body.newPassword || '');
+  if (newPassword.length < 8) throw new ApiError(400, 'Mat khau moi toi thieu 8 ky tu');
+  const user = await User.findById(req.user._id).select('+passwordHash');
+  const ok = await bcrypt.compare(currentPassword, user.passwordHash);
+  if (!ok) throw new ApiError(401, 'Mat khau hien tai khong dung');
+  user.passwordHash = await bcrypt.hash(newPassword, 12);
+  await user.save();
+  res.json({ message: 'Da doi mat khau' });
 }));
 
 mainRoutes.patch('/clients/profile', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
@@ -299,13 +317,15 @@ mainRoutes.get('/discounts/active', asyncHandler(async (req, res) => {
   const now = new Date();
   const roleTarget = req.query.role || 'both';
   const appliesTo = req.query.appliesTo || 'all';
-  res.json(await Discount.find({
+  const query = {
     isActive: true,
     $or: [{ startsAt: null }, { startsAt: { $lte: now } }],
     $and: [{ $or: [{ endsAt: null }, { endsAt: { $gte: now } }] }],
-    roleTarget: { $in: [roleTarget, 'both'] },
     appliesTo: { $in: [appliesTo, 'all'] }
-  }).sort({ createdAt: -1 }));
+  };
+  if (req.query.home !== 'true') query.roleTarget = { $in: [roleTarget, 'both'] };
+  if (req.query.home === 'true') query.showOnHome = true;
+  res.json(await Discount.find(query).sort({ showOnHome: -1, createdAt: -1 }));
 }));
 mainRoutes.post('/discounts/validate', requireAuth, asyncHandler(async (req, res) => {
   const role = req.user.roles.includes('designer') ? 'designer' : 'client';
@@ -403,5 +423,11 @@ mainRoutes.patch('/admin/checklists/:id', requireAuth, requireRole('admin'), asy
 mainRoutes.post('/admin/premium-plans', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.status(201).json(await PremiumPlan.create(req.body))));
 mainRoutes.patch('/admin/premium-plans/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await PremiumPlan.findByIdAndUpdate(req.params.id, req.body, { new: true }))));
 mainRoutes.get('/admin/discounts', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Discount.find().sort({ createdAt: -1 }))));
-mainRoutes.post('/admin/discounts', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.status(201).json(await Discount.create(req.body))));
-mainRoutes.patch('/admin/discounts/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Discount.findByIdAndUpdate(req.params.id, req.body, { new: true }))));
+mainRoutes.post('/admin/discounts', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+  if (req.body.showOnHome) await Discount.updateMany({ showOnHome: true }, { showOnHome: false });
+  res.status(201).json(await Discount.create(req.body));
+}));
+mainRoutes.patch('/admin/discounts/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+  if (req.body.showOnHome) await Discount.updateMany({ _id: { $ne: req.params.id }, showOnHome: true }, { showOnHome: false });
+  res.json(await Discount.findByIdAndUpdate(req.params.id, req.body, { new: true }));
+}));
