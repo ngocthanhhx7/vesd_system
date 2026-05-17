@@ -22,11 +22,11 @@ export function PublicHeader() {
           <img src="/assets/vesd-logo-header-white.svg" alt="VESD" className="h-[33px] w-auto" />
         </Link>
         <nav className="hidden h-full items-center gap-[65px] text-base font-normal tracking-[.02em] md:flex">
-          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/designers">ThuÃª Freelancer</NavLink>
-          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/register">TÃ¬m viá»‡c</NavLink>
+          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/designers">Thuê Freelancer</NavLink>
+          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/register">Tìm việc</NavLink>
           <div className="group flex h-full items-center">
             <button className="flex items-center gap-2 text-white/95 hover:text-white">
-              Danh má»¥c <ChevronDown size={22} />
+              Danh mục <ChevronDown size={22} />
             </button>
             <div className="invisible absolute left-1/2 top-16 w-[min(1176px,calc(100vw-32px))] -translate-x-1/2 border border-line bg-white px-[96px] py-8 text-ink opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
               <div className="grid grid-cols-4 gap-x-[92px] gap-y-11">
@@ -45,11 +45,11 @@ export function PublicHeader() {
               </div>
             </div>
           </div>
-          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/client/create-project">Dá»± Ã¡n</NavLink>
+          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/client/create-project">Dự án</NavLink>
         </nav>
         <div className="flex items-center gap-6">
-          <button aria-label="TÃ¬m kiáº¿m" className="text-white/95 hover:text-white"><Search size={24} /></button>
-          <button aria-label="Tin nháº¯n" className="hidden text-white/95 hover:text-white sm:block"><Mail size={23} /></button>
+          <button aria-label="Tìm kiếm" className="text-white/95 hover:text-white"><Search size={24} /></button>
+          <button aria-label="Tin nhắn" className="hidden text-white/95 hover:text-white sm:block"><Mail size={23} /></button>
           {user ? (
             <div className="group relative flex h-16 items-center">
               <button aria-label="Tai khoan" className="h-9 w-9 overflow-hidden rounded-full border border-white/30 bg-white/10">
