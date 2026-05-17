@@ -12,6 +12,7 @@ export function RegisterPage() {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,17 +84,19 @@ export function RegisterPage() {
 
       <div className="mt-4 mb-6">
         <div className="rounded-full overflow-hidden h-11 relative">
-          <div className="absolute inset-0 opacity-0 z-10 w-full h-full">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={() => setError('Đăng ký bằng Google thất bại')}
-              theme="filled_black"
-              size="large"
-              width="100%"
-              text="signup_with"
-              shape="pill"
-            />
-          </div>
+          {googleClientId && (
+            <div className="absolute inset-0 opacity-0 z-10 w-full h-full">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={() => setError('Đăng ký bằng Google thất bại')}
+                theme="filled_black"
+                size="large"
+                width="100%"
+                text="signup_with"
+                shape="pill"
+              />
+            </div>
+          )}
           <button type="button" className="w-full h-full bg-[#5f5f5f] hover:bg-[#4f4f4f] text-white flex items-center justify-center gap-2 text-base font-medium transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -103,6 +106,14 @@ export function RegisterPage() {
             </svg>
             Đăng ký với Google
           </button>
+          {!googleClientId && (
+            <button
+              type="button"
+              aria-label="Google signup is not configured"
+              className="absolute inset-0 z-20"
+              onClick={() => setError('Chua cau hinh VITE_GOOGLE_CLIENT_ID cho frontend')}
+            />
+          )}
         </div>
       </div>
       
