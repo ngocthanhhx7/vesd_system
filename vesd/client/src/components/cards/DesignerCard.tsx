@@ -8,7 +8,10 @@ export function DesignerCard({ profile }: { profile: any }) {
   return (
     <Card className="flex h-[333px] w-full flex-col rounded-[14px] border-[#FBAD39] p-6 shadow-[0_2px_6px_rgba(48,150,137,0.08)]">
       <div className="flex items-center justify-between text-[9.33px] leading-4">
-        <div className="flex items-center gap-1 text-[#FBAD39]"><span>★★★★</span><span className="text-pale">★</span><span className="ml-1 text-[9.33px] font-medium text-[#596780]">127 Đánh giá</span></div>
+        <div className="flex items-center gap-1 text-[#FBAD39]">
+          <span>★★★★</span><span className="text-pale">★</span>
+          <span className="ml-1 text-[9.33px] font-medium text-[#596780]">127 đánh giá</span>
+        </div>
         <Bookmark className="text-muted" size={17} />
       </div>
       <div className="mt-3 flex items-start gap-[14px]">
@@ -18,7 +21,7 @@ export function DesignerCard({ profile }: { profile: any }) {
           <p className="text-xs leading-4 text-ink">Thanh Xuân, Hà Nội</p>
         </div>
       </div>
-      <p className="mt-[17px] line-clamp-4 flex-1 text-xs leading-[18px] text-ink">{profile.bio || 'Xin chào, tôi là Khang, tôi là Graphic Designer chuyên về thiết kế nhận diện thương hiệu và thiết kế...'}</p>
+      <p className="mt-[17px] line-clamp-4 flex-1 text-xs leading-[18px] text-ink">{profile.bio || 'Xin chào, tôi là Khang, tôi là designer chuyên về thiết kế nhận diện thương hiệu và thiết kế...'}</p>
       <div className="mt-4 grid grid-cols-2 gap-x-[11px] gap-y-[10px] text-[11.3px] font-semibold leading-[14px] text-[#6C757D]">
         <span className="flex items-center gap-2"><BriefcaseBusiness className="text-brand" size={17} />Trung cấp</span>
         <span className="flex items-center gap-2"><WalletCards className="text-brand" size={17} />100K - 320K</span>

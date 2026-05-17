@@ -11,11 +11,11 @@ import { Metric } from './shared/Metric';
 export function WalletPage() {
   const { data } = useQuery({ queryKey: ['wallet'], queryFn: endpoints.wallet });
   const { data: tx = [] } = useQuery({ queryKey: ['tx'], queryFn: endpoints.transactions });
-  return <Dashboard title="Wallet"><div className="grid gap-4 md:grid-cols-3"><Metric label="Balance" value={(data?.balance || 0).toLocaleString('vi-VN')} icon={CreditCard} /><Metric label="Escrow funded" value={(data?.escrowBalance || 0).toLocaleString('vi-VN')} icon={ShieldAlert} /><Metric label="Pending" value={(data?.pendingBalance || 0).toLocaleString('vi-VN')} icon={Clock} /></div><Section title="Transaction history">{tx.map((t: any) => <Card key={t._id}><div className="flex justify-between"><span>{t.type}</span><span>{t.amount?.toLocaleString('vi-VN')}d</span><StatusBadge status={t.status} /></div></Card>)}</Section></Dashboard>;
+  return <Dashboard title="Ví tiền"><div className="grid gap-4 md:grid-cols-3"><Metric label="Số dư" value={(data?.balance || 0).toLocaleString('vi-VN')} icon={CreditCard} /><Metric label="Đang giữ escrow" value={(data?.escrowBalance || 0).toLocaleString('vi-VN')} icon={ShieldAlert} /><Metric label="Đang chờ" value={(data?.pendingBalance || 0).toLocaleString('vi-VN')} icon={Clock} /></div><Section title="Lịch sử giao dịch">{tx.map((t: any) => <Card key={t._id}><div className="flex justify-between"><span>{t.type}</span><span>{t.amount?.toLocaleString('vi-VN')}đ</span><StatusBadge status={t.status} /></div></Card>)}</Section></Dashboard>;
 }
 
 export function ReviewsPage() {
-  return <Dashboard title="Đánh giá"><Card><Textarea placeholder="Viết đánh giá cho designer" /><Select className="mt-3"><option>5 sao</option><option>4 sao</option></Select><Button className="mt-3">Gửi review</Button></Card></Dashboard>;
+  return <Dashboard title="Đánh giá"><Card><Textarea placeholder="Viết đánh giá cho designer" /><Select className="mt-3"><option>5 sao</option><option>4 sao</option></Select><Button className="mt-3">Gửi đánh giá</Button></Card></Dashboard>;
 }
 
 export function SettingsPage() {
@@ -52,7 +52,7 @@ export function SettingsPage() {
         <div className="grid gap-4 md:grid-cols-2">
           <Input placeholder="Tên hiển thị" value={form.name} onChange={(event) => setField('name', event.target.value)} />
           <Input type="email" placeholder="Gmail" value={form.email} onChange={(event) => setField('email', event.target.value)} />
-          <Input placeholder="Avatar URL" value={form.avatar} onChange={(event) => setField('avatar', event.target.value)} />
+          <Input placeholder="Đường dẫn avatar" value={form.avatar} onChange={(event) => setField('avatar', event.target.value)} />
           <Input type="date" value={form.dateOfBirth} onChange={(event) => setField('dateOfBirth', event.target.value)} />
           <Input placeholder="Số điện thoại" value={form.phone} onChange={(event) => setField('phone', event.target.value)} />
           <Select><option>Bật thông báo email</option><option>Tắt</option></Select>

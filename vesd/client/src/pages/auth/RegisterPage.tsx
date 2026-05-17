@@ -71,8 +71,8 @@ export function RegisterPage() {
         <div className="space-y-1.5">
           <label className="text-sm font-semibold">Vai trò</label>
           <Select name="role" className="w-full border-gray-300">
-            <option value="client">Khách hàng (Client)</option>
-            <option value="designer">Người thiết kế (Designer)</option>
+            <option value="client">Khách hàng</option>
+            <option value="designer">Người thiết kế</option>
           </Select>
         </div>
 
@@ -93,7 +93,7 @@ export function RegisterPage() {
           <button
             type="button"
             className="h-11 w-full rounded-full bg-[#5f5f5f] text-base font-medium text-white"
-            onClick={() => setError('Chua cau hinh VITE_GOOGLE_CLIENT_ID cho frontend')}
+            onClick={() => setError('Chưa cấu hình VITE_GOOGLE_CLIENT_ID cho frontend')}
           >
             Đăng ký với Google
           </button>

@@ -1,31 +1,31 @@
 export const hotMenu = [
   {
-    title: 'Thiết kế thương hiệu (Branding)',
-    items: ['Thiết kế Logo', 'Thiết kế Brand Identity', 'Thiết kế Brand Guidelines', 'Thiết kế Logo animation', 'Thiết kế Business card', 'Thiết kế Brand kit', 'Thiết kế Letterhead']
+    title: 'Thiết kế thương hiệu',
+    items: ['Thiết kế logo', 'Bộ nhận diện thương hiệu', 'Quy chuẩn thương hiệu', 'Hoạt ảnh logo', 'Danh thiếp', 'Bộ tài sản thương hiệu', 'Tiêu đề thư']
   },
   {
-    title: 'Thiết kế UI / UX',
-    items: ['Thiết kế Website UI', 'Thiết kế Mobile App UI', 'Thiết kế Landing Page', 'Thiết kế Dashboard / SaaS', 'Thiết kế Design System', 'Wireframe']
+    title: 'Thiết kế UI/UX',
+    items: ['Thiết kế giao diện website', 'Thiết kế giao diện ứng dụng', 'Thiết kế landing page', 'Thiết kế dashboard/SaaS', 'Thiết kế hệ thống giao diện', 'Wireframe']
   },
   {
-    title: 'AI & công nghệ mới',
-    items: ['AI generated art', 'AI avatar', 'AI image editing']
+    title: 'AI và công nghệ mới',
+    items: ['Ảnh tạo bằng AI', 'Avatar AI', 'Chỉnh sửa ảnh bằng AI']
   },
   {
     title: 'Thiết kế 3D',
-    items: ['Thiết kế 3D', '3D Product Render', '3D Game Asset']
+    items: ['Thiết kế 3D', 'Render sản phẩm 3D', 'Asset game 3D']
   },
   {
-    title: 'Thiết kế đồ họa (Graphic Design)',
-    items: ['Poster', 'Banner quảng cáo', 'Infographic', 'Brochure', 'Billboard quảng cáo', 'Social media post']
+    title: 'Thiết kế đồ họa',
+    items: ['Poster', 'Banner quảng cáo', 'Infographic', 'Brochure', 'Billboard quảng cáo', 'Bài đăng mạng xã hội']
   },
   {
-    title: 'Illustration & Nghệ thuật',
-    items: ['Illustration', 'Character Design', 'Concept Art', 'Game Art', 'Truyện tranh / Manga', 'NFT Art']
+    title: 'Minh họa và nghệ thuật',
+    items: ['Minh họa', 'Thiết kế nhân vật', 'Concept art', 'Game art', 'Truyện tranh/Manga', 'Nghệ thuật NFT']
   },
   {
-    title: 'Motion',
-    items: ['Motion Graphic', 'Phim hoạt hình', 'Animation 2D', 'Animation 3D']
+    title: 'Chuyển động',
+    items: ['Đồ họa chuyển động', 'Phim hoạt hình', 'Hoạt ảnh 2D', 'Hoạt ảnh 3D']
   },
   {
     title: 'Khác',
@@ -35,20 +35,20 @@ export const hotMenu = [
 
 export const footerColumns = [
   {
-    title: 'Dành cho Freelancer',
-    items: ['Cách thuê Freelancer', 'Tìm Freelancer', 'Các top nhận việc']
+    title: 'Dành cho khách hàng',
+    items: ['Cách thuê freelancer', 'Tìm freelancer', 'Các top nhận việc']
   },
   {
-    title: 'Dành cho Freelancer',
-    items: ['Cách tìm việc', 'Việc làm Freelancer mới nhất', 'Tạo hồ sơ Freelancer', 'Gửi proposal cho dự án', 'Freelancer Plus', 'Tips kiếm khách hàng']
+    title: 'Dành cho freelancer',
+    items: ['Cách tìm việc', 'Việc làm freelancer mới nhất', 'Tạo hồ sơ freelancer', 'Gửi đề xuất cho dự án', 'Freelancer Plus', 'Tips kiếm khách hàng']
   },
   {
     title: 'Tài nguyên',
-    items: ['Trung tâm trợ giúp', 'Blog Freelancer', 'Tài nguyên học tập', 'Công cụ miễn phí cho doanh nghiệp', 'Câu chuyện thành công']
+    items: ['Trung tâm trợ giúp', 'Blog freelancer', 'Tài nguyên học tập', 'Công cụ miễn phí cho doanh nghiệp', 'Câu chuyện thành công']
   },
   {
     title: 'Công ty',
-    items: ['Về chúng tôi', 'Tuyển dụng', 'Đầu tư', 'Đối tác', 'Liên hệ', 'Bảo mật & an toàn', 'Điều khoản dịch vụ']
+    items: ['Về chúng tôi', 'Tuyển dụng', 'Đầu tư', 'Đối tác', 'Liên hệ', 'Bảo mật và an toàn', 'Điều khoản dịch vụ']
   }
 ];
 

@@ -11,21 +11,78 @@ import { ProjectCard } from './shared/ProjectCard';
 export function DesignerDashboard() {
   const { data = [] } = useQuery({ queryKey: ['designer-projects'], queryFn: endpoints.myProjects });
   const { data: summary } = useQuery({ queryKey: ['dashboard-summary'], queryFn: endpoints.dashboardSummary });
-  return <Dashboard title="Designer Dashboard"><div className="grid gap-4 md:grid-cols-5"><Metric label="Active projects" value={summary?.activeProjects ?? data.length} icon={FolderKanban} /><Metric label="New requests" value={summary?.newRequests ?? 0} icon={Clock} /><Metric label="Earnings" value={(summary?.totalEarned || 0).toLocaleString('vi-VN')} icon={CreditCard} /><Metric label="Profile views" value={summary?.profileViews ?? 0} icon={BarChart3} /><Metric label="Pending payouts" value={(summary?.pendingPayouts || 0).toLocaleString('vi-VN')} icon={WalletIcon} /></div><Section title="Project requests">{data.slice(0, 4).map((p: any) => <ProjectCard key={p._id} project={p} />)}</Section></Dashboard>;
+  return (
+    <Dashboard title="Tổng quan designer">
+      <div className="grid gap-4 md:grid-cols-5">
+        <Metric label="Dự án đang chạy" value={summary?.activeProjects ?? data.length} icon={FolderKanban} />
+        <Metric label="Yêu cầu mới" value={summary?.newRequests ?? 0} icon={Clock} />
+        <Metric label="Thu nhập" value={(summary?.totalEarned || 0).toLocaleString('vi-VN')} icon={CreditCard} />
+        <Metric label="Lượt xem hồ sơ" value={summary?.profileViews ?? 0} icon={BarChart3} />
+        <Metric label="Chờ rút tiền" value={(summary?.pendingPayouts || 0).toLocaleString('vi-VN')} icon={WalletIcon} />
+      </div>
+      <Section title="Yêu cầu dự án">{data.slice(0, 4).map((p: any) => <ProjectCard key={p._id} project={p} />)}</Section>
+    </Dashboard>
+  );
 }
 
 function WalletIcon(props: any) { return <CreditCard {...props} />; }
 
 export function DesignerProfileSetup() {
-  return <Dashboard title="Designer Profile Setup"><Card><form className="grid gap-4 md:grid-cols-2"><Input placeholder="Title" /><Input placeholder="Starting price" /><Textarea className="md:col-span-2" placeholder="Bio" /><Input placeholder="Skills" /><Input placeholder="Categories" /><Input placeholder="Style tags" /><Input placeholder="Availability" /><Input placeholder="Education" /><Input placeholder="Experience" /><Button>Gui xac minh</Button></form></Card></Dashboard>;
+  return (
+    <Dashboard title="Thiết lập hồ sơ designer">
+      <Card>
+        <form className="grid gap-4 md:grid-cols-2">
+          <Input placeholder="Tiêu đề hồ sơ" />
+          <Input placeholder="Giá khởi điểm" />
+          <Textarea className="md:col-span-2" placeholder="Giới thiệu bản thân" />
+          <Input placeholder="Kỹ năng" />
+          <Input placeholder="Danh mục thiết kế" />
+          <Input placeholder="Tag phong cách" />
+          <Input placeholder="Thời gian nhận việc" />
+          <Input placeholder="Học vấn" />
+          <Input placeholder="Kinh nghiệm" />
+          <Button>Gửi xác minh</Button>
+        </form>
+      </Card>
+    </Dashboard>
+  );
 }
 
 export function PortfolioManager() {
-  return <Dashboard title="Portfolio Manager"><Card><div className="grid gap-4 md:grid-cols-2"><Input placeholder="Project title" /><Input placeholder="Category" /><Textarea className="md:col-span-2" placeholder="Description" /><Input type="file" /><Input placeholder="Tools used" /><Button>Add portfolio item</Button></div></Card></Dashboard>;
+  return (
+    <Dashboard title="Quản lý hồ sơ năng lực">
+      <Card>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Input placeholder="Tên dự án" />
+          <Input placeholder="Danh mục" />
+          <Textarea className="md:col-span-2" placeholder="Mô tả" />
+          <Input type="file" />
+          <Input placeholder="Công cụ đã dùng" />
+          <Button>Thêm dự án vào hồ sơ</Button>
+        </div>
+      </Card>
+    </Dashboard>
+  );
 }
 
 export function RequestsPage() {
-  return <Dashboard title="Project Requests"><Section title="Incoming requests">{[1, 2, 3].map((i) => <Card key={i}><h3 className="font-bold">Yeu cau thiet ke #{i}</h3><p className="text-base text-muted">Client can de xuat scope va timeline.</p><div className="mt-4 flex gap-2"><Button>Accept</Button><Button variant="secondary">Send proposal</Button><Button variant="danger">Reject</Button></div></Card>)}</Section></Dashboard>;
+  return (
+    <Dashboard title="Yêu cầu dự án">
+      <Section title="Yêu cầu mới">
+        {[1, 2, 3].map((index) => (
+          <Card key={index}>
+            <h3 className="font-bold">Yêu cầu thiết kế #{index}</h3>
+            <p className="text-base text-muted">Khách hàng cần đề xuất phạm vi công việc và timeline.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button>Chấp nhận</Button>
+              <Button variant="secondary">Gửi đề xuất</Button>
+              <Button variant="danger">Từ chối</Button>
+            </div>
+          </Card>
+        ))}
+      </Section>
+    </Dashboard>
+  );
 }
 
 type PremiumPageProps = {

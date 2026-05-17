@@ -10,7 +10,7 @@ export function PublicFooter() {
         <div>
           <h3 className="text-base font-bold">Theo dõi chúng tôi</h3>
           <div className="mt-5 flex gap-5"><Instagram size={19} /><Facebook size={18} /><Youtube size={21} /><Linkedin size={18} /></div>
-          <h3 className="mt-14 text-base font-bold">Mobile app</h3>
+          <h3 className="mt-14 text-base font-bold">Ứng dụng di động</h3>
           <div className="mt-5 space-y-3 text-base text-soft"><a className="block underline" href="#">Android</a><a className="block underline" href="#">iOS</a></div>
         </div>
       </div>

@@ -15,8 +15,8 @@ export function ProjectCard({ project }: { project: any }) {
         </div>
       </div>
       <div className="mt-4 flex items-center justify-between rounded-lg bg-soft p-3 text-base">
-        <span className="font-bold text-brand">{project.budget?.agreed?.toLocaleString('vi-VN') || project.budget?.max?.toLocaleString('vi-VN')}d</span>
-        <Link className="font-semibold text-brand" to={`workspace/${project._id}`}>Mo workspace</Link>
+        <span className="font-bold text-brand">{project.budget?.agreed?.toLocaleString('vi-VN') || project.budget?.max?.toLocaleString('vi-VN')}đ</span>
+        <Link className="font-semibold text-brand" to={`workspace/${project._id}`}>Mở không gian làm việc</Link>
       </div>
     </Card>
   );

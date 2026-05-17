@@ -56,7 +56,7 @@ export function PublicHeader() {
                 {user.avatar ? <img className="h-full w-full object-cover" src={user.avatar} alt={user.name} /> : <UserRound className="m-1.5 h-6 w-6" />}
               </button>
               <div className="invisible absolute right-0 top-14 w-56 rounded-lg border border-line bg-white py-2 text-ink opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100">
-                <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(dashboardPath)}><LayoutDashboard size={17} />Dashboard</button>
+                <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(dashboardPath)}><LayoutDashboard size={17} />Bảng điều khiển</button>
                 <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(accountPath)}><Settings size={17} />Tài khoản</button>
                 <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(passwordPath)}><KeyRound size={17} />Đổi mật khẩu</button>
                 <button className="flex w-full items-center gap-3 px-4 py-2 text-left text-secondary hover:bg-soft" onClick={handleLogout}><LogOut size={17} />Đăng xuất</button>

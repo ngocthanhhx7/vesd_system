@@ -11,19 +11,19 @@ export const dashboardLinks: Record<DashboardRole, string[][]> = {
   designer: [
     ['/designer', 'Tổng quan'],
     ['/designer/profile', 'Hồ sơ'],
-    ['/designer/portfolio', 'Portfolio'],
+    ['/designer/portfolio', 'Hồ sơ năng lực'],
     ['/designer/requests', 'Yêu cầu'],
     ['/designer/earnings', 'Thu nhập'],
     ['/designer/premium', 'Premium']
   ],
   admin: [
     ['/admin', 'Tổng quan'],
-    ['/admin/users', 'Users'],
+    ['/admin/users', 'Người dùng'],
     ['/admin/verification', 'Xác minh'],
-    ['/admin/projects', 'Projects'],
+    ['/admin/projects', 'Dự án'],
     ['/admin/escrow', 'Escrow'],
-    ['/admin/disputes', 'Disputes'],
-    ['/admin/reviews', 'Reviews'],
+    ['/admin/disputes', 'Khiếu nại'],
+    ['/admin/reviews', 'Đánh giá'],
     ['/admin/checklists', 'Checklist'],
     ['/admin/premium', 'Premium'],
     ['/admin/discounts', 'Mã giảm giá']

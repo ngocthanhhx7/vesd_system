@@ -4,11 +4,11 @@ import { AuthShell } from './AuthShell';
 
 export function ResetPasswordPage() {
   return (
-    <AuthShell title="Dat lai mat khau">
+    <AuthShell title="Đặt lại mật khẩu">
       <div className="space-y-4">
-        <Input type="password" placeholder="Mat khau moi" />
-        <Input type="password" placeholder="Nhap lai mat khau" />
-        <Button className="w-full">Cap nhat mat khau</Button>
+        <Input type="password" placeholder="Mật khẩu mới" />
+        <Input type="password" placeholder="Nhập lại mật khẩu" />
+        <Button className="w-full">Cập nhật mật khẩu</Button>
       </div>
     </AuthShell>
   );

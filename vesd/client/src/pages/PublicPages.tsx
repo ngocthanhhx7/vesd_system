@@ -105,11 +105,11 @@ function getRemainingTime(target?: string) {
 }
 
 const categories = [
-  ['logo-design', 'Logo design'],
-  ['brand-identity', 'Brand identity'],
+  ['logo-design', 'Thiết kế logo'],
+  ['brand-identity', 'Nhận diện thương hiệu'],
   ['poster-design', 'Poster'],
-  ['social-media-design', 'Social media'],
-  ['packaging-design', 'Packaging'],
+  ['social-media-design', 'Mạng xã hội'],
+  ['packaging-design', 'Bao bì'],
   ['ui-ux-design', 'UI/UX']
 ];
 
@@ -122,8 +122,8 @@ export function HomePage() {
   const homeDiscountValue = homeDiscount ? (homeDiscount.discountType === 'percent' ? `Lên tới ${homeDiscount.value}%` : `Giảm ${Number(homeDiscount.value).toLocaleString('vi-VN')}đ`) : 'Lên tới 20%';
   const featured = data?.items?.length ? data.items : Array.from({ length: 3 }).map((_, index) => ({
     _id: `static-${index}`,
-    title: 'Graphic Designer',
-    bio: 'Xin chào, tôi là Khang, tôi là Graphic Designer chuyên về thiết kế nhận diện thương hiệu và thiết kế...',
+    title: 'Designer đồ họa',
+    bio: 'Xin chào, tôi là Khang, tôi là designer chuyên về thiết kế nhận diện thương hiệu và thiết kế...',
     startingPrice: 100000,
     ratingAverage: 4.7,
     completedProjects: 127,
@@ -131,27 +131,27 @@ export function HomePage() {
   }));
 
   const categoryCards = [
-    ['Graphic Design', 'Danh mục nổi bật nhất với hơn 12.000 người xem'],
-    ['2D Animation', 'Danh mục nổi bật nhất với hơn 12.000 người xem'],
+    ['Thiết kế đồ họa', 'Danh mục nổi bật nhất với hơn 12.000 người xem'],
+    ['Hoạt ảnh 2D', 'Danh mục nổi bật nhất với hơn 12.000 người xem'],
     ['Branding', 'Danh mục nổi bật nhất với hơn 12.000 người xem'],
-    ['Product Design', 'Danh mục nổi bật nhất với hơn 12.000 người xem'],
-    ['Branding', 'Danh mục được nhiều doanh nghiệp quan tâm nhất'],
+    ['Thiết kế sản phẩm', 'Danh mục nổi bật nhất với hơn 12.000 người xem'],
+    ['Thương hiệu', 'Danh mục được nhiều doanh nghiệp quan tâm nhất'],
     ['3D Art', 'Được nhiều nhà phát triển game quan tâm nhất'],
-    ['Poster Design', 'Danh mục có nhiều dự án nhất với hơn 5.000 dự án'],
-    ['AI Generated Art', 'Danh mục mới nhất của VESD với sự phát triển nhanh chóng trong cộng đồng']
+    ['Thiết kế poster', 'Danh mục có nhiều dự án nhất với hơn 5.000 dự án'],
+    ['Ảnh tạo bằng AI', 'Danh mục mới nhất của VESD với sự phát triển nhanh chóng trong cộng đồng']
   ];
 
   const milestoneItems = [
     { icon: Users, value: (stats?.freelancers ?? 5000).toLocaleString('vi-VN'), label: 'Freelancer trên cả nước' },
     { icon: Send, value: (stats?.clients ?? 12000).toLocaleString('vi-VN'), label: 'Khách hàng' },
     { icon: Folder, value: (stats?.activeProjects ?? 1302).toLocaleString('vi-VN'), label: 'Dự án đang diễn ra' },
-    { icon: Star, value: String(stats?.averageRating ?? 4.97), label: 'Trung bình Rating' }
+    { icon: Star, value: String(stats?.averageRating ?? 4.97), label: 'Đánh giá trung bình' }
   ];
 
   const testimonials = [
-    { name: 'Vũ Kim Thúy', rating: '529 Rating', quote: 'Quy trình làm việc thực sự rất minh bạch, mình rất hài lòng khi có một trang web freelancer có trình tự làm việc tốt như vậy.', tags: ['3D Artist', 'Animation', 'Freelancer'] },
-    { name: 'Nguyễn Hồng Vy', rating: '110 Rating', quote: 'Mình cảm thấy rất an tâm khi thuê các bạn freelancer qua VESD, chính sách và bảo mật rất rõ ràng và khách quan.', tags: ['Tech Startup', 'Client'] },
-    { name: 'Lê Duy Nam', rating: '472 Rating', quote: 'App này khá xin, mình thích.', tags: ['Tech Startup', 'Client'] }
+    { name: 'Vũ Kim Thúy', rating: '529 đánh giá', quote: 'Quy trình làm việc thực sự rất minh bạch, mình rất hài lòng khi có một trang web freelancer có trình tự làm việc tốt như vậy.', tags: ['Nghệ sĩ 3D', 'Hoạt ảnh', 'Freelancer'] },
+    { name: 'Nguyễn Hồng Vy', rating: '110 đánh giá', quote: 'Mình cảm thấy rất an tâm khi thuê các bạn freelancer qua VESD, chính sách và bảo mật rất rõ ràng và khách quan.', tags: ['Startup công nghệ', 'Khách hàng'] },
+    { name: 'Lê Duy Nam', rating: '472 đánh giá', quote: 'Ứng dụng này khá tốt, mình thích.', tags: ['Startup công nghệ', 'Khách hàng'] }
   ];
 
   const figmaNewsCards = [
@@ -186,7 +186,7 @@ export function HomePage() {
       </section>
       <section className="bg-white pb-[28px] pt-[17px]">
         <div className="container-page">
-          <p className="mb-[11px] text-center text-base font-normal tracking-[.02em] text-brand">Được hỗ trợ bởi</p>
+          <p className="mb-[11px] text-center text-base font-normal tracking-[.02em] text-brand">Với sự đồng hành của</p>
           <img className="mx-auto h-auto w-full max-w-[1197px]" src="/assets/sponsors.png" alt="Adobe, ArtStation, FPT University, Arena Multimedia, Behance" />
         </div>
       </section>
@@ -286,7 +286,7 @@ export function HomePage() {
                     <img className="h-10 w-10 rounded-full bg-soft object-cover" src={`https://api.dicebear.com/8.x/initials/svg?seed=${item.name}`} alt={item.name} loading="lazy" />
                     <div>
                       <h3 className="text-base font-bold leading-6 text-[#1A202C]">{item.name}</h3>
-                      <p className="mt-1 text-[9px] font-medium text-[#596780]"><span className="text-[#FBAD39]">â˜…â˜…â˜…â˜…â˜…</span> {item.rating}</p>
+                      <p className="mt-1 text-[9px] font-medium text-[#596780]"><span className="text-[#FBAD39]">★★★★★</span> {item.rating}</p>
                     </div>
                   </div>
                   <Heart className="h-4 w-4 fill-red-500 text-red-500" />
@@ -366,23 +366,23 @@ export function DesignersPage() {
 
   return (
     <main className="bg-white">
-      <Seo title={'Explore designers Việt Nam | VESD'} description={'Tìm designer freelance và sinh viên thiết kế theo category, style, rating, budget và delivery time.'} />
+      <Seo title={'Tìm designer Việt Nam | VESD'} description={'Tìm designer freelance và sinh viên thiết kế theo danh mục, phong cách, đánh giá, ngân sách và thời gian bàn giao.'} />
       <section className="vesd-pattern flex h-[204px] items-center justify-center text-white">
-        <p className="text-2xl tracking-wide">"Great design happens when great minds collaborate"</p>
+        <p className="text-2xl tracking-wide">"Thiết kế tốt bắt đầu từ sự cộng tác đúng người"</p>
       </section>
       <div className="container-page grid gap-8 py-14 lg:grid-cols-[320px_1fr]">
         <aside className="self-start rounded-[20px] border border-[#CED8F4] bg-white px-6 py-7">
           <div className="flex items-center justify-between gap-4"><h1 className="text-2xl font-bold">Tìm kiếm</h1><Button className="h-[42px] rounded-lg px-8" onClick={applyFilters}>Lọc</Button></div>
           <div className="relative mt-7"><Search className="absolute left-4 top-3.5 text-brand" size={21} /><Input className="rounded-xl border-[#CED8F4] py-3 pl-12 text-base" placeholder="Tìm kiếm thông tin" value={keyword} onChange={(event) => setKeyword(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') applyFilters(); }} /></div>
-          <DesignerFilterSection title="Range giá"><input className="mt-5 h-1.5 w-full accent-brand" type="range" min={30000} max={1500000} step={10000} value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /><p className="mt-4 text-lg font-bold">Giá: 30K - {Number(maxPrice).toLocaleString('vi-VN')}</p></DesignerFilterSection>
-          <DesignerFilterSection title="Category">{categoryFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} count={data?.facets?.categories?.[item.value] || 0} checked={selectedCategories.has(item.value)} onChange={(checked) => toggleListParam('category', item.value, checked)} />)}</DesignerFilterSection>
-          <DesignerFilterSection title="Lọc theo"><Select className="border-0 px-0 text-brand" value={sort} onChange={(event) => replaceParams({ sort: event.target.value, page: '1' })}><option value="rating">Rating cao tới thấp</option><option value="price">Giá thấp</option><option value="popularity">Phổ biến</option><option value="newest">Mới nhất</option></Select></DesignerFilterSection>
+          <DesignerFilterSection title="Khoảng giá"><input className="mt-5 h-1.5 w-full accent-brand" type="range" min={30000} max={1500000} step={10000} value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /><p className="mt-4 text-lg font-bold">Giá: 30K - {Number(maxPrice).toLocaleString('vi-VN')}</p></DesignerFilterSection>
+          <DesignerFilterSection title="Danh mục">{categoryFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} count={data?.facets?.categories?.[item.value] || 0} checked={selectedCategories.has(item.value)} onChange={(checked) => toggleListParam('category', item.value, checked)} />)}</DesignerFilterSection>
+          <DesignerFilterSection title="Sắp xếp"><Select className="border-0 px-0 text-brand" value={sort} onChange={(event) => replaceParams({ sort: event.target.value, page: '1' })}><option value="rating">Đánh giá cao tới thấp</option><option value="price">Giá thấp</option><option value="popularity">Phổ biến</option><option value="newest">Mới nhất</option></Select></DesignerFilterSection>
           <DesignerFilterSection title="Ngày đăng">{dateFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} count={item.value === 'all' ? total : undefined} checked={(params.get('dateRange') || 'all') === item.value} onChange={() => replaceParams({ dateRange: item.value === 'all' ? null : item.value, page: '1' })} />)}</DesignerFilterSection>
           <DesignerFilterSection title="Trình độ kinh nghiệm">{experienceFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} checked={selectedExperience.has(item.value)} onChange={(checked) => toggleListParam('experience', item.value, checked)} />)}</DesignerFilterSection>
-          <DesignerFilterSection title="Các tags"><div className="flex flex-wrap gap-3">{tagFilters.map((tag) => <button key={tag.value} className={`rounded-full px-4 py-1.5 text-brand ${selectedTags.has(tag.value) ? 'bg-brand text-white' : 'bg-blue-50'}`} onClick={() => toggleListParam('tags', tag.value, !selectedTags.has(tag.value))}>{tag.label}</button>)}</div></DesignerFilterSection>
+          <DesignerFilterSection title="Tag liên quan"><div className="flex flex-wrap gap-3">{tagFilters.map((tag) => <button key={tag.value} className={`rounded-full px-4 py-1.5 text-brand ${selectedTags.has(tag.value) ? 'bg-brand text-white' : 'bg-blue-50'}`} onClick={() => toggleListParam('tags', tag.value, !selectedTags.has(tag.value))}>{tag.label}</button>)}</div></DesignerFilterSection>
           <Link className="relative mt-16 block min-h-[260px] overflow-hidden rounded-2xl text-white" to="/pricing">
             <img className="absolute inset-0 h-full w-full object-cover" src="/assets/Frame 675679874.png" alt="" />
-            <span className="relative z-10 block p-7 text-xl font-bold">Mua Premium Ngay</span>
+            <span className="relative z-10 block p-7 text-xl font-bold">Mua Premium ngay</span>
             <span className="relative z-10 mx-auto mt-10 block w-36 text-center text-3xl font-black leading-tight">{discountLabel}</span>
             <span className="relative z-10 mx-auto mt-6 block w-40 text-center text-xl font-bold">{minOrderLabel}</span>
             <ArrowRight className="relative z-10 mx-auto mt-10" size={38} />
@@ -391,7 +391,7 @@ export function DesignersPage() {
         <section>
           <div className="mb-7 flex items-center justify-between">
             <h1 className="text-4xl font-bold">Kết quả ({total})</h1>
-            <Select className="w-auto border-0 text-brand" value={sort} onChange={(e) => replaceParams({ sort: e.target.value, page: '1' })}><option value="rating">Rating cao tới thấp</option><option value="price">Giá thấp</option><option value="popularity">Phổ biến</option><option value="newest">Mới nhất</option></Select>
+            <Select className="w-auto border-0 text-brand" value={sort} onChange={(e) => replaceParams({ sort: e.target.value, page: '1' })}><option value="rating">Đánh giá cao tới thấp</option><option value="price">Giá thấp</option><option value="popularity">Phổ biến</option><option value="newest">Mới nhất</option></Select>
           </div>
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">{isLoading ? Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="h-80" />) : designers.length ? designers.map((p: any) => <DesignerCard key={p._id} profile={p} />) : <div className="md:col-span-2 xl:col-span-3"><EmptyState title="Không tìm thấy designer phù hợp" description="Thử giảm điều kiện lọc hoặc đổi từ khóa tìm kiếm." /></div>}</div>
           <DesignerPagination page={page} pages={pages} onPageChange={goToPage} />
@@ -402,10 +402,10 @@ export function DesignersPage() {
 }
 
 const categoryFilters = [
-  { label: 'Graphic design', value: 'logo-design' },
-  { label: '3D Animation', value: 'poster-design' },
-  { label: 'Branding', value: 'brand-identity' },
-  { label: 'Illustration', value: 'social-media-design' }
+  { label: 'Thiết kế đồ họa', value: 'logo-design' },
+  { label: 'Hoạt ảnh 3D', value: 'poster-design' },
+  { label: 'Thương hiệu', value: 'brand-identity' },
+  { label: 'Minh họa', value: 'social-media-design' }
 ];
 
 const dateFilters = [
@@ -423,13 +423,13 @@ const experienceFilters = [
 
 const tagFilters = [
   { label: 'giảm giá', value: 'premium' },
-  { label: 'App', value: 'modern' },
+  { label: 'Ứng dụng', value: 'modern' },
   { label: 'thiết kế game', value: 'playful' },
-  { label: 'brand', value: 'corporate' },
+  { label: 'thương hiệu', value: 'corporate' },
   { label: 'logo', value: 'minimal' },
   { label: 'web', value: 'editorial' },
   { label: 'ui ux', value: 'friendly' },
-  { label: 'Animation', value: 'bold' }
+  { label: 'chuyển động', value: 'bold' }
 ];
 
 function DesignerFilterSection({ title, children }: { title: string; children: React.ReactNode }) {
@@ -461,11 +461,11 @@ export function DesignerProfilePage() {
     <main className="container-page py-10">
       <Seo title={`${user.name} - ${profile.title} | VESD`} description={`${user.name} nhận dự án ${profile.categories?.join(', ')} từ ${profile.startingPrice?.toLocaleString('vi-VN')}đ.`} schema={{ '@context': 'https://schema.org', '@type': 'Person', name: user.name, jobTitle: profile.title }} />
       <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        <Card><div className="flex flex-wrap items-center gap-4"><img className="h-24 w-24 rounded-full" src={user.avatar} alt={user.name} /><div><div className="flex gap-2"><h1 className="text-3xl font-black">{user.name}</h1>{profile.verificationStatus === 'verified' && <Badge tone="success">Verified</Badge>}{profile.premiumStatus === 'premium' && <Badge tone="premium">Premium</Badge>}</div><p className="text-muted">{profile.title}</p><RatingStars value={profile.ratingAverage} /></div></div><p className="mt-6 text-slate-700">{profile.bio}</p><div className="mt-5 flex flex-wrap gap-2">{profile.skills?.map((s: string) => <Badge key={s}>{s}</Badge>)}</div></Card>
+        <Card><div className="flex flex-wrap items-center gap-4"><img className="h-24 w-24 rounded-full" src={user.avatar} alt={user.name} /><div><div className="flex gap-2"><h1 className="text-3xl font-black">{user.name}</h1>{profile.verificationStatus === 'verified' && <Badge tone="success">Đã xác minh</Badge>}{profile.premiumStatus === 'premium' && <Badge tone="premium">Premium</Badge>}</div><p className="text-muted">{profile.title}</p><RatingStars value={profile.ratingAverage} /></div></div><p className="mt-6 text-slate-700">{profile.bio}</p><div className="mt-5 flex flex-wrap gap-2">{profile.skills?.map((s: string) => <Badge key={s}>{s}</Badge>)}</div></Card>
         <Card><p className="text-sm text-muted">Giá khởi điểm</p><p className="text-3xl font-black">{profile.startingPrice?.toLocaleString('vi-VN')}đ</p><Link to="/client/create-project"><Button className="mt-5 w-full">Thuê designer</Button></Link><Button variant="secondary" className="mt-3 w-full">Lưu hồ sơ</Button></Card>
       </div>
-      <h2 className="mt-10 text-2xl font-black">Portfolio</h2><div className="mt-4 grid gap-4 md:grid-cols-3">{data.portfolio?.map((item: any) => <Card key={item._id}><img className="h-48 w-full rounded-lg object-cover" src={item.images?.[0]?.url} alt={item.title} loading="lazy" /><h3 className="mt-3 font-bold">{item.title}</h3><p className="text-sm text-muted">{item.description}</p></Card>)}</div>
-      <h2 className="mt-10 text-2xl font-black">Reviews</h2><div className="mt-4 grid gap-4 md:grid-cols-2">{data.reviews?.map((r: any) => <Card key={r._id}><RatingStars value={r.rating} /><p className="mt-3 text-sm">{r.content}</p></Card>)}</div>
+      <h2 className="mt-10 text-2xl font-black">Hồ sơ năng lực</h2><div className="mt-4 grid gap-4 md:grid-cols-3">{data.portfolio?.map((item: any) => <Card key={item._id}><img className="h-48 w-full rounded-lg object-cover" src={item.images?.[0]?.url} alt={item.title} loading="lazy" /><h3 className="mt-3 font-bold">{item.title}</h3><p className="text-sm text-muted">{item.description}</p></Card>)}</div>
+      <h2 className="mt-10 text-2xl font-black">Đánh giá</h2><div className="mt-4 grid gap-4 md:grid-cols-2">{data.reviews?.map((r: any) => <Card key={r._id}><RatingStars value={r.rating} /><p className="mt-3 text-sm">{r.content}</p></Card>)}</div>
     </main>
   );
 }
@@ -485,11 +485,11 @@ export function PricingPage() {
     if (plan.roleTarget === 'designer' || user.roles.includes('designer')) return navigate('/designer/premium');
     return navigate('/client/premium');
   };
-  return <main className="container-page py-10"><Seo title="Bảng giá VESD" description="Các gói Free, Business Premium và Designer Premium trên VESD." /><h1 className="text-4xl font-black">Pricing</h1><div className="mt-6 grid gap-4 md:grid-cols-3">{(data || []).map((plan: any) => <Card key={plan._id}><Badge tone="premium">{plan.roleTarget}</Badge><h2 className="mt-3 text-2xl font-black">{plan.name}</h2><p className="mt-2 text-3xl font-black">{plan.price?.toLocaleString('vi-VN')}đ</p>{plan.benefits?.map((b: string) => <p key={b} className="mt-3 flex gap-2 text-sm"><CheckCircle2 className="text-brand" size={17} />{b}</p>)}<Button className="mt-5 w-full" onClick={() => openUpgrade(plan)}>Nâng cấp Premium</Button></Card>)}</div></main>;
+  return <main className="container-page py-10"><Seo title="Bảng giá VESD" description="Các gói miễn phí, Business Premium và Designer Premium trên VESD." /><h1 className="text-4xl font-black">Bảng giá</h1><div className="mt-6 grid gap-4 md:grid-cols-3">{(data || []).map((plan: any) => <Card key={plan._id}><Badge tone="premium">{plan.roleTarget === 'client' ? 'Doanh nghiệp' : plan.roleTarget === 'designer' ? 'Designer' : 'Tất cả'}</Badge><h2 className="mt-3 text-2xl font-black">{plan.name}</h2><p className="mt-2 text-3xl font-black">{plan.price?.toLocaleString('vi-VN')}đ</p>{plan.benefits?.map((b: string) => <p key={b} className="mt-3 flex gap-2 text-sm"><CheckCircle2 className="text-brand" size={17} />{b}</p>)}<Button className="mt-5 w-full" onClick={() => openUpgrade(plan)}>Nâng cấp Premium</Button></Card>)}</div></main>;
 }
 
 export function HelpPage() {
-  const topics = ['Escrow guide', 'Project milestone guide', 'File handover checklist', 'Dispute policy', 'FAQ'];
-  return <main className="container-page py-10"><Seo title="Help Center VESD" description="Hướng dẫn escrow, milestone, checklist bàn giao và dispute policy." /><h1 className="text-4xl font-black">Help Center</h1><div className="mt-6 grid gap-4 md:grid-cols-2">{topics.map((t) => <Card key={t}><h2 className="font-bold">{t}</h2><p className="mt-2 text-sm text-muted">Quy trình minh bạch để client và designer làm việc an toàn trên VESD.</p></Card>)}</div></main>;
+  const topics = ['Hướng dẫn escrow', 'Hướng dẫn milestone dự án', 'Checklist bàn giao file', 'Chính sách khiếu nại', 'Câu hỏi thường gặp'];
+  return <main className="container-page py-10"><Seo title="Trung tâm trợ giúp VESD" description="Hướng dẫn escrow, milestone, checklist bàn giao và chính sách khiếu nại." /><h1 className="text-4xl font-black">Trung tâm trợ giúp</h1><div className="mt-6 grid gap-4 md:grid-cols-2">{topics.map((t) => <Card key={t}><h2 className="font-bold">{t}</h2><p className="mt-2 text-sm text-muted">Quy trình minh bạch để khách hàng và designer làm việc an toàn trên VESD.</p></Card>)}</div></main>;
 }
 

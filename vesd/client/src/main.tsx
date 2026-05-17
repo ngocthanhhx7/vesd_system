@@ -102,9 +102,9 @@ const router = createBrowserRouter([
       children: [
         { index: true, element: <AdminDashboard /> },
         { path: 'users', element: <AdminListPage type="users" /> },
-        { path: 'verification', element: <AdminSimplePage title="Designer Verification Dashboard" /> },
+        { path: 'verification', element: <AdminSimplePage title="Xác minh designer" /> },
         { path: 'projects', element: <AdminListPage type="projects" /> },
-        { path: 'escrow', element: <AdminSimplePage title="Escrow / Transaction Management" /> },
+        { path: 'escrow', element: <AdminSimplePage title="Quản lý escrow và giao dịch" /> },
         { path: 'disputes', element: <AdminListPage type="disputes" /> },
         { path: 'reviews', element: <AdminSimplePage title="Review / Report Management" /> },
         { path: 'checklists', element: <AdminSimplePage title="Checklist Management" /> },

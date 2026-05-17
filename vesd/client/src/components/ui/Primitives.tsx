@@ -38,7 +38,25 @@ export function StatusBadge({ status }: { status?: string }) {
   const danger = ['cancelled', 'disputed', 'banned', 'rejected'];
   const success = ['completed', 'verified', 'success', 'active', 'approved'];
   const warning = ['pending', 'payment_pending', 'revision_requested', 'under_review'];
-  return <Badge tone={danger.includes(status || '') ? 'danger' : success.includes(status || '') ? 'success' : warning.includes(status || '') ? 'warning' : 'info'}>{status || 'draft'}</Badge>;
+  const labels: Record<string, string> = {
+    active: 'Đang hoạt động',
+    approved: 'Đã duyệt',
+    banned: 'Đã khóa',
+    cancelled: 'Đã hủy',
+    completed: 'Hoàn thành',
+    disputed: 'Đang khiếu nại',
+    draft: 'Bản nháp',
+    free: 'Miễn phí',
+    payment_pending: 'Chờ thanh toán',
+    pending: 'Đang chờ',
+    rejected: 'Từ chối',
+    revision_requested: 'Yêu cầu chỉnh sửa',
+    success: 'Thành công',
+    under_review: 'Đang xét duyệt',
+    verified: 'Đã xác minh'
+  };
+  const value = status || 'draft';
+  return <Badge tone={danger.includes(value) ? 'danger' : success.includes(value) ? 'success' : warning.includes(value) ? 'warning' : 'info'}>{labels[value] || value}</Badge>;
 }
 
 export function Skeleton({ className }: { className?: string }) {

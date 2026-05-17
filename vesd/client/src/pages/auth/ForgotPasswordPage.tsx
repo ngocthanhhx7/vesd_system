@@ -4,10 +4,10 @@ import { AuthShell } from './AuthShell';
 
 export function ForgotPasswordPage() {
   return (
-    <AuthShell title="Khoi phuc mat khau">
+    <AuthShell title="Khôi phục mật khẩu">
       <div className="space-y-4">
-        <Input type="email" placeholder="Email cua ban" />
-        <Button className="w-full">Gui link khoi phuc</Button>
+        <Input type="email" placeholder="Email của bạn" />
+        <Button className="w-full">Gửi link khôi phục</Button>
       </div>
     </AuthShell>
   );
