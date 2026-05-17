@@ -18,8 +18,8 @@ export function ClientDashboard() {
         <Metric label="Total spent" value={(summary?.totalSpent || 0).toLocaleString('vi-VN')} icon={CreditCard} />
         <Metric label="Saved designers" value="12" icon={Users} />
       </div>
-      <Section title="Du an gan day">
-        {data.length ? data.slice(0, 4).map((p: any) => <ProjectCard key={p._id} project={p} />) : <EmptyState title="Chua co du an" />}
+      <Section title="Dự án gần đây">
+        {data.length ? data.slice(0, 4).map((p: any) => <ProjectCard key={p._id} project={p} />) : <EmptyState title="Chưa có dự án" />}
       </Section>
     </Dashboard>
   );

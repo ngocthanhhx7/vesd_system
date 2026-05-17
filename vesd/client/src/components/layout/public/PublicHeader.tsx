@@ -52,18 +52,18 @@ export function PublicHeader() {
           <button aria-label="Tin nhắn" className="hidden text-white/95 hover:text-white sm:block"><Mail size={23} /></button>
           {user ? (
             <div className="group relative flex h-16 items-center">
-              <button aria-label="Tai khoan" className="h-9 w-9 overflow-hidden rounded-full border border-white/30 bg-white/10">
+              <button aria-label="Tài khoản" className="h-9 w-9 overflow-hidden rounded-full border border-white/30 bg-white/10">
                 {user.avatar ? <img className="h-full w-full object-cover" src={user.avatar} alt={user.name} /> : <UserRound className="m-1.5 h-6 w-6" />}
               </button>
               <div className="invisible absolute right-0 top-14 w-56 rounded-lg border border-line bg-white py-2 text-ink opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100">
                 <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(dashboardPath)}><LayoutDashboard size={17} />Dashboard</button>
-                <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(accountPath)}><Settings size={17} />Tai khoan</button>
-                <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(passwordPath)}><KeyRound size={17} />Doi mat khau</button>
-                <button className="flex w-full items-center gap-3 px-4 py-2 text-left text-secondary hover:bg-soft" onClick={handleLogout}><LogOut size={17} />Dang xuat</button>
+                <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(accountPath)}><Settings size={17} />Tài khoản</button>
+                <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(passwordPath)}><KeyRound size={17} />Đổi mật khẩu</button>
+                <button className="flex w-full items-center gap-3 px-4 py-2 text-left text-secondary hover:bg-soft" onClick={handleLogout}><LogOut size={17} />Đăng xuất</button>
               </div>
             </div>
           ) : (
-            <button aria-label="Dang nhap" className="text-white/95 hover:text-white" onClick={() => navigate('/login')}>
+            <button aria-label="Đăng nhập" className="text-white/95 hover:text-white" onClick={() => navigate('/login')}>
               <UserRound size={24} />
             </button>
           )}

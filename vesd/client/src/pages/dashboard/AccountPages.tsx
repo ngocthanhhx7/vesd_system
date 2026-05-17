@@ -15,7 +15,7 @@ export function WalletPage() {
 }
 
 export function ReviewsPage() {
-  return <Dashboard title="Client Reviews"><Card><Textarea placeholder="Viet danh gia cho designer" /><Select className="mt-3"><option>5 sao</option><option>4 sao</option></Select><Button className="mt-3">Gui review</Button></Card></Dashboard>;
+  return <Dashboard title="Đánh giá"><Card><Textarea placeholder="Viết đánh giá cho designer" /><Select className="mt-3"><option>5 sao</option><option>4 sao</option></Select><Button className="mt-3">Gửi review</Button></Card></Dashboard>;
 }
 
 export function SettingsPage() {
@@ -37,9 +37,9 @@ export function SettingsPage() {
     mutationFn: () => endpoints.updateMe({ ...form, dateOfBirth: form.dateOfBirth || null }),
     onSuccess: (user) => {
       updateUser(user);
-      setMessage('Da cap nhat tai khoan');
+      setMessage('Đã cập nhật tài khoản');
     },
-    onError: (error) => setMessage(error instanceof Error ? error.message : 'Khong the cap nhat tai khoan')
+    onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể cập nhật tài khoản')
   });
   const setField = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
   return (
@@ -47,16 +47,16 @@ export function SettingsPage() {
       <Card>
         <div className="mb-5 flex items-center gap-4">
           <div className="h-16 w-16 overflow-hidden rounded-full bg-soft">{form.avatar ? <img className="h-full w-full object-cover" src={form.avatar} alt={form.name} /> : null}</div>
-          <div><h2 className="text-xl font-black">{form.name || 'Tai khoan VESD'}</h2><p className="text-sm text-muted">{data?.user?.emailVerified ? 'Email da xac thuc' : 'Email chua xac thuc'}</p></div>
+          <div><h2 className="text-xl font-black">{form.name || 'Tài khoản VESD'}</h2><p className="text-sm text-muted">{data?.user?.emailVerified ? 'Email đã xác thực' : 'Email chưa xác thực'}</p></div>
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           <Input placeholder="Tên hiển thị" value={form.name} onChange={(event) => setField('name', event.target.value)} />
           <Input type="email" placeholder="Gmail" value={form.email} onChange={(event) => setField('email', event.target.value)} />
           <Input placeholder="Avatar URL" value={form.avatar} onChange={(event) => setField('avatar', event.target.value)} />
           <Input type="date" value={form.dateOfBirth} onChange={(event) => setField('dateOfBirth', event.target.value)} />
-          <Input placeholder="Phone" value={form.phone} onChange={(event) => setField('phone', event.target.value)} />
-          <Select><option>Email notifications on</option><option>Off</option></Select>
-          <Button disabled={save.isPending} onClick={() => save.mutate()}>{save.isPending ? 'Dang luu...' : 'Luu cai dat'}</Button>
+          <Input placeholder="Số điện thoại" value={form.phone} onChange={(event) => setField('phone', event.target.value)} />
+          <Select><option>Bật thông báo email</option><option>Tắt</option></Select>
+          <Button disabled={save.isPending} onClick={() => save.mutate()}>{save.isPending ? 'Đang lưu...' : 'Lưu cài đặt'}</Button>
         </div>
         {message && <p className="mt-3 text-sm text-muted">{message}</p>}
       </Card>
@@ -68,13 +68,13 @@ export function ChangePasswordPage() {
   const [message, setMessage] = useState('');
   const change = useMutation({
     mutationFn: (body: unknown) => endpoints.changePassword(body),
-    onSuccess: () => setMessage('Da doi mat khau'),
-    onError: (error) => setMessage(error instanceof Error ? error.message : 'Khong the doi mat khau')
+    onSuccess: () => setMessage('Đã đổi mật khẩu'),
+    onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể đổi mật khẩu')
   });
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     change.mutate({ currentPassword: form.get('currentPassword'), newPassword: form.get('newPassword') });
   }
-  return <Dashboard title="Đổi mật khẩu"><Card><form className="grid gap-4 md:max-w-md" onSubmit={submit}><Input name="currentPassword" type="password" placeholder="Mật khẩu hiện tại" /><Input name="newPassword" type="password" placeholder="Mật khẩu mới" /><Button disabled={change.isPending}>{change.isPending ? 'Dang cap nhat...' : 'Doi mat khau'}</Button></form>{message && <p className="mt-3 text-sm text-muted">{message}</p>}</Card></Dashboard>;
+  return <Dashboard title="Đổi mật khẩu"><Card><form className="grid gap-4 md:max-w-md" onSubmit={submit}><Input name="currentPassword" type="password" placeholder="Mật khẩu hiện tại" /><Input name="newPassword" type="password" placeholder="Mật khẩu mới" /><Button disabled={change.isPending}>{change.isPending ? 'Đang cập nhật...' : 'Đổi mật khẩu'}</Button></form>{message && <p className="mt-3 text-sm text-muted">{message}</p>}</Card></Dashboard>;
 }
