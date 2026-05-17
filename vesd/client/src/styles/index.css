@@ -180,6 +180,10 @@ img {
   background-size: 34px 34px;
 }
 
+.auth-bg {
+  background: url('/assets/Rectangle 23786.png') center / cover no-repeat, #2453d6;
+}
+
 .vesd-pattern {
   background-color: #2c3d8f;
   background-image: linear-gradient(135deg, rgba(127,161,249,.28) 25%, transparent 25%),

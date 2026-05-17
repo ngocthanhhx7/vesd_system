@@ -3,11 +3,9 @@ import { Card } from '../../components/ui/Primitives';
 
 export function AuthShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <main className="blue-grid grid min-h-[calc(100vh-130px)] place-items-center py-10">
+    <main className="auth-bg min-h-screen flex items-center justify-center p-4">
       <Helmet><title>{title} | VESD</title></Helmet>
-      <Card className="w-[min(440px,calc(100%-32px))] border-0 shadow-2xl">
-        <img src="/assets/vesd-logo-blue.svg" alt="VESD" className="mb-6 h-10 w-auto" />
-        <h1 className="mb-6 text-2xl font-black">{title}</h1>
+      <Card className="w-full max-w-md bg-white rounded-xl shadow-2xl p-8 border-0">
         {children}
       </Card>
     </main>
