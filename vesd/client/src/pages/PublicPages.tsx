@@ -369,7 +369,7 @@ export function CategoryPage() {
 }
 
 export function PricingPage() {
-  const { data } = useQuery({ queryKey: ['plans'], queryFn: endpoints.premiumPlans });
+  const { data } = useQuery({ queryKey: ['plans'], queryFn: () => endpoints.premiumPlans() });
   return <main className="container-page py-10"><Seo title="Bảng giá VESD" description="Các gói Free, Business Premium và Designer Premium trên VESD." /><h1 className="text-4xl font-black">Pricing</h1><div className="mt-6 grid gap-4 md:grid-cols-3">{(data || []).map((plan: any) => <Card key={plan._id}><Badge tone="premium">{plan.roleTarget}</Badge><h2 className="mt-3 text-2xl font-black">{plan.name}</h2><p className="mt-2 text-3xl font-black">{plan.price?.toLocaleString('vi-VN')}đ</p>{plan.benefits?.map((b: string) => <p key={b} className="mt-3 flex gap-2 text-sm"><CheckCircle2 className="text-brand" size={17} />{b}</p>)}<Button className="mt-5 w-full">Nâng cấp Premium</Button></Card>)}</div></main>;
 }
 

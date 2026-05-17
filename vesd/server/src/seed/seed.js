@@ -75,7 +75,7 @@ async function run() {
   const demoDesigner = await createUser({ name: 'Designer Demo', email: 'designer@vesd.vn', roles: ['designer'] });
 
   const clients = [demoClient];
-  await ClientProfile.create({ userId: demoClient._id, companyName: companyNames[0], businessType: 'Startup', address: 'Quan 1, TP.HCM', taxCode: '0312345678', premiumStatus: 'premium', premiumExpiresAt: new Date(Date.now() + 45 * 86400000) });
+  await ClientProfile.create({ userId: demoClient._id, companyName: companyNames[0], businessType: 'Startup', address: 'Quan 1, TP.HCM', taxCode: '0312345678', accountType: 'business_premium', premiumStatus: 'premium', premiumExpiresAt: new Date(Date.now() + 45 * 86400000) });
   for (let i = 1; i < companyNames.length; i += 1) {
     const user = await createUser({ name: `Business Client ${i}`, email: `client${i}@vesd.vn`, roles: ['client'], avatarSeed: companyNames[i] });
     clients.push(user);
@@ -85,6 +85,7 @@ async function run() {
       businessType: ['Startup', 'F&B', 'E-commerce', 'Education', 'Manufacturing'][i % 5],
       address: ['TP.HCM', 'Ha Noi', 'Da Nang', 'Can Tho'][i % 4],
       taxCode: `03${String(10000000 + i).padStart(8, '0')}`,
+      accountType: i % 5 === 0 ? 'business_premium' : 'free',
       premiumStatus: i % 5 === 0 ? 'premium' : 'free',
       premiumExpiresAt: i % 5 === 0 ? new Date(Date.now() + 30 * 86400000) : null
     });
@@ -113,6 +114,7 @@ async function run() {
       ratingAverage: Number((4.35 + (i % 13) * 0.045).toFixed(2)),
       ratingCount: 6 + i * 2,
       completedProjects: 3 + i * 3,
+      accountType: i % 5 === 0 ? 'designer_premium' : 'free',
       premiumStatus: i % 5 === 0 ? 'premium' : 'free',
       premiumExpiresAt: i % 5 === 0 ? new Date(Date.now() + 60 * 86400000) : null,
       profileViews: 120 + i * 41
@@ -134,10 +136,22 @@ async function run() {
   await Portfolio.insertMany(portfolios);
 
   const plans = await PremiumPlan.insertMany([
-    { name: 'Designer Premium', roleTarget: 'designer', price: 199000, durationDays: 30, benefits: ['Uu tien hien thi', 'Badge premium', 'Analytics ho so', 'Goi y du an phu hop'] },
-    { name: 'Designer Pro 90', roleTarget: 'designer', price: 499000, durationDays: 90, benefits: ['Uu tien dai han', 'Ho tro portfolio', 'Thong ke nang cao'] },
-    { name: 'Business Premium', roleTarget: 'client', price: 299000, durationDays: 30, benefits: ['Uu tien matching', 'Ho tro dispute nhanh', 'Badge doanh nghiep', 'Quan ly nhieu brief'] },
-    { name: 'Business Plus 90', roleTarget: 'client', price: 699000, durationDays: 90, benefits: ['Tu van brief', 'Uu tien QC', 'Ho tro thanh toan escrow'] }
+    {
+      code: 'designer_premium',
+      name: 'Designer Premium',
+      roleTarget: 'designer',
+      price: 1299000,
+      durationDays: 90,
+      benefits: ['Tang hien thi ho so', 'Uu tien trong ket qua tim kiem', 'Co the nhan tich xanh uy tin', 'Tang co hoi nhan du an']
+    },
+    {
+      code: 'business_premium',
+      name: 'Business Premium',
+      roleTarget: 'client',
+      price: 2499000,
+      durationDays: 90,
+      benefits: ['Uu tien dang du an', 'Ket noi nhanh hon voi designer phu hop', 'Ho tro quan ly du an nang cao', 'Uu tien ho tro va xu ly khieu nai']
+    }
   ]);
 
   await Discount.insertMany([
@@ -172,6 +186,7 @@ async function run() {
       deliverables: ['Source file', 'PNG/JPG export', 'Guideline'],
       revisionLimit: 2 + (i % 2),
       revisionUsed: i % 3 === 0 ? 1 : 0,
+      priorityLevel: i % 5 === 0 ? 'premium' : 'standard',
       urgent: i % 6 === 0,
       printingSupport: i % 4 === 0,
       preferredDesignerLevel: ['junior', 'mid-level', 'senior'][i % 3],
@@ -217,8 +232,13 @@ async function run() {
   ]));
 
   await Subscription.insertMany([
-    { userId: demoClient._id, planId: plans[2]._id, startDate: new Date(Date.now() - 5 * 86400000), endDate: new Date(Date.now() + 25 * 86400000), status: 'active' },
-    { userId: demoDesigner._id, planId: plans[0]._id, startDate: new Date(Date.now() - 7 * 86400000), endDate: new Date(Date.now() + 23 * 86400000), status: 'active' }
+    { userId: demoClient._id, planId: plans[1]._id, accountType: 'business_premium', startDate: new Date(Date.now() - 5 * 86400000), endDate: new Date(Date.now() + 85 * 86400000), status: 'active' },
+    { userId: demoDesigner._id, planId: plans[0]._id, accountType: 'designer_premium', startDate: new Date(Date.now() - 7 * 86400000), endDate: new Date(Date.now() + 83 * 86400000), status: 'active' }
+  ]);
+
+  await Transaction.insertMany([
+    { userId: demoClient._id, type: 'premium', amount: 2499000, status: 'success', paymentMethod: 'bank_transfer', metadata: { planName: 'Business Premium', accountType: 'business_premium' } },
+    { userId: demoDesigner._id, type: 'premium', amount: 1299000, status: 'success', paymentMethod: 'momo', metadata: { planName: 'Designer Premium', accountType: 'designer_premium' } }
   ]);
 
   await Notification.insertMany([

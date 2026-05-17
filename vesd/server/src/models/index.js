@@ -34,6 +34,7 @@ const clientProfileSchema = new Schema(
     address: String,
     taxCode: String,
     billingInfo: Schema.Types.Mixed,
+    accountType: { type: String, enum: ['free', 'business_premium'], default: 'free' },
     premiumStatus: { type: String, enum: ['free', 'premium'], default: 'free' },
     premiumExpiresAt: Date
   },
@@ -58,6 +59,7 @@ const designerProfileSchema = new Schema(
     ratingAverage: { type: Number, default: 0 },
     ratingCount: { type: Number, default: 0 },
     completedProjects: { type: Number, default: 0 },
+    accountType: { type: String, enum: ['free', 'designer_premium'], default: 'free' },
     premiumStatus: { type: String, enum: ['free', 'premium'], default: 'free' },
     premiumExpiresAt: Date,
     profileViews: { type: Number, default: 0 }
@@ -111,6 +113,7 @@ const projectSchema = new Schema(
     deliverables: [String],
     revisionLimit: { type: Number, default: 2 },
     revisionUsed: { type: Number, default: 0 },
+    priorityLevel: { type: String, enum: ['standard', 'premium'], default: 'standard' },
     urgent: Boolean,
     printingSupport: Boolean,
     preferredDesignerLevel: String,
@@ -223,6 +226,7 @@ const notificationSchema = new Schema(
 
 const premiumPlanSchema = new Schema(
   {
+    code: { type: String, enum: ['designer_premium', 'business_premium'], required: true, unique: true },
     name: String,
     roleTarget: { type: String, enum: ['client', 'designer', 'both'] },
     price: Number,
@@ -258,6 +262,7 @@ const subscriptionSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     planId: { type: Schema.Types.ObjectId, ref: 'PremiumPlan', required: true },
+    accountType: { type: String, enum: ['designer_premium', 'business_premium'], required: true },
     startDate: Date,
     endDate: Date,
     status: { type: String, enum: ['active', 'expired', 'cancelled'], default: 'active' }

@@ -67,6 +67,7 @@ const router = createBrowserRouter([
         { path: 'workspace/:id', element: <WorkspacePage /> },
         { path: 'checklist', element: <ChecklistPage /> },
         { path: 'wallet', element: <WalletPage /> },
+        { path: 'premium', element: <PremiumPage roleTarget="client" /> },
         { path: 'reviews', element: <ReviewsPage /> },
         { path: 'settings', element: <SettingsPage /> }
       ]
@@ -84,7 +85,7 @@ const router = createBrowserRouter([
         { path: 'requests', element: <RequestsPage /> },
         { path: 'workspace/:id', element: <WorkspacePage designer /> },
         { path: 'earnings', element: <WalletPage /> },
-        { path: 'premium', element: <PremiumPage /> },
+        { path: 'premium', element: <PremiumPage roleTarget="designer" /> },
         { path: 'settings', element: <SettingsPage /> }
       ]
     }]

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Card, StatusBadge } from '../../../components/ui/Primitives';
+import { Badge, Card, StatusBadge } from '../../../components/ui/Primitives';
 
 export function ProjectCard({ project }: { project: any }) {
   return (
@@ -9,7 +9,10 @@ export function ProjectCard({ project }: { project: any }) {
           <h3 className="font-bold">{project.title}</h3>
           <p className="text-base text-muted">{project.category}</p>
         </div>
-        <StatusBadge status={project.status} />
+        <div className="flex flex-wrap justify-end gap-2">
+          {project.priorityLevel === 'premium' && <Badge tone="premium">Ưu tiên Premium</Badge>}
+          <StatusBadge status={project.status} />
+        </div>
       </div>
       <div className="mt-4 flex items-center justify-between rounded-lg bg-soft p-3 text-base">
         <span className="font-bold text-brand">{project.budget?.agreed?.toLocaleString('vi-VN') || project.budget?.max?.toLocaleString('vi-VN')}d</span>

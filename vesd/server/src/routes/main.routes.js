@@ -29,6 +29,7 @@ export const mainRoutes = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 
 const pageParams = (req) => ({ page: Math.max(Number(req.query.page || 1), 1), limit: Math.min(Number(req.query.limit || 12), 50) });
+const premiumAccountTypeForRole = (role) => (role === 'designer' ? 'designer_premium' : 'business_premium');
 
 mainRoutes.get('/stats/public', asyncHandler(async (_req, res) => {
   const [freelancers, clients, activeProjects, ratingStats] = await Promise.all([
@@ -148,7 +149,9 @@ mainRoutes.delete('/portfolio/:id', requireAuth, requireRole('designer'), asyncH
 }));
 
 mainRoutes.post('/projects', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
-  const project = await Project.create({ ...req.body, clientId: req.user._id, status: 'draft' });
+  const clientProfile = await ClientProfile.findOne({ userId: req.user._id });
+  const priorityLevel = clientProfile?.accountType === 'business_premium' && clientProfile?.premiumStatus === 'premium' ? 'premium' : 'standard';
+  const project = await Project.create({ ...req.body, clientId: req.user._id, priorityLevel, status: 'draft' });
   res.status(201).json(project);
 }));
 mainRoutes.get('/projects/my', requireAuth, asyncHandler(async (req, res) => {
@@ -259,7 +262,11 @@ mainRoutes.get('/disputes/my', requireAuth, asyncHandler(async (req, res) => {
   res.json(await Dispute.find({ projectId: { $in: projects.map((p) => p._id) } }).populate('projectId'));
 }));
 
-mainRoutes.get('/premium/plans', asyncHandler(async (_req, res) => res.json(await PremiumPlan.find({ isActive: true }))));
+mainRoutes.get('/premium/plans', asyncHandler(async (req, res) => {
+  const query = { isActive: true };
+  if (req.query.role) query.roleTarget = { $in: [req.query.role, 'both'] };
+  res.json(await PremiumPlan.find(query).sort({ roleTarget: 1, price: 1 }));
+}));
 mainRoutes.get('/discounts/active', asyncHandler(async (req, res) => {
   const now = new Date();
   const roleTarget = req.query.role || 'both';
@@ -281,18 +288,47 @@ mainRoutes.post('/premium/subscribe', requireAuth, asyncHandler(async (req, res)
   const plan = await PremiumPlan.findById(req.body.planId);
   if (!plan) throw new ApiError(404, 'Khong tim thay goi Premium');
   const role = req.user.roles.includes('designer') ? 'designer' : 'client';
+  if (plan.roleTarget !== 'both' && plan.roleTarget !== role) throw new ApiError(403, 'Goi Premium khong ap dung cho loai tai khoan hien tai');
   const { discount, discountAmount, finalAmount } = await validateDiscount({ code: req.body.discountCode, amount: plan.price, appliesTo: 'premium', role });
   const startDate = new Date();
   const endDate = new Date(Date.now() + plan.durationDays * 86400000);
-  await Transaction.create({ userId: req.user._id, type: 'premium', amount: finalAmount, status: 'success', paymentMethod: req.body.paymentMethod || 'mock', metadata: { originalAmount: plan.price, discountCode: discount?.code, discountAmount } });
+  const accountType = plan.code || premiumAccountTypeForRole(role);
+  await Transaction.create({
+    userId: req.user._id,
+    type: 'premium',
+    amount: finalAmount,
+    status: 'success',
+    paymentMethod: req.body.paymentMethod || 'mock',
+    metadata: { originalAmount: plan.price, discountCode: discount?.code, discountAmount, planId: plan._id, planName: plan.name, accountType }
+  });
   if (discount) {
     discount.usedCount += 1;
     await discount.save();
   }
-  const subscription = await Subscription.create({ userId: req.user._id, planId: plan._id, startDate, endDate, status: 'active' });
-  if (req.user.roles.includes('designer')) await DesignerProfile.findOneAndUpdate({ userId: req.user._id }, { premiumStatus: 'premium', premiumExpiresAt: endDate });
-  if (req.user.roles.includes('client')) await ClientProfile.findOneAndUpdate({ userId: req.user._id }, { premiumStatus: 'premium', premiumExpiresAt: endDate });
-  res.status(201).json(subscription);
+  await Subscription.updateMany({ userId: req.user._id, status: 'active' }, { status: 'expired' });
+  const subscription = await Subscription.create({ userId: req.user._id, planId: plan._id, accountType, startDate, endDate, status: 'active' });
+  if (role === 'designer') {
+    await DesignerProfile.findOneAndUpdate(
+      { userId: req.user._id },
+      { userId: req.user._id, accountType, premiumStatus: 'premium', premiumExpiresAt: endDate },
+      { upsert: true, new: true }
+    );
+  }
+  if (role === 'client') {
+    await ClientProfile.findOneAndUpdate(
+      { userId: req.user._id },
+      { userId: req.user._id, accountType, premiumStatus: 'premium', premiumExpiresAt: endDate },
+      { upsert: true, new: true }
+    );
+  }
+  await Notification.create({
+    userId: req.user._id,
+    title: 'Tai khoan Premium da kich hoat',
+    message: `${plan.name} co hieu luc den ${endDate.toLocaleDateString('vi-VN')}.`,
+    type: 'premium',
+    link: role === 'designer' ? '/designer/premium' : '/client/premium'
+  });
+  res.status(201).json(await subscription.populate('planId'));
 }));
 mainRoutes.get('/premium/my', requireAuth, asyncHandler(async (req, res) => res.json(await Subscription.find({ userId: req.user._id }).populate('planId'))));
 
@@ -313,7 +349,7 @@ mainRoutes.get('/admin/users', requireAuth, requireRole('admin'), asyncHandler(a
 mainRoutes.patch('/admin/users/:id/status', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await User.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true }).select('-passwordHash'))));
 mainRoutes.get('/admin/designers/pending', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await DesignerProfile.find({ verificationStatus: 'pending' }).populate('userId', 'name email avatar'))));
 mainRoutes.patch('/admin/designers/:id/verify', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await DesignerProfile.findByIdAndUpdate(req.params.id, { verificationStatus: req.body.status, verificationNote: req.body.note }, { new: true }))));
-mainRoutes.get('/admin/projects', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Project.find(req.query.status ? { status: req.query.status } : {}).populate('clientId designerId', 'name email avatar').sort({ updatedAt: -1 }))));
+mainRoutes.get('/admin/projects', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Project.find(req.query.status ? { status: req.query.status } : {}).populate('clientId designerId', 'name email avatar').sort({ priorityLevel: 1, updatedAt: -1 }))));
 mainRoutes.get('/admin/transactions', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Transaction.find().populate('userId', 'name email').sort({ createdAt: -1 }))));
 mainRoutes.get('/admin/disputes', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Dispute.find().populate('projectId openedBy resolvedBy').sort({ updatedAt: -1 }))));
 mainRoutes.get('/admin/disputes/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Dispute.findById(req.params.id).populate('projectId openedBy resolvedBy'))));

@@ -9,6 +9,17 @@ export type ApiUser = {
   status?: string;
 };
 
+export type PremiumPlan = {
+  _id: string;
+  code: 'designer_premium' | 'business_premium';
+  name: string;
+  roleTarget: 'client' | 'designer' | 'both';
+  price: number;
+  durationDays: number;
+  benefits: string[];
+  isActive: boolean;
+};
+
 export function getToken() {
   return localStorage.getItem('vesd_token');
 }
@@ -35,6 +46,7 @@ export const endpoints = {
   publicStats: () => api<any>('/stats/public'),
   dashboardSummary: () => api<any>('/dashboard/summary'),
   me: () => api<{ user: ApiUser }>('/auth/me'),
+  myAccount: () => api<{ user: ApiUser; clientProfile?: any; designerProfile?: any }>('/users/me'),
   login: (body: unknown) => api<{ user: ApiUser; token: string }>('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   loginGoogle: (credential: string) => api<{ user: ApiUser; token: string }>('/auth/google', { method: 'POST', body: JSON.stringify({ credential }) }),
   register: (body: unknown) => api<{ user: ApiUser; token: string }>('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
@@ -43,10 +55,11 @@ export const endpoints = {
   project: (id: string) => api<any>(`/projects/${id}`),
   wallet: () => api<any>('/wallet/my'),
   transactions: () => api<any[]>('/transactions/my'),
-  premiumPlans: () => api<any[]>('/premium/plans'),
+  premiumPlans: (query = '') => api<PremiumPlan[]>(`/premium/plans${query}`),
   activeDiscounts: (query = '') => api<any[]>(`/discounts/active${query}`),
   validateDiscount: (body: unknown) => api<any>('/discounts/validate', { method: 'POST', body: JSON.stringify(body) }),
   subscribe: (body: unknown) => api<any>('/premium/subscribe', { method: 'POST', body: JSON.stringify(body) }),
+  premiumMy: () => api<any[]>('/premium/my'),
   adminUsers: () => api<any[]>('/admin/users'),
   adminProjects: () => api<any[]>('/admin/projects'),
   adminDisputes: () => api<any[]>('/admin/disputes')
