@@ -310,3 +310,79 @@ img {
     url('/assets/news-pattern.svg') center center / 1535px 720px repeat,
     #9dafe5;
 }
+
+/* Step indicator badge for form sections */
+.step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2453D6 0%, #3764e0 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(36, 83, 214, .25);
+}
+
+/* File upload dropzone */
+.file-upload-zone label {
+  transition: border-color 200ms ease, background-color 200ms ease, transform 100ms ease;
+}
+
+.file-upload-zone label:active {
+  transform: scale(0.99);
+}
+
+/* Withdraw form card sections */
+.withdraw-step-card {
+  position: relative;
+  padding-left: 52px;
+}
+
+.withdraw-step-card .step-badge {
+  position: absolute;
+  left: 16px;
+  top: 18px;
+}
+
+/* Selected bank account highlight */
+.bank-account-card-selected {
+  border-color: #2453D6;
+  background: linear-gradient(135deg, rgba(36, 83, 214, .03) 0%, rgba(127, 161, 249, .06) 100%);
+  box-shadow: 0 0 0 1px rgba(36, 83, 214, .15), 0 4px 16px rgba(36, 83, 214, .08);
+}
+
+/* Withdraw summary card */
+.withdraw-balance-card {
+  background: linear-gradient(135deg, #2453D6 0%, #3764e0 50%, #4a75e8 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 8px 32px rgba(36, 83, 214, .22);
+}
+
+/* Form section smooth transitions */
+.form-section-enter {
+  animation: formFadeIn 300ms ease-out;
+}
+
+@keyframes formFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Transfer instruction card */
+.transfer-instruction-card {
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8eeff 100%);
+  border: 1px solid #CED8F4;
+  border-left: 4px solid #2453D6;
+}
+

@@ -68,3 +68,50 @@ export function Skeleton({ className }: { className?: string }) {
 export function EmptyState({ title, description }: { title: string; description?: string }) {
   return <Card className="text-center"><h3 className="font-semibold">{title}</h3>{description && <p className="mt-1 text-base text-muted">{description}</p>}</Card>;
 }
+
+export function FormGroup({ label, helper, required, children }: { label: string; helper?: string; required?: boolean; children: ReactNode }) {
+  return (
+    <div>
+      <label className="mb-1.5 block text-sm font-semibold text-ink">
+        {label}
+        {required && <span className="ml-0.5 text-red-500">*</span>}
+      </label>
+      {children}
+      {helper && <p className="mt-1 text-xs text-muted">{helper}</p>}
+    </div>
+  );
+}
+
+export function FileUpload({ accept, fileName, savedUrl, savedLabel, onChange }: {
+  accept?: string;
+  fileName?: string;
+  savedUrl?: string;
+  savedLabel?: string;
+  onChange: (file: File | null) => void;
+}) {
+  return (
+    <div className="file-upload-zone">
+      <label className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-line bg-soft/50 px-4 py-5 text-center transition hover:border-brand hover:bg-soft">
+        <svg className="h-8 w-8 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+        </svg>
+        <span className="text-sm font-medium text-muted">
+          {fileName ? fileName : 'Nhấp hoặc kéo thả ảnh vào đây'}
+        </span>
+        <input className="hidden" type="file" accept={accept || 'image/*'} onChange={(e) => onChange(e.target.files?.[0] || null)} />
+      </label>
+      {!fileName && savedUrl && (
+        <a className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline" href={savedUrl} target="_blank" rel="noreferrer">
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-4.5 0V6.375c0-.621.504-1.125 1.125-1.125H18M13.5 6l4.5 4.5" />
+          </svg>
+          {savedLabel || 'Xem ảnh đã lưu'}
+        </a>
+      )}
+    </div>
+  );
+}
+
+export function Divider({ className }: { className?: string }) {
+  return <hr className={clsx('border-t border-line', className)} />;
+}
