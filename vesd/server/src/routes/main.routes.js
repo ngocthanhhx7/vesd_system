@@ -17,6 +17,7 @@ import {
   Project,
   ProjectComment,
   Review,
+  SavedBankAccount,
   Subscription,
   Transaction,
   User,
@@ -317,6 +318,31 @@ mainRoutes.get('/transactions/my', requireAuth, asyncHandler(async (req, res) =>
 mainRoutes.get('/wallet/my', requireAuth, asyncHandler(async (req, res) => res.json(await Wallet.findOne({ userId: req.user._id }))));
 mainRoutes.post('/wallet/topup', requireAuth, asyncHandler(async (req, res) => res.status(201).json(await createPayosWalletTopup({ user: req.user, amount: req.body.amount, returnUrl: req.body.returnUrl, cancelUrl: req.body.cancelUrl }))));
 mainRoutes.post('/wallet/transfers/designer', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.status(201).json(await transferWalletToDesigner({ sender: req.user, designerId: req.body.designerId, projectId: req.body.projectId, amount: req.body.amount, note: req.body.note }))));
+mainRoutes.get('/bank-accounts/my', requireAuth, asyncHandler(async (req, res) => res.json(await SavedBankAccount.find({ userId: req.user._id }).sort({ isDefault: -1, createdAt: -1 }))));
+mainRoutes.post('/bank-accounts', requireAuth, asyncHandler(async (req, res) => {
+  if (req.body.isDefault) await SavedBankAccount.updateMany({ userId: req.user._id, isDefault: true }, { isDefault: false });
+  const account = await SavedBankAccount.create({
+    userId: req.user._id,
+    label: req.body.label,
+    bankName: req.body.bankName,
+    bankBin: req.body.bankBin,
+    accountNumber: req.body.accountNumber,
+    accountName: req.body.accountName,
+    qrImage: req.body.qrImage,
+    isDefault: Boolean(req.body.isDefault)
+  });
+  res.status(201).json(account);
+}));
+mainRoutes.patch('/bank-accounts/:id', requireAuth, asyncHandler(async (req, res) => {
+  if (req.body.isDefault) await SavedBankAccount.updateMany({ userId: req.user._id, isDefault: true, _id: { $ne: req.params.id } }, { isDefault: false });
+  const account = await SavedBankAccount.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, req.body, { new: true });
+  if (!account) throw new ApiError(404, 'Khong tim thay tai khoan ngan hang');
+  res.json(account);
+}));
+mainRoutes.delete('/bank-accounts/:id', requireAuth, asyncHandler(async (req, res) => {
+  await SavedBankAccount.deleteOne({ _id: req.params.id, userId: req.user._id });
+  res.json({ message: 'Da xoa tai khoan ngan hang' });
+}));
 mainRoutes.get('/withdrawals/my', requireAuth, asyncHandler(async (req, res) => res.json(await Withdrawal.find({ $or: [{ userId: req.user._id }, { designerId: req.user._id }] }).sort({ createdAt: -1 }))));
 mainRoutes.post('/withdrawals', requireAuth, asyncHandler(async (req, res) => {
   if (req.body.method === 'payos') {

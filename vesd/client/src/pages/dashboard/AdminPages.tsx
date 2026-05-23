@@ -112,6 +112,7 @@ export function AdminWithdrawalsPage() {
                       <p>{item.accountInfo?.bankName || item.accountInfo?.toBin}</p>
                       <p className="text-sm text-muted">{item.accountInfo?.toAccountNumber}</p>
                       <p className="text-sm text-muted">{item.accountInfo?.toAccountName}</p>
+                      {item.accountInfo?.qrImage?.url && <a className="mt-1 inline-block text-sm font-semibold text-brand" href={item.accountInfo.qrImage.url} target="_blank" rel="noreferrer">Xem QR</a>}
                     </td>
                     <td>
                       <p className="font-semibold">{item.referenceId}</p>

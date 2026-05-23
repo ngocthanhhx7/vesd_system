@@ -1,4 +1,4 @@
-import { Transaction, Wallet, Withdrawal } from '../models/index.js';
+import { SavedBankAccount, Transaction, Wallet, Withdrawal } from '../models/index.js';
 import { ApiError } from '../utils/apiError.js';
 import { verifyCassoLegacySecureToken, verifyCassoWebhookV2Signature } from './cassoService.js';
 import { createPayosSinglePayout, getPayosPayout } from './payosService.js';
@@ -25,7 +25,8 @@ function normalizeAccountInfo(accountInfo = {}) {
   if (!toBin && !bankName) throw new ApiError(400, 'Thieu ngan hang dich');
   if (!toAccountNumber) throw new ApiError(400, 'Thieu so tai khoan dich');
   if (!toAccountName) throw new ApiError(400, 'Thieu ten tai khoan dich');
-  return { toBin, bankName, toAccountNumber, toAccountName };
+  const qrImage = accountInfo.qrImage && typeof accountInfo.qrImage === 'object' ? accountInfo.qrImage : undefined;
+  return { toBin, bankName, toAccountNumber, toAccountName, qrImage };
 }
 
 function withdrawalOwnerId(withdrawal) {
@@ -106,7 +107,19 @@ async function applyPayoutState(withdrawal, payoutData) {
 export async function requestCassoWithdrawal({ userId, designerId, amount, accountInfo }) {
   const ownerId = userId || designerId;
   const value = normalizeAmount(amount);
-  const normalizedAccount = normalizeAccountInfo(accountInfo);
+  let normalizedAccount = normalizeAccountInfo(accountInfo);
+  const bankAccountId = accountInfo?.bankAccountId;
+  if (bankAccountId) {
+    const savedAccount = await SavedBankAccount.findOne({ _id: bankAccountId, userId: ownerId });
+    if (!savedAccount) throw new ApiError(404, 'Khong tim thay tai khoan ngan hang da luu');
+    normalizedAccount = normalizeAccountInfo({
+      bankName: savedAccount.bankName,
+      bankBin: savedAccount.bankBin,
+      accountNumber: savedAccount.accountNumber,
+      accountName: savedAccount.accountName,
+      qrImage: savedAccount.qrImage || accountInfo?.qrImage
+    });
+  }
   const referenceId = generateCassoReferenceId();
 
   const wallet = await Wallet.findOneAndUpdate(
@@ -126,7 +139,9 @@ export async function requestCassoWithdrawal({ userId, designerId, amount, accou
     referenceId,
     metadata: {
       cassoStatus: 'WAITING_BANK_TRANSFER',
-      transferContent: referenceId
+      transferContent: referenceId,
+      bankAccountId,
+      qrImage: normalizedAccount.qrImage
     }
   });
 
@@ -145,6 +160,26 @@ export async function requestCassoWithdrawal({ userId, designerId, amount, accou
   withdrawal.transactionId = transaction._id;
   await withdrawal.save();
 
+  if (accountInfo?.saveAccount && !bankAccountId) {
+    const existing = await SavedBankAccount.findOne({
+      userId: ownerId,
+      bankName: normalizedAccount.bankName,
+      accountNumber: normalizedAccount.toAccountNumber
+    });
+    if (!existing) {
+      await SavedBankAccount.create({
+        userId: ownerId,
+        label: accountInfo.label || `${normalizedAccount.bankName} ${normalizedAccount.toAccountNumber}`,
+        bankName: normalizedAccount.bankName,
+        bankBin: normalizedAccount.toBin,
+        accountNumber: normalizedAccount.toAccountNumber,
+        accountName: normalizedAccount.toAccountName,
+        qrImage: normalizedAccount.qrImage,
+        isDefault: Boolean(accountInfo.isDefault)
+      });
+    }
+  }
+
   return {
     withdrawal,
     wallet,
@@ -154,7 +189,8 @@ export async function requestCassoWithdrawal({ userId, designerId, amount, accou
       toBin: normalizedAccount.toBin,
       bankName: normalizedAccount.bankName,
       toAccountNumber: normalizedAccount.toAccountNumber,
-      toAccountName: normalizedAccount.toAccountName
+      toAccountName: normalizedAccount.toAccountName,
+      qrImage: normalizedAccount.qrImage
     }
   };
 }

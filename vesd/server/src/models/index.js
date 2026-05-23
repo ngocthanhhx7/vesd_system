@@ -170,6 +170,21 @@ const walletSchema = new Schema(
   { timestamps: true }
 );
 
+const savedBankAccountSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    label: String,
+    bankName: { type: String, required: true, trim: true },
+    bankBin: String,
+    accountNumber: { type: String, required: true, trim: true },
+    accountName: { type: String, required: true, trim: true },
+    qrImage: fileSchema,
+    isDefault: { type: Boolean, default: false }
+  },
+  { timestamps: true }
+);
+savedBankAccountSchema.index({ userId: 1, createdAt: -1 });
+
 const withdrawalSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -312,6 +327,7 @@ export const Portfolio = model('Portfolio', portfolioSchema);
 export const Project = model('Project', projectSchema);
 export const Transaction = model('Transaction', transactionSchema);
 export const Wallet = model('Wallet', walletSchema);
+export const SavedBankAccount = model('SavedBankAccount', savedBankAccountSchema);
 export const Withdrawal = model('Withdrawal', withdrawalSchema);
 export const Review = model('Review', reviewSchema);
 export const Dispute = model('Dispute', disputeSchema);

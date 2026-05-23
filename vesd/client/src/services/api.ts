@@ -63,6 +63,10 @@ export const endpoints = {
   wallet: () => api<any>('/wallet/my'),
   topUpWallet: (body: unknown) => api<any>('/wallet/topup', { method: 'POST', body: JSON.stringify(body) }),
   transferToDesigner: (body: unknown) => api<any>('/wallet/transfers/designer', { method: 'POST', body: JSON.stringify(body) }),
+  bankAccounts: () => api<any[]>('/bank-accounts/my'),
+  createBankAccount: (body: unknown) => api<any>('/bank-accounts', { method: 'POST', body: JSON.stringify(body) }),
+  updateBankAccount: (id: string, body: unknown) => api<any>(`/bank-accounts/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deleteBankAccount: (id: string) => api<any>(`/bank-accounts/${id}`, { method: 'DELETE' }),
   transactions: () => api<any[]>('/transactions/my'),
   withdrawals: () => api<any[]>('/withdrawals/my'),
   createWithdrawal: (body: unknown) => api<any>('/withdrawals', { method: 'POST', body: JSON.stringify(body) }),
@@ -79,5 +83,10 @@ export const endpoints = {
   adminSyncWithdrawal: (id: string) => api<any>(`/admin/withdrawals/${id}/sync`, { method: 'POST' }),
   adminDiscounts: () => api<any[]>('/admin/discounts'),
   createDiscount: (body: unknown) => api<any>('/admin/discounts', { method: 'POST', body: JSON.stringify(body) }),
-  updateDiscount: (id: string, body: unknown) => api<any>(`/admin/discounts/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+  updateDiscount: (id: string, body: unknown) => api<any>(`/admin/discounts/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  uploadImage: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api<any>('/uploads/image', { method: 'POST', body: form });
+  }
 };

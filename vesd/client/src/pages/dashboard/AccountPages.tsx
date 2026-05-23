@@ -115,7 +115,11 @@ export function WalletTopupPage() {
 export function WalletWithdrawPage() {
   const queryClient = useQueryClient();
   const { data: withdrawals = [] } = useQuery({ queryKey: ['withdrawals'], queryFn: endpoints.withdrawals });
-  const [withdrawForm, setWithdrawForm] = useState({ amount: '', bankName: '', toAccountNumber: '', toAccountName: '' });
+  const { data: bankAccounts = [] } = useQuery({ queryKey: ['bank-accounts'], queryFn: endpoints.bankAccounts });
+  const [withdrawForm, setWithdrawForm] = useState({ amount: '', bankName: '', toAccountNumber: '', toAccountName: '', saveAccount: false, label: '' });
+  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [qrFile, setQrFile] = useState<File | null>(null);
+  const [qrImage, setQrImage] = useState<any>(null);
   const [withdrawMessage, setWithdrawMessage] = useState('');
   const [transferInstruction, setTransferInstruction] = useState<any>(null);
   const refreshMoneyData = async () => {
@@ -123,22 +127,58 @@ export function WalletWithdrawPage() {
       queryClient.invalidateQueries({ queryKey: ['wallet'] }),
       queryClient.invalidateQueries({ queryKey: ['tx'] }),
       queryClient.invalidateQueries({ queryKey: ['withdrawals'] }),
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] }),
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
     ]);
   };
-  const createWithdrawal = useMutation({
-    mutationFn: () => endpoints.createWithdrawal({
-      amount: Number(withdrawForm.amount),
-      accountInfo: {
+  const selectedAccount = bankAccounts.find((account: any) => account._id === selectedAccountId);
+  const createBankAccount = useMutation({
+    mutationFn: async () => {
+      const uploadedQr = qrFile ? await endpoints.uploadImage(qrFile) : qrImage;
+      return endpoints.createBankAccount({
+        label: withdrawForm.label || `${withdrawForm.bankName} ${withdrawForm.toAccountNumber}`,
         bankName: withdrawForm.bankName,
-        toAccountNumber: withdrawForm.toAccountNumber,
-        toAccountName: withdrawForm.toAccountName
-      }
-    }),
+        accountNumber: withdrawForm.toAccountNumber,
+        accountName: withdrawForm.toAccountName,
+        qrImage: uploadedQr,
+        isDefault: bankAccounts.length === 0
+      });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+      setWithdrawMessage('Đã lưu tài khoản ngân hàng.');
+    },
+    onError: (error) => setWithdrawMessage(error instanceof Error ? error.message : 'Không thể lưu tài khoản')
+  });
+  const deleteBankAccount = useMutation({
+    mutationFn: (id: string) => endpoints.deleteBankAccount(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bank-accounts'] }),
+    onError: (error) => setWithdrawMessage(error instanceof Error ? error.message : 'Không thể xóa tài khoản')
+  });
+  const createWithdrawal = useMutation({
+    mutationFn: async () => {
+      const uploadedQr = qrFile ? await endpoints.uploadImage(qrFile) : qrImage;
+      return endpoints.createWithdrawal({
+        amount: Number(withdrawForm.amount),
+        accountInfo: {
+          bankAccountId: selectedAccountId || undefined,
+          bankName: selectedAccount?.bankName || withdrawForm.bankName,
+          toBin: selectedAccount?.bankBin || undefined,
+          toAccountNumber: selectedAccount?.accountNumber || withdrawForm.toAccountNumber,
+          toAccountName: selectedAccount?.accountName || withdrawForm.toAccountName,
+          qrImage: uploadedQr,
+          saveAccount: withdrawForm.saveAccount && !selectedAccountId,
+          label: withdrawForm.label || undefined
+        }
+      });
+    },
     onSuccess: async (result: any) => {
       setTransferInstruction(result.transferInstruction || null);
       setWithdrawMessage('Đã gửi yêu cầu rút tiền. Casso sẽ tự xác nhận khi ngân hàng ghi nhận giao dịch chuyển ra.');
-      setWithdrawForm({ amount: '', bankName: '', toAccountNumber: '', toAccountName: '' });
+      setWithdrawForm({ amount: '', bankName: '', toAccountNumber: '', toAccountName: '', saveAccount: false, label: '' });
+      setSelectedAccountId('');
+      setQrFile(null);
+      setQrImage(null);
       await refreshMoneyData();
     },
     onError: (error) => setWithdrawMessage(error instanceof Error ? error.message : 'Không thể rút tiền')
@@ -149,30 +189,120 @@ export function WalletWithdrawPage() {
     onError: (error) => setWithdrawMessage(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái rút tiền')
   });
   const setWithdrawField = (key: keyof typeof withdrawForm, value: string) => setWithdrawForm((current) => ({ ...current, [key]: value }));
+  const setWithdrawBoolean = (key: keyof typeof withdrawForm, value: boolean) => setWithdrawForm((current) => ({ ...current, [key]: value }));
+  const chooseSavedAccount = (id: string) => {
+    setSelectedAccountId(id);
+    const account = bankAccounts.find((item: any) => item._id === id);
+    if (!account) return;
+    setWithdrawForm((current) => ({
+      ...current,
+      bankName: account.bankName || '',
+      toAccountNumber: account.accountNumber || '',
+      toAccountName: account.accountName || '',
+      saveAccount: false,
+      label: account.label || ''
+    }));
+    setQrImage(account.qrImage || null);
+    setQrFile(null);
+  };
+  const clearSavedAccount = () => {
+    setSelectedAccountId('');
+    setWithdrawForm((current) => ({ ...current, bankName: '', toAccountNumber: '', toAccountName: '', label: '', saveAccount: false }));
+    setQrImage(null);
+    setQrFile(null);
+  };
   return (
     <Dashboard title="Rút tiền">
       <Section title="Thông tin tài khoản nhận">
+        <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
           <Card>
-            <div className="grid gap-3 md:grid-cols-4">
-              <Input type="number" min="1000" placeholder="Số tiền" value={withdrawForm.amount} onChange={(event) => setWithdrawField('amount', event.target.value)} />
-              <Select value={withdrawForm.bankName} onChange={(event) => setWithdrawField('bankName', event.target.value)}>
-                <option value="">Chọn ngân hàng</option>
-                {bankOptions.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
-              </Select>
-              <Input placeholder="Số tài khoản" value={withdrawForm.toAccountNumber} onChange={(event) => setWithdrawField('toAccountNumber', event.target.value)} />
-              <Input placeholder="Tên tài khoản" value={withdrawForm.toAccountName} onChange={(event) => setWithdrawField('toAccountName', event.target.value)} />
+            <div className="grid gap-4">
+              <div>
+                <p className="text-sm font-semibold text-muted">Số tiền rút</p>
+                <Input className="mt-2 max-w-sm" type="number" min="1000" placeholder="Nhập số tiền" value={withdrawForm.amount} onChange={(event) => setWithdrawField('amount', event.target.value)} />
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-muted">Tài khoản ngân hàng</p>
+                <Select className="mt-2 max-w-xl" value={selectedAccountId} onChange={(event) => event.target.value ? chooseSavedAccount(event.target.value) : clearSavedAccount()}>
+                  <option value="">Nhập tài khoản mới</option>
+                  {bankAccounts.map((account: any) => (
+                    <option key={account._id} value={account._id}>
+                      {account.label || account.bankName} - {account.accountNumber}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-3">
+                <Select value={withdrawForm.bankName} disabled={Boolean(selectedAccountId)} onChange={(event) => setWithdrawField('bankName', event.target.value)}>
+                  <option value="">Chọn ngân hàng</option>
+                  {bankOptions.map((bank) => <option key={bank} value={bank}>{bank}</option>)}
+                </Select>
+                <Input disabled={Boolean(selectedAccountId)} placeholder="Số tài khoản" value={withdrawForm.toAccountNumber} onChange={(event) => setWithdrawField('toAccountNumber', event.target.value)} />
+                <Input disabled={Boolean(selectedAccountId)} placeholder="Tên chủ tài khoản" value={withdrawForm.toAccountName} onChange={(event) => setWithdrawField('toAccountName', event.target.value)} />
+              </div>
+
+              {!selectedAccountId && (
+                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                  <Input placeholder="Tên gợi nhớ, ví dụ Tài khoản Vietcombank" value={withdrawForm.label} onChange={(event) => setWithdrawField('label', event.target.value)} />
+                  <label className="flex items-center gap-2 text-base">
+                    <input className="h-5 w-5 accent-brand" type="checkbox" checked={Boolean(withdrawForm.saveAccount)} onChange={(event) => setWithdrawBoolean('saveAccount', event.target.checked)} />
+                    Lưu tài khoản này
+                  </label>
+                </div>
+              )}
+
+              <div>
+                <p className="text-sm font-semibold text-muted">QR nhận tiền</p>
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <Input className="max-w-sm" type="file" accept="image/*" onChange={(event) => setQrFile(event.target.files?.[0] || null)} />
+                  {qrFile && <span className="text-sm text-muted">{qrFile.name}</span>}
+                  {!qrFile && qrImage?.url && <a className="text-sm font-semibold text-brand" href={qrImage.url} target="_blank" rel="noreferrer">Xem QR đã lưu</a>}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <Button disabled={createWithdrawal.isPending} onClick={() => createWithdrawal.mutate()}>
+                  {createWithdrawal.isPending ? 'Đang xử lý...' : 'Gửi yêu cầu rút'}
+                </Button>
+                {!selectedAccountId && (
+                  <Button variant="secondary" disabled={createBankAccount.isPending} onClick={() => createBankAccount.mutate()}>
+                    {createBankAccount.isPending ? 'Đang lưu...' : 'Lưu tài khoản'}
+                  </Button>
+                )}
+              </div>
             </div>
-            <Button className="mt-4" disabled={createWithdrawal.isPending} onClick={() => createWithdrawal.mutate()}>
-              {createWithdrawal.isPending ? 'Đang xử lý...' : 'Rút tiền'}
-            </Button>
-            {withdrawMessage && <p className="mt-3 text-sm text-muted">{withdrawMessage}</p>}
+            {withdrawMessage && <p className="mt-4 text-sm text-muted">{withdrawMessage}</p>}
             {transferInstruction && (
               <div className="mt-4 rounded-lg bg-soft p-4 text-sm">
                 <p className="font-semibold">Mã đối soát: {transferInstruction.content}</p>
-                <p className="mt-1 text-muted">Admin chuyển đúng số tiền vào tài khoản bạn đã nhập và dùng mã này trong nội dung chuyển khoản để Casso tự đánh dấu đã chi.</p>
+                <p className="mt-1 text-muted">Admin chuyển đúng số tiền vào tài khoản đã xác nhận và dùng mã này trong nội dung chuyển khoản để Casso tự đánh dấu đã chi.</p>
               </div>
             )}
           </Card>
+
+          <div className="space-y-3">
+            {bankAccounts.map((account: any) => (
+              <Card key={account._id} className={selectedAccountId === account._id ? 'border-brand' : ''}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">{account.label || account.bankName}</p>
+                    <p className="text-sm text-muted">{account.bankName}</p>
+                    <p className="mt-2 font-semibold">{account.accountNumber}</p>
+                    <p className="text-sm text-muted">{account.accountName}</p>
+                    {account.qrImage?.url && <a className="mt-2 inline-block text-sm font-semibold text-brand" href={account.qrImage.url} target="_blank" rel="noreferrer">QR đã lưu</a>}
+                  </div>
+                  <div className="flex shrink-0 flex-col gap-2">
+                    <Button variant="secondary" onClick={() => chooseSavedAccount(account._id)}>Chọn</Button>
+                    <Button variant="ghost" disabled={deleteBankAccount.isPending} onClick={() => deleteBankAccount.mutate(account._id)}>Xóa</Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+            {!bankAccounts.length && <Card><p className="text-sm text-muted">Chưa có tài khoản ngân hàng đã lưu.</p></Card>}
+          </div>
+        </div>
       </Section>
 
       {withdrawals.length > 0 && (
