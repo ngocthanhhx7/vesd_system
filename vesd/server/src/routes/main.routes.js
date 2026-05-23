@@ -26,7 +26,7 @@ import {
 import { approveMilestone, completeProject, fundEscrow, getOwnedProject, refundProject, requestRevision } from '../services/projectService.js';
 import { validateDiscount } from '../services/discountService.js';
 import { createPayosEscrowPayment, createPayosPremiumPayment, handlePayosPaymentWebhook, syncPayosPayment } from '../services/paymentService.js';
-import { requestPayosWithdrawal, syncPayosWithdrawal } from '../services/withdrawalService.js';
+import { handleCassoWithdrawalWebhook, requestCassoWithdrawal, requestPayosWithdrawal, syncPayosWithdrawal } from '../services/withdrawalService.js';
 import { confirmPayosWebhook, getPayosPayoutBalance } from '../services/payosService.js';
 
 export const mainRoutes = Router();
@@ -38,6 +38,14 @@ const listQuery = (value) => String(value || '').split(',').map((item) => item.t
 
 mainRoutes.post('/payments/payos/webhook', asyncHandler(async (req, res) => {
   res.json(await handlePayosPaymentWebhook(req.body));
+}));
+
+mainRoutes.post('/withdrawals/casso/webhook', asyncHandler(async (req, res) => {
+  res.json(await handleCassoWithdrawalWebhook({
+    body: req.body,
+    signature: req.get('X-Casso-Signature'),
+    secureToken: req.get('secure-token')
+  }));
 }));
 
 mainRoutes.get('/stats/public', asyncHandler(async (_req, res) => {
@@ -307,7 +315,12 @@ mainRoutes.post('/payments/refund', requireAuth, requireRole('admin'), asyncHand
 mainRoutes.get('/transactions/my', requireAuth, asyncHandler(async (req, res) => res.json(await Transaction.find({ userId: req.user._id }).sort({ createdAt: -1 }))));
 mainRoutes.get('/wallet/my', requireAuth, asyncHandler(async (req, res) => res.json(await Wallet.findOne({ userId: req.user._id }))));
 mainRoutes.get('/withdrawals/my', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.json(await Withdrawal.find({ designerId: req.user._id }).sort({ createdAt: -1 }))));
-mainRoutes.post('/withdrawals', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.status(201).json(await requestPayosWithdrawal({ designerId: req.user._id, amount: req.body.amount, accountInfo: req.body.accountInfo }))));
+mainRoutes.post('/withdrawals', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
+  if (req.body.method === 'payos') {
+    return res.status(201).json(await requestPayosWithdrawal({ designerId: req.user._id, amount: req.body.amount, accountInfo: req.body.accountInfo }));
+  }
+  return res.status(201).json(await requestCassoWithdrawal({ designerId: req.user._id, amount: req.body.amount, accountInfo: req.body.accountInfo }));
+}));
 mainRoutes.post('/withdrawals/:id/sync', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.json(await syncPayosWithdrawal({ withdrawalId: req.params.id, user: req.user }))));
 
 mainRoutes.post('/reviews', requireAuth, asyncHandler(async (req, res) => {

@@ -31,5 +31,9 @@ export const env = {
       apiKey: process.env.PAYOS_PAYOUT_API_KEY || process.env.PAYOS_API_KEY,
       checksumKey: process.env.PAYOS_PAYOUT_CHECKSUM_KEY || process.env.PAYOS_CHECKSUM_KEY
     }
+  },
+  casso: {
+    webhookSecret: process.env.CASSO_WEBHOOK_SECRET || process.env.CASSO_WEBHOOK_V2_SECRET,
+    legacySecureToken: process.env.CASSO_WEBHOOK_LEGACY_TOKEN || process.env.CASSO_WEBHOOK_SECRET
   }
 };

@@ -17,6 +17,7 @@ export function WalletPage() {
   const { data: withdrawals = [] } = useQuery({ queryKey: ['withdrawals'], queryFn: endpoints.withdrawals, enabled: canWithdraw });
   const [withdrawForm, setWithdrawForm] = useState({ amount: '', toBin: '', toAccountNumber: '', toAccountName: '' });
   const [withdrawMessage, setWithdrawMessage] = useState('');
+  const [transferInstruction, setTransferInstruction] = useState<any>(null);
   const refreshMoneyData = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['wallet'] }),
@@ -34,8 +35,9 @@ export function WalletPage() {
         toAccountName: withdrawForm.toAccountName
       }
     }),
-    onSuccess: async () => {
-      setWithdrawMessage('Đã gửi yêu cầu rút tiền qua payOS.');
+    onSuccess: async (result: any) => {
+      setTransferInstruction(result.transferInstruction || null);
+      setWithdrawMessage('Đã gửi yêu cầu rút tiền. Casso sẽ tự xác nhận khi ngân hàng ghi nhận giao dịch chuyển ra.');
       setWithdrawForm({ amount: '', toBin: '', toAccountNumber: '', toAccountName: '' });
       await refreshMoneyData();
     },
@@ -57,7 +59,7 @@ export function WalletPage() {
       </div>
 
       {canWithdraw && (
-        <Section title="Rút tiền payOS">
+        <Section title="Rút tiền Casso">
           <Card>
             <div className="grid gap-3 md:grid-cols-4">
               <Input type="number" min="1000" placeholder="Số tiền" value={withdrawForm.amount} onChange={(event) => setWithdrawField('amount', event.target.value)} />
@@ -69,6 +71,12 @@ export function WalletPage() {
               {createWithdrawal.isPending ? 'Đang xử lý...' : 'Rút tiền'}
             </Button>
             {withdrawMessage && <p className="mt-3 text-sm text-muted">{withdrawMessage}</p>}
+            {transferInstruction && (
+              <div className="mt-4 rounded-lg bg-soft p-4 text-sm">
+                <p className="font-semibold">Mã đối soát: {transferInstruction.content}</p>
+                <p className="mt-1 text-muted">Admin chuyển đúng số tiền và nhập mã này trong nội dung chuyển khoản để Casso tự đánh dấu đã chi.</p>
+              </div>
+            )}
           </Card>
         </Section>
       )}
@@ -80,11 +88,15 @@ export function WalletPage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="font-semibold">{item.amount?.toLocaleString('vi-VN')}đ</p>
-                  <p className="text-sm text-muted">{item.accountInfo?.toBin} - {item.accountInfo?.toAccountNumber}</p>
+                  <p className="text-sm text-muted">{item.referenceId} · {item.accountInfo?.toBin} - {item.accountInfo?.toAccountNumber}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <StatusBadge status={item.status} />
-                  <Button variant="secondary" disabled={syncWithdrawal.isPending || !item.payoutId} onClick={() => syncWithdrawal.mutate(item._id)}>Cập nhật</Button>
+                  {item.method === 'payos' ? (
+                    <Button variant="secondary" disabled={syncWithdrawal.isPending || !item.payoutId} onClick={() => syncWithdrawal.mutate(item._id)}>Cập nhật</Button>
+                  ) : (
+                    <span className="text-sm text-muted">Chờ webhook Casso</span>
+                  )}
                 </div>
               </div>
             </Card>

@@ -1,9 +1,14 @@
 import { Transaction, Wallet, Withdrawal } from '../models/index.js';
 import { ApiError } from '../utils/apiError.js';
+import { verifyCassoLegacySecureToken, verifyCassoWebhookV2Signature } from './cassoService.js';
 import { createPayosSinglePayout, getPayosPayout } from './payosService.js';
 
 function generateReferenceId() {
   return `vesd_wd_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+}
+
+function generateCassoReferenceId() {
+  return `VESDWD${Date.now()}${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`;
 }
 
 function normalizeAmount(amount) {
@@ -19,6 +24,30 @@ function normalizeAccountInfo(accountInfo = {}) {
   if (!toBin) throw new ApiError(400, 'Thieu ma ngan hang dich');
   if (!toAccountNumber) throw new ApiError(400, 'Thieu so tai khoan dich');
   return { toBin, toAccountNumber, toAccountName };
+}
+
+function normalizeCassoTransaction(rawTransaction = {}) {
+  return {
+    cassoId: String(rawTransaction.id || rawTransaction.reference || rawTransaction.tid || '').trim(),
+    bankReference: String(rawTransaction.reference || rawTransaction.tid || '').trim(),
+    description: String(rawTransaction.description || '').trim(),
+    amount: Number(rawTransaction.amount || 0),
+    runningBalance: Number(rawTransaction.runningBalance ?? rawTransaction.cusum_balance ?? 0),
+    transactionDateTime: rawTransaction.transactionDateTime || rawTransaction.when,
+    accountNumber: rawTransaction.accountNumber || rawTransaction.bank_sub_acc_id || rawTransaction.subAccId,
+    bankName: rawTransaction.bankName,
+    bankAbbreviation: rawTransaction.bankAbbreviation,
+    counterAccountName: rawTransaction.counterAccountName || rawTransaction.corresponsiveName,
+    counterAccountNumber: rawTransaction.counterAccountNumber || rawTransaction.corresponsiveAccount,
+    counterAccountBankId: rawTransaction.counterAccountBankId || rawTransaction.corresponsiveBankId,
+    counterAccountBankName: rawTransaction.counterAccountBankName || rawTransaction.corresponsiveBankName,
+    raw: rawTransaction
+  };
+}
+
+function extractCassoWithdrawalReference(transaction) {
+  const haystack = [transaction.description, transaction.bankReference].filter(Boolean).join(' ');
+  return haystack.match(/\bVESDWD[0-9A-Z]{8,}\b/i)?.[0]?.toUpperCase();
 }
 
 function resolvePayoutState(payoutData) {
@@ -58,6 +87,59 @@ async function applyPayoutState(withdrawal, payoutData) {
   }
   await withdrawal.save();
   return withdrawal;
+}
+
+export async function requestCassoWithdrawal({ designerId, amount, accountInfo }) {
+  const value = normalizeAmount(amount);
+  const normalizedAccount = normalizeAccountInfo(accountInfo);
+  const referenceId = generateCassoReferenceId();
+
+  const wallet = await Wallet.findOneAndUpdate(
+    { userId: designerId, balance: { $gte: value } },
+    { $inc: { balance: -value, pendingBalance: value } },
+    { new: true }
+  );
+  if (!wallet) throw new ApiError(400, 'So du vi khong du de rut tien');
+
+  const withdrawal = await Withdrawal.create({
+    designerId,
+    amount: value,
+    method: 'casso',
+    accountInfo: normalizedAccount,
+    status: 'pending',
+    referenceId,
+    metadata: {
+      cassoStatus: 'WAITING_BANK_TRANSFER',
+      transferContent: referenceId
+    }
+  });
+
+  const transaction = await Transaction.create({
+    userId: designerId,
+    type: 'withdrawal',
+    amount: value,
+    status: 'pending',
+    paymentMethod: 'casso',
+    metadata: {
+      withdrawalId: withdrawal._id,
+      cassoReferenceId: referenceId,
+      transferContent: referenceId
+    }
+  });
+  withdrawal.transactionId = transaction._id;
+  await withdrawal.save();
+
+  return {
+    withdrawal,
+    wallet,
+    transferInstruction: {
+      amount: value,
+      content: referenceId,
+      toBin: normalizedAccount.toBin,
+      toAccountNumber: normalizedAccount.toAccountNumber,
+      toAccountName: normalizedAccount.toAccountName
+    }
+  };
 }
 
 export async function requestPayosWithdrawal({ designerId, amount, accountInfo }) {
@@ -132,9 +214,88 @@ export async function syncPayosWithdrawal({ withdrawalId, user }) {
   const withdrawal = await Withdrawal.findById(withdrawalId);
   if (!withdrawal) throw new ApiError(404, 'Khong tim thay yeu cau rut tien');
   if (!user.roles.includes('admin') && String(withdrawal.designerId) !== String(user._id)) throw new ApiError(403, 'Ban khong co quyen xem yeu cau rut tien nay');
+  if (withdrawal.method !== 'payos') throw new ApiError(400, 'Yeu cau rut tien nay dang cho Casso webhook xac nhan');
   if (!withdrawal.payoutId) throw new ApiError(400, 'Yeu cau rut tien chua co ma payout payOS');
 
   const payosResponse = await getPayosPayout(withdrawal.payoutId);
   await applyPayoutState(withdrawal, payosResponse.data);
   return { withdrawal, payout: payosResponse.data };
+}
+
+async function markCassoWithdrawalPaid(withdrawal, cassoTransaction) {
+  if (withdrawal.status === 'paid') return { matched: true, skipped: true, reason: 'already_paid', withdrawalId: withdrawal._id };
+  if (Math.abs(cassoTransaction.amount) !== Number(withdrawal.amount)) {
+    return { matched: true, skipped: true, reason: 'amount_mismatch', withdrawalId: withdrawal._id };
+  }
+
+  if (cassoTransaction.counterAccountNumber && withdrawal.accountInfo?.toAccountNumber) {
+    const expected = String(withdrawal.accountInfo.toAccountNumber).replace(/\s/g, '');
+    const received = String(cassoTransaction.counterAccountNumber).replace(/\s/g, '');
+    if (expected && received && expected !== received) {
+      return { matched: true, skipped: true, reason: 'counter_account_mismatch', withdrawalId: withdrawal._id };
+    }
+  }
+
+  const transaction = withdrawal.transactionId ? await Transaction.findById(withdrawal.transactionId) : null;
+  await Wallet.findOneAndUpdate({ userId: withdrawal.designerId }, { $inc: { pendingBalance: -withdrawal.amount } }, { upsert: true });
+  withdrawal.status = 'paid';
+  withdrawal.metadata = {
+    ...(withdrawal.metadata || {}),
+    cassoStatus: 'PAID',
+    cassoTransactionId: cassoTransaction.cassoId,
+    cassoBankReference: cassoTransaction.bankReference,
+    cassoPaidAt: new Date(),
+    cassoData: cassoTransaction.raw
+  };
+
+  if (transaction) {
+    transaction.status = 'success';
+    transaction.metadata = {
+      ...(transaction.metadata || {}),
+      cassoTransactionId: cassoTransaction.cassoId,
+      cassoBankReference: cassoTransaction.bankReference,
+      cassoData: cassoTransaction.raw
+    };
+    await transaction.save();
+  }
+
+  await withdrawal.save();
+  return { matched: true, paid: true, withdrawalId: withdrawal._id };
+}
+
+export async function handleCassoWithdrawalWebhook({ body, signature, secureToken }) {
+  const hasSignature = Boolean(signature);
+  const valid = hasSignature ? verifyCassoWebhookV2Signature(signature, body) : verifyCassoLegacySecureToken(secureToken);
+  if (!valid) throw new ApiError(401, 'Chu ky Casso webhook khong hop le');
+  if (Number(body?.error || 0) !== 0) return { success: true, ignored: true };
+
+  const rawTransactions = Array.isArray(body?.data) ? body.data : [body?.data].filter(Boolean);
+  const results = [];
+
+  for (const rawTransaction of rawTransactions) {
+    const cassoTransaction = normalizeCassoTransaction(rawTransaction);
+    const referenceId = extractCassoWithdrawalReference(cassoTransaction);
+    if (!referenceId) {
+      results.push({ matched: false, reason: 'missing_withdrawal_reference', cassoId: cassoTransaction.cassoId });
+      continue;
+    }
+
+    const withdrawal = await Withdrawal.findOne({
+      referenceId,
+      method: 'casso',
+      status: { $in: ['pending', 'approved', 'paid'] }
+    });
+    if (!withdrawal) {
+      results.push({ matched: false, reason: 'withdrawal_not_found', referenceId, cassoId: cassoTransaction.cassoId });
+      continue;
+    }
+
+    results.push(await markCassoWithdrawalPaid(withdrawal, cassoTransaction));
+  }
+
+  return {
+    success: true,
+    processed: results.filter((item) => item.paid).length,
+    results
+  };
 }
