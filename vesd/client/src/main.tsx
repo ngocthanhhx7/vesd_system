@@ -12,6 +12,7 @@ import {
   AdminDiscountsPage,
   AdminListPage,
   AdminSimplePage,
+  AdminWithdrawalsPage,
   AgreementPage,
   ChecklistPage,
   ChangePasswordPage,
@@ -27,6 +28,8 @@ import {
   ReviewsPage,
   SettingsPage,
   WalletPage,
+  WalletTopupPage,
+  WalletWithdrawPage,
   WorkspacePage
 } from './pages/DashboardPages';
 import './styles/index.css';
@@ -69,6 +72,8 @@ const router = createBrowserRouter([
         { path: 'workspace/:id', element: <WorkspacePage /> },
         { path: 'checklist', element: <ChecklistPage /> },
         { path: 'wallet', element: <WalletPage /> },
+        { path: 'wallet/topup', element: <WalletTopupPage /> },
+        { path: 'wallet/withdraw', element: <WalletWithdrawPage /> },
         { path: 'premium', element: <PremiumPage roleTarget="client" /> },
         { path: 'reviews', element: <ReviewsPage /> },
         { path: 'settings', element: <SettingsPage /> },
@@ -88,6 +93,8 @@ const router = createBrowserRouter([
         { path: 'requests', element: <RequestsPage /> },
         { path: 'workspace/:id', element: <WorkspacePage designer /> },
         { path: 'earnings', element: <WalletPage /> },
+        { path: 'earnings/topup', element: <WalletTopupPage /> },
+        { path: 'earnings/withdraw', element: <WalletWithdrawPage /> },
         { path: 'premium', element: <PremiumPage roleTarget="designer" /> },
         { path: 'settings', element: <SettingsPage /> },
         { path: 'password', element: <ChangePasswordPage /> }
@@ -105,6 +112,7 @@ const router = createBrowserRouter([
         { path: 'verification', element: <AdminSimplePage title="Xác minh designer" /> },
         { path: 'projects', element: <AdminListPage type="projects" /> },
         { path: 'escrow', element: <AdminSimplePage title="Quản lý escrow và giao dịch" /> },
+        { path: 'withdrawals', element: <AdminWithdrawalsPage /> },
         { path: 'disputes', element: <AdminListPage type="disputes" /> },
         { path: 'reviews', element: <AdminSimplePage title="Review / Report Management" /> },
         { path: 'checklists', element: <AdminSimplePage title="Checklist Management" /> },

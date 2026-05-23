@@ -75,6 +75,67 @@ export function AdminSimplePage({ title }: { title: string }) {
   );
 }
 
+export function AdminWithdrawalsPage() {
+  const queryClient = useQueryClient();
+  const { data = [] } = useQuery({ queryKey: ['admin-withdrawals'], queryFn: endpoints.adminWithdrawals });
+  const syncWithdrawal = useMutation({
+    mutationFn: (id: string) => endpoints.adminSyncWithdrawal(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-withdrawals'] })
+  });
+
+  return (
+    <Dashboard title="Yêu cầu rút tiền">
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-base">
+            <thead>
+              <tr className="border-b border-line">
+                <th className="py-2">Người rút</th>
+                <th>Số tiền</th>
+                <th>Tài khoản nhận</th>
+                <th>Nội dung CK</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map((item: any) => {
+                const owner = item.userId || item.designerId;
+                return (
+                  <tr key={item._id} className="border-b border-line align-top">
+                    <td className="py-3">
+                      <p className="font-semibold">{owner?.name || 'Người dùng'}</p>
+                      <p className="text-sm text-muted">{owner?.email}</p>
+                    </td>
+                    <td>{item.amount?.toLocaleString('vi-VN')}đ</td>
+                    <td>
+                      <p>{item.accountInfo?.bankName || item.accountInfo?.toBin}</p>
+                      <p className="text-sm text-muted">{item.accountInfo?.toAccountNumber}</p>
+                      <p className="text-sm text-muted">{item.accountInfo?.toAccountName}</p>
+                    </td>
+                    <td>
+                      <p className="font-semibold">{item.referenceId}</p>
+                      <p className="text-sm text-muted">Nhập đúng mã này khi chuyển khoản để Casso đối soát.</p>
+                    </td>
+                    <td><StatusBadge status={item.status} /></td>
+                    <td>
+                      {item.method === 'payos' ? (
+                        <Button variant="secondary" disabled={syncWithdrawal.isPending || !item.payoutId} onClick={() => syncWithdrawal.mutate(item._id)}>Cập nhật</Button>
+                      ) : (
+                        <span className="text-sm text-muted">Chờ Casso webhook</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </Dashboard>
+  );
+}
+
 const emptyDiscount = {
   code: '',
   name: '',

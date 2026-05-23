@@ -172,7 +172,8 @@ const walletSchema = new Schema(
 
 const withdrawalSchema = new Schema(
   {
-    designerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
+    designerId: { type: Schema.Types.ObjectId, ref: 'User' },
     transactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' },
     amount: Number,
     method: String,

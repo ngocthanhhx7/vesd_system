@@ -317,14 +317,14 @@ mainRoutes.get('/transactions/my', requireAuth, asyncHandler(async (req, res) =>
 mainRoutes.get('/wallet/my', requireAuth, asyncHandler(async (req, res) => res.json(await Wallet.findOne({ userId: req.user._id }))));
 mainRoutes.post('/wallet/topup', requireAuth, asyncHandler(async (req, res) => res.status(201).json(await createPayosWalletTopup({ user: req.user, amount: req.body.amount, returnUrl: req.body.returnUrl, cancelUrl: req.body.cancelUrl }))));
 mainRoutes.post('/wallet/transfers/designer', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.status(201).json(await transferWalletToDesigner({ sender: req.user, designerId: req.body.designerId, projectId: req.body.projectId, amount: req.body.amount, note: req.body.note }))));
-mainRoutes.get('/withdrawals/my', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.json(await Withdrawal.find({ designerId: req.user._id }).sort({ createdAt: -1 }))));
-mainRoutes.post('/withdrawals', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
+mainRoutes.get('/withdrawals/my', requireAuth, asyncHandler(async (req, res) => res.json(await Withdrawal.find({ $or: [{ userId: req.user._id }, { designerId: req.user._id }] }).sort({ createdAt: -1 }))));
+mainRoutes.post('/withdrawals', requireAuth, asyncHandler(async (req, res) => {
   if (req.body.method === 'payos') {
-    return res.status(201).json(await requestPayosWithdrawal({ designerId: req.user._id, amount: req.body.amount, accountInfo: req.body.accountInfo }));
+    return res.status(201).json(await requestPayosWithdrawal({ userId: req.user._id, amount: req.body.amount, accountInfo: req.body.accountInfo }));
   }
-  return res.status(201).json(await requestCassoWithdrawal({ designerId: req.user._id, amount: req.body.amount, accountInfo: req.body.accountInfo }));
+  return res.status(201).json(await requestCassoWithdrawal({ userId: req.user._id, amount: req.body.amount, accountInfo: req.body.accountInfo }));
 }));
-mainRoutes.post('/withdrawals/:id/sync', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.json(await syncPayosWithdrawal({ withdrawalId: req.params.id, user: req.user }))));
+mainRoutes.post('/withdrawals/:id/sync', requireAuth, asyncHandler(async (req, res) => res.json(await syncPayosWithdrawal({ withdrawalId: req.params.id, user: req.user }))));
 
 mainRoutes.post('/reviews', requireAuth, asyncHandler(async (req, res) => {
   const review = await Review.create({ ...req.body, reviewerId: req.user._id });
@@ -453,7 +453,7 @@ mainRoutes.get('/admin/designers/pending', requireAuth, requireRole('admin'), as
 mainRoutes.patch('/admin/designers/:id/verify', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await DesignerProfile.findByIdAndUpdate(req.params.id, { verificationStatus: req.body.status, verificationNote: req.body.note }, { new: true }))));
 mainRoutes.get('/admin/projects', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Project.find(req.query.status ? { status: req.query.status } : {}).populate('clientId designerId', 'name email avatar').sort({ priorityLevel: 1, updatedAt: -1 }))));
 mainRoutes.get('/admin/transactions', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Transaction.find().populate('userId', 'name email').sort({ createdAt: -1 }))));
-mainRoutes.get('/admin/withdrawals', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Withdrawal.find().populate('designerId', 'name email').sort({ createdAt: -1 }))));
+mainRoutes.get('/admin/withdrawals', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Withdrawal.find().populate('userId designerId', 'name email').sort({ createdAt: -1 }))));
 mainRoutes.post('/admin/withdrawals/:id/sync', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await syncPayosWithdrawal({ withdrawalId: req.params.id, user: req.user }))));
 mainRoutes.get('/admin/payos/payout-balance', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await getPayosPayoutBalance())));
 mainRoutes.post('/admin/payos/confirm-webhook', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await confirmPayosWebhook(req.body.webhookUrl))));

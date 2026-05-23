@@ -22,6 +22,7 @@ export const dashboardLinks: Record<DashboardRole, string[][]> = {
     ['/admin/verification', 'Xác minh'],
     ['/admin/projects', 'Dự án'],
     ['/admin/escrow', 'Escrow'],
+    ['/admin/withdrawals', 'Rút tiền'],
     ['/admin/disputes', 'Khiếu nại'],
     ['/admin/reviews', 'Đánh giá'],
     ['/admin/checklists', 'Checklist'],

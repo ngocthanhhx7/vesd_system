@@ -19,11 +19,17 @@ function normalizeAmount(amount) {
 
 function normalizeAccountInfo(accountInfo = {}) {
   const toBin = String(accountInfo.toBin || accountInfo.bankBin || '').trim();
+  const bankName = String(accountInfo.bankName || accountInfo.bank || '').trim();
   const toAccountNumber = String(accountInfo.toAccountNumber || accountInfo.accountNumber || '').trim();
   const toAccountName = String(accountInfo.toAccountName || accountInfo.accountName || '').trim();
-  if (!toBin) throw new ApiError(400, 'Thieu ma ngan hang dich');
+  if (!toBin && !bankName) throw new ApiError(400, 'Thieu ngan hang dich');
   if (!toAccountNumber) throw new ApiError(400, 'Thieu so tai khoan dich');
-  return { toBin, toAccountNumber, toAccountName };
+  if (!toAccountName) throw new ApiError(400, 'Thieu ten tai khoan dich');
+  return { toBin, bankName, toAccountNumber, toAccountName };
+}
+
+function withdrawalOwnerId(withdrawal) {
+  return withdrawal.userId || withdrawal.designerId;
 }
 
 function normalizeCassoTransaction(rawTransaction = {}) {
@@ -50,6 +56,14 @@ function extractCassoWithdrawalReference(transaction) {
   return haystack.match(/\bVESDWD[0-9A-Z]{8,}\b/i)?.[0]?.toUpperCase();
 }
 
+function normalizeCompareText(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase();
+}
+
 function resolvePayoutState(payoutData) {
   const approvalState = String(payoutData?.approvalState || '').toUpperCase();
   const transactions = Object.values(payoutData?.transactions || {});
@@ -65,14 +79,14 @@ async function applyPayoutState(withdrawal, payoutData) {
   const transaction = withdrawal.transactionId ? await Transaction.findById(withdrawal.transactionId) : null;
 
   if (nextState === 'paid' && withdrawal.status !== 'paid') {
-    await Wallet.findOneAndUpdate({ userId: withdrawal.designerId }, { $inc: { pendingBalance: -withdrawal.amount } }, { upsert: true });
+    await Wallet.findOneAndUpdate({ userId: withdrawalOwnerId(withdrawal) }, { $inc: { pendingBalance: -withdrawal.amount } }, { upsert: true });
     withdrawal.status = 'paid';
     if (transaction) transaction.status = 'success';
   }
 
   if (nextState === 'rejected' && !['rejected', 'paid'].includes(withdrawal.status)) {
     await Wallet.findOneAndUpdate(
-      { userId: withdrawal.designerId },
+      { userId: withdrawalOwnerId(withdrawal) },
       { $inc: { balance: withdrawal.amount, pendingBalance: -withdrawal.amount } },
       { upsert: true }
     );
@@ -89,20 +103,22 @@ async function applyPayoutState(withdrawal, payoutData) {
   return withdrawal;
 }
 
-export async function requestCassoWithdrawal({ designerId, amount, accountInfo }) {
+export async function requestCassoWithdrawal({ userId, designerId, amount, accountInfo }) {
+  const ownerId = userId || designerId;
   const value = normalizeAmount(amount);
   const normalizedAccount = normalizeAccountInfo(accountInfo);
   const referenceId = generateCassoReferenceId();
 
   const wallet = await Wallet.findOneAndUpdate(
-    { userId: designerId, balance: { $gte: value } },
+    { userId: ownerId, balance: { $gte: value } },
     { $inc: { balance: -value, pendingBalance: value } },
     { new: true }
   );
   if (!wallet) throw new ApiError(400, 'So du vi khong du de rut tien');
 
   const withdrawal = await Withdrawal.create({
-    designerId,
+    userId: ownerId,
+    designerId: ownerId,
     amount: value,
     method: 'casso',
     accountInfo: normalizedAccount,
@@ -115,7 +131,7 @@ export async function requestCassoWithdrawal({ designerId, amount, accountInfo }
   });
 
   const transaction = await Transaction.create({
-    userId: designerId,
+    userId: ownerId,
     type: 'withdrawal',
     amount: value,
     status: 'pending',
@@ -136,26 +152,29 @@ export async function requestCassoWithdrawal({ designerId, amount, accountInfo }
       amount: value,
       content: referenceId,
       toBin: normalizedAccount.toBin,
+      bankName: normalizedAccount.bankName,
       toAccountNumber: normalizedAccount.toAccountNumber,
       toAccountName: normalizedAccount.toAccountName
     }
   };
 }
 
-export async function requestPayosWithdrawal({ designerId, amount, accountInfo }) {
+export async function requestPayosWithdrawal({ userId, designerId, amount, accountInfo }) {
+  const ownerId = userId || designerId;
   const value = normalizeAmount(amount);
   const normalizedAccount = normalizeAccountInfo(accountInfo);
   const referenceId = generateReferenceId();
 
   const wallet = await Wallet.findOneAndUpdate(
-    { userId: designerId, balance: { $gte: value } },
+    { userId: ownerId, balance: { $gte: value } },
     { $inc: { balance: -value, pendingBalance: value } },
     { new: true }
   );
   if (!wallet) throw new ApiError(400, 'So du vi khong du de rut tien');
 
   const withdrawal = await Withdrawal.create({
-    designerId,
+    userId: ownerId,
+    designerId: ownerId,
     amount: value,
     method: 'payos',
     accountInfo: normalizedAccount,
@@ -165,7 +184,7 @@ export async function requestPayosWithdrawal({ designerId, amount, accountInfo }
   });
 
   const transaction = await Transaction.create({
-    userId: designerId,
+    userId: ownerId,
     type: 'withdrawal',
     amount: value,
     status: 'pending',
@@ -196,7 +215,7 @@ export async function requestPayosWithdrawal({ designerId, amount, accountInfo }
     return { withdrawal, wallet, payout: payosResponse.data };
   } catch (error) {
     await Wallet.findOneAndUpdate(
-      { userId: designerId },
+      { userId: ownerId },
       { $inc: { balance: value, pendingBalance: -value } },
       { upsert: true }
     );
@@ -213,7 +232,7 @@ export async function requestPayosWithdrawal({ designerId, amount, accountInfo }
 export async function syncPayosWithdrawal({ withdrawalId, user }) {
   const withdrawal = await Withdrawal.findById(withdrawalId);
   if (!withdrawal) throw new ApiError(404, 'Khong tim thay yeu cau rut tien');
-  if (!user.roles.includes('admin') && String(withdrawal.designerId) !== String(user._id)) throw new ApiError(403, 'Ban khong co quyen xem yeu cau rut tien nay');
+  if (!user.roles.includes('admin') && String(withdrawalOwnerId(withdrawal)) !== String(user._id)) throw new ApiError(403, 'Ban khong co quyen xem yeu cau rut tien nay');
   if (withdrawal.method !== 'payos') throw new ApiError(400, 'Yeu cau rut tien nay dang cho Casso webhook xac nhan');
   if (!withdrawal.payoutId) throw new ApiError(400, 'Yeu cau rut tien chua co ma payout payOS');
 
@@ -236,8 +255,16 @@ async function markCassoWithdrawalPaid(withdrawal, cassoTransaction) {
     }
   }
 
+  if (cassoTransaction.counterAccountName && withdrawal.accountInfo?.toAccountName) {
+    const expectedName = normalizeCompareText(withdrawal.accountInfo.toAccountName);
+    const receivedName = normalizeCompareText(cassoTransaction.counterAccountName);
+    if (expectedName && receivedName && expectedName !== receivedName) {
+      return { matched: true, skipped: true, reason: 'counter_account_name_mismatch', withdrawalId: withdrawal._id };
+    }
+  }
+
   const transaction = withdrawal.transactionId ? await Transaction.findById(withdrawal.transactionId) : null;
-  await Wallet.findOneAndUpdate({ userId: withdrawal.designerId }, { $inc: { pendingBalance: -withdrawal.amount } }, { upsert: true });
+  await Wallet.findOneAndUpdate({ userId: withdrawalOwnerId(withdrawal) }, { $inc: { pendingBalance: -withdrawal.amount } }, { upsert: true });
   withdrawal.status = 'paid';
   withdrawal.metadata = {
     ...(withdrawal.metadata || {}),
