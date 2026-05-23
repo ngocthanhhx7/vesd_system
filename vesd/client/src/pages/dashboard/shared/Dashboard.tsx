@@ -13,11 +13,11 @@ export function Dashboard({ title, children }: { title: string; children: React.
   );
 }
 
-export function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export function Section({ title, children, columns = 'auto' }: { title: string; children: React.ReactNode; columns?: 'auto' | 'form' }) {
   return (
     <section className="mt-6">
       <h2 className="mb-3 text-2xl font-black">{title}</h2>
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+      <div className={columns === 'form' ? 'grid gap-4' : 'grid gap-4 md:grid-cols-2 xl:grid-cols-3'}>{children}</div>
     </section>
   );
 }
