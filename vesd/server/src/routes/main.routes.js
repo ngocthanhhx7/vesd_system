@@ -25,6 +25,9 @@ import {
 } from '../models/index.js';
 import { approveMilestone, completeProject, fundEscrow, getOwnedProject, refundProject, requestRevision } from '../services/projectService.js';
 import { validateDiscount } from '../services/discountService.js';
+import { createPayosEscrowPayment, createPayosPremiumPayment, handlePayosPaymentWebhook, syncPayosPayment } from '../services/paymentService.js';
+import { requestPayosWithdrawal, syncPayosWithdrawal } from '../services/withdrawalService.js';
+import { confirmPayosWebhook, getPayosPayoutBalance } from '../services/payosService.js';
 
 export const mainRoutes = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -32,6 +35,10 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const pageParams = (req) => ({ page: Math.max(Number(req.query.page || 1), 1), limit: Math.min(Number(req.query.limit || 12), 50) });
 const premiumAccountTypeForRole = (role) => (role === 'designer' ? 'designer_premium' : 'business_premium');
 const listQuery = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+
+mainRoutes.post('/payments/payos/webhook', asyncHandler(async (req, res) => {
+  res.json(await handlePayosPaymentWebhook(req.body));
+}));
 
 mainRoutes.get('/stats/public', asyncHandler(async (_req, res) => {
   const [freelancers, clients, activeProjects, ratingStats] = await Promise.all([
@@ -281,13 +288,27 @@ mainRoutes.post('/projects/:id/milestones/:milestoneId/approve', requireAuth, re
 mainRoutes.post('/projects/:id/revision', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await requestRevision({ project: await getOwnedProject(req.user, req.params.id), userId: req.user._id, content: req.body.content }))));
 mainRoutes.post('/projects/:id/complete', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await completeProject({ project: await getOwnedProject(req.user, req.params.id), userId: req.user._id }))));
 
-mainRoutes.post('/payments/escrow', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await fundEscrow({ projectId: req.body.projectId, userId: req.user._id, paymentMethod: req.body.paymentMethod, discountCode: req.body.discountCode }))));
+mainRoutes.post('/payments/escrow', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
+  if (req.body.paymentMethod === 'payos') {
+    return res.json(await createPayosEscrowPayment({
+      projectId: req.body.projectId,
+      user: req.user,
+      discountCode: req.body.discountCode,
+      returnUrl: req.body.returnUrl,
+      cancelUrl: req.body.cancelUrl
+    }));
+  }
+  return res.json(await fundEscrow({ projectId: req.body.projectId, userId: req.user._id, paymentMethod: req.body.paymentMethod, discountCode: req.body.discountCode }));
+}));
 mainRoutes.post('/payments/mock-success', requireAuth, asyncHandler(async (_req, res) => res.json({ status: 'success' })));
+mainRoutes.post('/payments/payos/:orderCode/sync', requireAuth, asyncHandler(async (req, res) => res.json(await syncPayosPayment({ orderCode: req.params.orderCode, user: req.user }))));
 mainRoutes.post('/payments/release', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await approveMilestone({ project: await Project.findById(req.body.projectId), milestoneId: req.body.milestoneId, userId: req.body.clientId }))));
 mainRoutes.post('/payments/refund', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await refundProject({ projectId: req.body.projectId, adminId: req.user._id, amount: req.body.amount }))));
 mainRoutes.get('/transactions/my', requireAuth, asyncHandler(async (req, res) => res.json(await Transaction.find({ userId: req.user._id }).sort({ createdAt: -1 }))));
 mainRoutes.get('/wallet/my', requireAuth, asyncHandler(async (req, res) => res.json(await Wallet.findOne({ userId: req.user._id }))));
-mainRoutes.post('/withdrawals', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.status(201).json(await Withdrawal.create({ ...req.body, designerId: req.user._id }))));
+mainRoutes.get('/withdrawals/my', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.json(await Withdrawal.find({ designerId: req.user._id }).sort({ createdAt: -1 }))));
+mainRoutes.post('/withdrawals', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.status(201).json(await requestPayosWithdrawal({ designerId: req.user._id, amount: req.body.amount, accountInfo: req.body.accountInfo }))));
+mainRoutes.post('/withdrawals/:id/sync', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.json(await syncPayosWithdrawal({ withdrawalId: req.params.id, user: req.user }))));
 
 mainRoutes.post('/reviews', requireAuth, asyncHandler(async (req, res) => {
   const review = await Review.create({ ...req.body, reviewerId: req.user._id });
@@ -333,6 +354,16 @@ mainRoutes.post('/discounts/validate', requireAuth, asyncHandler(async (req, res
   res.json({ code: result.discount?.code, discountAmount: result.discountAmount, finalAmount: result.finalAmount });
 }));
 mainRoutes.post('/premium/subscribe', requireAuth, asyncHandler(async (req, res) => {
+  if (req.body.paymentMethod === 'payos') {
+    return res.status(201).json(await createPayosPremiumPayment({
+      user: req.user,
+      planId: req.body.planId,
+      discountCode: req.body.discountCode,
+      returnUrl: req.body.returnUrl,
+      cancelUrl: req.body.cancelUrl
+    }));
+  }
+
   const plan = await PremiumPlan.findById(req.body.planId);
   if (!plan) throw new ApiError(404, 'Khong tim thay goi Premium');
   const role = req.user.roles.includes('designer') ? 'designer' : 'client';
@@ -399,6 +430,10 @@ mainRoutes.get('/admin/designers/pending', requireAuth, requireRole('admin'), as
 mainRoutes.patch('/admin/designers/:id/verify', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await DesignerProfile.findByIdAndUpdate(req.params.id, { verificationStatus: req.body.status, verificationNote: req.body.note }, { new: true }))));
 mainRoutes.get('/admin/projects', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Project.find(req.query.status ? { status: req.query.status } : {}).populate('clientId designerId', 'name email avatar').sort({ priorityLevel: 1, updatedAt: -1 }))));
 mainRoutes.get('/admin/transactions', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Transaction.find().populate('userId', 'name email').sort({ createdAt: -1 }))));
+mainRoutes.get('/admin/withdrawals', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Withdrawal.find().populate('designerId', 'name email').sort({ createdAt: -1 }))));
+mainRoutes.post('/admin/withdrawals/:id/sync', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await syncPayosWithdrawal({ withdrawalId: req.params.id, user: req.user }))));
+mainRoutes.get('/admin/payos/payout-balance', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await getPayosPayoutBalance())));
+mainRoutes.post('/admin/payos/confirm-webhook', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await confirmPayosWebhook(req.body.webhookUrl))));
 mainRoutes.get('/admin/disputes', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Dispute.find().populate('projectId openedBy resolvedBy').sort({ updatedAt: -1 }))));
 mainRoutes.get('/admin/disputes/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Dispute.findById(req.params.id).populate('projectId openedBy resolvedBy'))));
 mainRoutes.patch('/admin/disputes/:id/resolve', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {

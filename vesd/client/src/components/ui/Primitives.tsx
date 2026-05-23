@@ -35,8 +35,8 @@ export function RatingStars({ value = 5 }: { value?: number }) {
 }
 
 export function StatusBadge({ status }: { status?: string }) {
-  const danger = ['cancelled', 'disputed', 'banned', 'rejected'];
-  const success = ['completed', 'verified', 'success', 'active', 'approved'];
+  const danger = ['cancelled', 'disputed', 'banned', 'rejected', 'failed'];
+  const success = ['completed', 'verified', 'success', 'active', 'approved', 'paid'];
   const warning = ['pending', 'payment_pending', 'revision_requested', 'under_review'];
   const labels: Record<string, string> = {
     active: 'Đang hoạt động',
@@ -46,8 +46,10 @@ export function StatusBadge({ status }: { status?: string }) {
     completed: 'Hoàn thành',
     disputed: 'Đang khiếu nại',
     draft: 'Bản nháp',
+    failed: 'Thất bại',
     free: 'Miễn phí',
     payment_pending: 'Chờ thanh toán',
+    paid: 'Đã chi',
     pending: 'Đang chờ',
     rejected: 'Từ chối',
     revision_requested: 'Yêu cầu chỉnh sửa',

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart3, CheckCircle2, Clock, CreditCard } from 'lucide-react';
 import { Badge, Card, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
@@ -80,6 +81,15 @@ export function AgreementPage() {
 }
 
 export function EscrowPage() {
+  const [message, setMessage] = useState('');
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderCode = params.get('orderCode');
+    if (params.get('payos') !== 'success' || !orderCode) return;
+    endpoints.syncPayosPayment(orderCode)
+      .then(() => setMessage('payOS đã xác nhận thanh toán escrow thành công.'))
+      .catch((error) => setMessage(error instanceof Error ? error.message : 'Chưa thể xác nhận thanh toán payOS'));
+  }, []);
   return (
     <Dashboard title="Thanh toán escrow">
       <Card>
@@ -92,6 +102,7 @@ export function EscrowPage() {
         <div className="mt-5 flex flex-wrap gap-3">
           {['Chuyển khoản ngân hàng', 'MoMo', 'VNPay', 'Thẻ'].map((method) => <Button key={method} variant="secondary">{method}</Button>)}
         </div>
+        {message && <p className="mt-3 text-sm text-muted">{message}</p>}
       </Card>
     </Dashboard>
   );

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart3, CheckCircle2, Clock, CreditCard, FolderKanban, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { Badge, Card, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
@@ -114,11 +114,27 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
   const [selectedPlanId, setSelectedPlanId] = useState('');
   const [discountCode, setDiscountCode] = useState('');
   const [discountResult, setDiscountResult] = useState<any>(null);
-  const [paymentMethod, setPaymentMethod] = useState('bank_transfer');
+  const [paymentMethod, setPaymentMethod] = useState('payos');
   const [message, setMessage] = useState('');
   const { data: plans = [] } = useQuery({ queryKey: ['plans', roleTarget], queryFn: () => endpoints.premiumPlans(`?role=${roleTarget}`) });
   const { data: account } = useQuery({ queryKey: ['my-account'], queryFn: endpoints.myAccount });
   const { data: subscriptions = [] } = useQuery({ queryKey: ['premium-my'], queryFn: () => endpoints.premiumMy() });
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderCode = params.get('orderCode');
+    if (params.get('payos') !== 'success' || !orderCode) return;
+    endpoints.syncPayosPayment(orderCode)
+      .then(async () => {
+        setMessage('payOS đã xác nhận thanh toán thành công.');
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['my-account'] }),
+          queryClient.invalidateQueries({ queryKey: ['premium-my'] }),
+          queryClient.invalidateQueries({ queryKey: ['tx'] }),
+          queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+        ]);
+      })
+      .catch((error) => setMessage(error instanceof Error ? error.message : 'Chưa thể xác nhận thanh toán payOS'));
+  }, [queryClient]);
   const activeProfile = roleTarget === 'designer' ? account?.designerProfile : account?.clientProfile;
   const activeSubscription = subscriptions.find((item: any) => item.status === 'active');
   const selectedPlan = plans.find((plan) => plan._id === selectedPlanId) || plans[0];
@@ -136,7 +152,11 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
   });
   const subscribe = useMutation({
     mutationFn: (plan: PremiumPlan) => endpoints.subscribe({ planId: plan._id, discountCode: discountCode.trim() || undefined, paymentMethod }),
-    onSuccess: async () => {
+    onSuccess: async (result: any) => {
+      if (result?.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return;
+      }
       setMessage('Đã kích hoạt Premium và cập nhật loại tài khoản vào hệ thống.');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['my-account'] }),
@@ -207,6 +227,7 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
               <Button variant="secondary" disabled={!discountCode.trim() || !selectedPlan || validateDiscount.isPending} onClick={() => validateDiscount.mutate()}>Áp dụng</Button>
             </div>
             <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
+              <option value="payos">payOS</option>
               <option value="bank_transfer">Chuyển khoản ngân hàng</option>
               <option value="momo">MoMo</option>
               <option value="vnpay">VNPay</option>
@@ -216,7 +237,7 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
             <p className="text-sm text-muted">Tổng thanh toán</p>
             <p className="text-2xl font-black">{formatVnd(finalAmount)}</p>
             {discountResult?.discountAmount > 0 && <p className="mt-1 text-sm text-brand">Đã giảm {formatVnd(discountResult.discountAmount)} từ {formatVnd(selectedPlan?.price)}</p>}
-            <p className="mt-1 text-sm text-muted">Hiệu lực 3 tháng sau khi thanh toán mock thành công.</p>
+            <p className="mt-1 text-sm text-muted">Hiệu lực sau khi payOS xác nhận thanh toán thành công.</p>
           </div>
           <Button className="mt-5 w-full" disabled={!selectedPlan || subscribe.isPending} onClick={() => selectedPlan && subscribe.mutate(selectedPlan)}>
             {subscribe.isPending ? 'Đang xử lý...' : 'Nâng cấp tài khoản'}

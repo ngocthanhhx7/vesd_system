@@ -19,5 +19,17 @@ export const env = {
     region: process.env.AWS_REGION || 'us-east-1',
     s3Bucket: process.env.AWS_S3_BUCKET || 'vesd-bucket'
   },
-  googleClientId: process.env.GOOGLE_CLIENT_ID
+  googleClientId: process.env.GOOGLE_CLIENT_ID,
+  payos: {
+    baseUrl: process.env.PAYOS_BASE_URL || 'https://api-merchant.payos.vn',
+    clientId: process.env.PAYOS_CLIENT_ID,
+    apiKey: process.env.PAYOS_API_KEY,
+    checksumKey: process.env.PAYOS_CHECKSUM_KEY,
+    partnerCode: process.env.PAYOS_PARTNER_CODE,
+    payout: {
+      clientId: process.env.PAYOS_PAYOUT_CLIENT_ID || process.env.PAYOS_CLIENT_ID,
+      apiKey: process.env.PAYOS_PAYOUT_API_KEY || process.env.PAYOS_API_KEY,
+      checksumKey: process.env.PAYOS_PAYOUT_CHECKSUM_KEY || process.env.PAYOS_CHECKSUM_KEY
+    }
+  }
 };

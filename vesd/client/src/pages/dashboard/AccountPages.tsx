@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Clock, CreditCard, ShieldAlert } from 'lucide-react';
 import { Card, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
@@ -9,9 +9,102 @@ import { Dashboard, Section } from './shared/Dashboard';
 import { Metric } from './shared/Metric';
 
 export function WalletPage() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const canWithdraw = Boolean(user?.roles.includes('designer'));
   const { data } = useQuery({ queryKey: ['wallet'], queryFn: endpoints.wallet });
   const { data: tx = [] } = useQuery({ queryKey: ['tx'], queryFn: endpoints.transactions });
-  return <Dashboard title="Ví tiền"><div className="grid gap-4 md:grid-cols-3"><Metric label="Số dư" value={(data?.balance || 0).toLocaleString('vi-VN')} icon={CreditCard} /><Metric label="Đang giữ escrow" value={(data?.escrowBalance || 0).toLocaleString('vi-VN')} icon={ShieldAlert} /><Metric label="Đang chờ" value={(data?.pendingBalance || 0).toLocaleString('vi-VN')} icon={Clock} /></div><Section title="Lịch sử giao dịch">{tx.map((t: any) => <Card key={t._id}><div className="flex justify-between"><span>{t.type}</span><span>{t.amount?.toLocaleString('vi-VN')}đ</span><StatusBadge status={t.status} /></div></Card>)}</Section></Dashboard>;
+  const { data: withdrawals = [] } = useQuery({ queryKey: ['withdrawals'], queryFn: endpoints.withdrawals, enabled: canWithdraw });
+  const [withdrawForm, setWithdrawForm] = useState({ amount: '', toBin: '', toAccountNumber: '', toAccountName: '' });
+  const [withdrawMessage, setWithdrawMessage] = useState('');
+  const refreshMoneyData = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+      queryClient.invalidateQueries({ queryKey: ['tx'] }),
+      queryClient.invalidateQueries({ queryKey: ['withdrawals'] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+    ]);
+  };
+  const createWithdrawal = useMutation({
+    mutationFn: () => endpoints.createWithdrawal({
+      amount: Number(withdrawForm.amount),
+      accountInfo: {
+        toBin: withdrawForm.toBin,
+        toAccountNumber: withdrawForm.toAccountNumber,
+        toAccountName: withdrawForm.toAccountName
+      }
+    }),
+    onSuccess: async () => {
+      setWithdrawMessage('Đã gửi yêu cầu rút tiền qua payOS.');
+      setWithdrawForm({ amount: '', toBin: '', toAccountNumber: '', toAccountName: '' });
+      await refreshMoneyData();
+    },
+    onError: (error) => setWithdrawMessage(error instanceof Error ? error.message : 'Không thể rút tiền')
+  });
+  const syncWithdrawal = useMutation({
+    mutationFn: (id: string) => endpoints.syncWithdrawal(id),
+    onSuccess: refreshMoneyData,
+    onError: (error) => setWithdrawMessage(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái rút tiền')
+  });
+  const setWithdrawField = (key: keyof typeof withdrawForm, value: string) => setWithdrawForm((current) => ({ ...current, [key]: value }));
+
+  return (
+    <Dashboard title="Ví tiền">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Metric label="Số dư" value={(data?.balance || 0).toLocaleString('vi-VN')} icon={CreditCard} />
+        <Metric label="Đang giữ escrow" value={(data?.escrowBalance || 0).toLocaleString('vi-VN')} icon={ShieldAlert} />
+        <Metric label="Đang chờ" value={(data?.pendingBalance || 0).toLocaleString('vi-VN')} icon={Clock} />
+      </div>
+
+      {canWithdraw && (
+        <Section title="Rút tiền payOS">
+          <Card>
+            <div className="grid gap-3 md:grid-cols-4">
+              <Input type="number" min="1000" placeholder="Số tiền" value={withdrawForm.amount} onChange={(event) => setWithdrawField('amount', event.target.value)} />
+              <Input placeholder="Mã ngân hàng (BIN)" value={withdrawForm.toBin} onChange={(event) => setWithdrawField('toBin', event.target.value)} />
+              <Input placeholder="Số tài khoản" value={withdrawForm.toAccountNumber} onChange={(event) => setWithdrawField('toAccountNumber', event.target.value)} />
+              <Input placeholder="Tên tài khoản" value={withdrawForm.toAccountName} onChange={(event) => setWithdrawField('toAccountName', event.target.value)} />
+            </div>
+            <Button className="mt-4" disabled={createWithdrawal.isPending} onClick={() => createWithdrawal.mutate()}>
+              {createWithdrawal.isPending ? 'Đang xử lý...' : 'Rút tiền'}
+            </Button>
+            {withdrawMessage && <p className="mt-3 text-sm text-muted">{withdrawMessage}</p>}
+          </Card>
+        </Section>
+      )}
+
+      {canWithdraw && withdrawals.length > 0 && (
+        <Section title="Yêu cầu rút tiền">
+          {withdrawals.map((item: any) => (
+            <Card key={item._id}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold">{item.amount?.toLocaleString('vi-VN')}đ</p>
+                  <p className="text-sm text-muted">{item.accountInfo?.toBin} - {item.accountInfo?.toAccountNumber}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={item.status} />
+                  <Button variant="secondary" disabled={syncWithdrawal.isPending || !item.payoutId} onClick={() => syncWithdrawal.mutate(item._id)}>Cập nhật</Button>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </Section>
+      )}
+
+      <Section title="Lịch sử giao dịch">
+        {tx.map((t: any) => (
+          <Card key={t._id}>
+            <div className="flex justify-between">
+              <span>{t.type}</span>
+              <span>{t.amount?.toLocaleString('vi-VN')}đ</span>
+              <StatusBadge status={t.status} />
+            </div>
+          </Card>
+        ))}
+      </Section>
+    </Dashboard>
+  );
 }
 
 export function ReviewsPage() {

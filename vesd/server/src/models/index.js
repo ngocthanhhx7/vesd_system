@@ -173,9 +173,13 @@ const walletSchema = new Schema(
 const withdrawalSchema = new Schema(
   {
     designerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    transactionId: { type: Schema.Types.ObjectId, ref: 'Transaction' },
     amount: Number,
     method: String,
     accountInfo: Schema.Types.Mixed,
+    referenceId: String,
+    payoutId: String,
+    metadata: Schema.Types.Mixed,
     status: { type: String, enum: ['pending', 'approved', 'rejected', 'paid'], default: 'pending' }
   },
   { timestamps: true }
