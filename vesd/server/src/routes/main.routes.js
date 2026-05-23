@@ -25,9 +25,10 @@ import {
 } from '../models/index.js';
 import { approveMilestone, completeProject, fundEscrow, getOwnedProject, refundProject, requestRevision } from '../services/projectService.js';
 import { validateDiscount } from '../services/discountService.js';
-import { createPayosEscrowPayment, createPayosPremiumPayment, handlePayosPaymentWebhook, syncPayosPayment } from '../services/paymentService.js';
+import { createPayosEscrowPayment, createPayosPremiumPayment, createPayosWalletTopup, handlePayosPaymentWebhook, payPremiumWithWallet, syncPayosPayment } from '../services/paymentService.js';
 import { handleCassoWithdrawalWebhook, requestCassoWithdrawal, requestPayosWithdrawal, syncPayosWithdrawal } from '../services/withdrawalService.js';
 import { confirmPayosWebhook, getPayosPayoutBalance } from '../services/payosService.js';
+import { transferWalletToDesigner } from '../services/walletService.js';
 
 export const mainRoutes = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -314,6 +315,8 @@ mainRoutes.post('/payments/release', requireAuth, requireRole('admin'), asyncHan
 mainRoutes.post('/payments/refund', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await refundProject({ projectId: req.body.projectId, adminId: req.user._id, amount: req.body.amount }))));
 mainRoutes.get('/transactions/my', requireAuth, asyncHandler(async (req, res) => res.json(await Transaction.find({ userId: req.user._id }).sort({ createdAt: -1 }))));
 mainRoutes.get('/wallet/my', requireAuth, asyncHandler(async (req, res) => res.json(await Wallet.findOne({ userId: req.user._id }))));
+mainRoutes.post('/wallet/topup', requireAuth, asyncHandler(async (req, res) => res.status(201).json(await createPayosWalletTopup({ user: req.user, amount: req.body.amount, returnUrl: req.body.returnUrl, cancelUrl: req.body.cancelUrl }))));
+mainRoutes.post('/wallet/transfers/designer', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.status(201).json(await transferWalletToDesigner({ sender: req.user, designerId: req.body.designerId, projectId: req.body.projectId, amount: req.body.amount, note: req.body.note }))));
 mainRoutes.get('/withdrawals/my', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => res.json(await Withdrawal.find({ designerId: req.user._id }).sort({ createdAt: -1 }))));
 mainRoutes.post('/withdrawals', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   if (req.body.method === 'payos') {
@@ -374,6 +377,13 @@ mainRoutes.post('/premium/subscribe', requireAuth, asyncHandler(async (req, res)
       discountCode: req.body.discountCode,
       returnUrl: req.body.returnUrl,
       cancelUrl: req.body.cancelUrl
+    }));
+  }
+  if (req.body.paymentMethod === 'wallet') {
+    return res.status(201).json(await payPremiumWithWallet({
+      user: req.user,
+      planId: req.body.planId,
+      discountCode: req.body.discountCode
     }));
   }
 

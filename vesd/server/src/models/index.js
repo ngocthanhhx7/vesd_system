@@ -147,7 +147,7 @@ const transactionSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     projectId: { type: Schema.Types.ObjectId, ref: 'Project' },
-    type: { type: String, enum: ['deposit', 'release', 'refund', 'withdrawal', 'premium'], required: true },
+    type: { type: String, enum: ['deposit', 'topup', 'release', 'refund', 'withdrawal', 'premium', 'transfer'], required: true },
     amount: Number,
     platformFee: { type: Number, default: 0 },
     status: { type: String, enum: ['pending', 'success', 'failed', 'cancelled'], default: 'pending' },

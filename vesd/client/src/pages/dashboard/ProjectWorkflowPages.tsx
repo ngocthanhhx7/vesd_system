@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BarChart3, CheckCircle2, Clock, CreditCard } from 'lucide-react';
 import { Badge, Card, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
@@ -81,15 +81,42 @@ export function AgreementPage() {
 }
 
 export function EscrowPage() {
+  const queryClient = useQueryClient();
   const [message, setMessage] = useState('');
+  const [projectId, setProjectId] = useState('');
+  const [discountCode, setDiscountCode] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('wallet');
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const orderCode = params.get('orderCode');
     if (params.get('payos') !== 'success' || !orderCode) return;
     endpoints.syncPayosPayment(orderCode)
-      .then(() => setMessage('payOS đã xác nhận thanh toán escrow thành công.'))
+      .then(async () => {
+        setMessage('payOS đã xác nhận thanh toán escrow thành công.');
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+          queryClient.invalidateQueries({ queryKey: ['tx'] }),
+          queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+        ]);
+      })
       .catch((error) => setMessage(error instanceof Error ? error.message : 'Chưa thể xác nhận thanh toán payOS'));
-  }, []);
+  }, [queryClient]);
+  const payEscrow = useMutation({
+    mutationFn: () => endpoints.payEscrow({ projectId, discountCode: discountCode || undefined, paymentMethod }),
+    onSuccess: async (result: any) => {
+      if (result?.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+      setMessage('Đã thanh toán escrow bằng ví. Phí sàn được thu tại thời điểm funding.');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['wallet'] }),
+        queryClient.invalidateQueries({ queryKey: ['tx'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      ]);
+    },
+    onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể thanh toán escrow')
+  });
   return (
     <Dashboard title="Thanh toán escrow">
       <Card>
@@ -99,8 +126,16 @@ export function EscrowPage() {
           <Metric label="Tổng cộng" value="2.700.000đ" icon={CheckCircle2} />
           <Metric label="Trạng thái" value="Đang chờ" icon={Clock} />
         </div>
-        <div className="mt-5 flex flex-wrap gap-3">
-          {['Chuyển khoản ngân hàng', 'MoMo', 'VNPay', 'Thẻ'].map((method) => <Button key={method} variant="secondary">{method}</Button>)}
+        <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_220px_auto]">
+          <Input placeholder="ID dự án" value={projectId} onChange={(event) => setProjectId(event.target.value)} />
+          <Input placeholder="Mã giảm giá nếu có" value={discountCode} onChange={(event) => setDiscountCode(event.target.value)} />
+          <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
+            <option value="wallet">Ví VESD</option>
+            <option value="payos">payOS</option>
+          </Select>
+          <Button disabled={payEscrow.isPending || !projectId} onClick={() => payEscrow.mutate()}>
+            {payEscrow.isPending ? 'Đang xử lý...' : 'Thanh toán'}
+          </Button>
         </div>
         {message && <p className="mt-3 text-sm text-muted">{message}</p>}
       </Card>

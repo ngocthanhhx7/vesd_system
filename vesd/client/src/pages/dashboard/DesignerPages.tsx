@@ -157,7 +157,7 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
         window.location.href = result.checkoutUrl;
         return;
       }
-      setMessage('Đã kích hoạt Premium và cập nhật loại tài khoản vào hệ thống.');
+      setMessage(paymentMethod === 'wallet' ? 'Đã thanh toán bằng ví và kích hoạt Premium.' : 'Đã kích hoạt Premium và cập nhật loại tài khoản vào hệ thống.');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['my-account'] }),
         queryClient.invalidateQueries({ queryKey: ['premium-my'] }),
@@ -228,6 +228,7 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
             </div>
             <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
               <option value="payos">payOS</option>
+              <option value="wallet">Ví VESD</option>
               <option value="bank_transfer">Chuyển khoản ngân hàng</option>
               <option value="momo">MoMo</option>
               <option value="vnpay">VNPay</option>
@@ -237,7 +238,7 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
             <p className="text-sm text-muted">Tổng thanh toán</p>
             <p className="text-2xl font-black">{formatVnd(finalAmount)}</p>
             {discountResult?.discountAmount > 0 && <p className="mt-1 text-sm text-brand">Đã giảm {formatVnd(discountResult.discountAmount)} từ {formatVnd(selectedPlan?.price)}</p>}
-            <p className="mt-1 text-sm text-muted">Hiệu lực sau khi payOS xác nhận thanh toán thành công.</p>
+            <p className="mt-1 text-sm text-muted">{paymentMethod === 'wallet' ? 'Trừ trực tiếp từ số dư ví VESD.' : 'Hiệu lực sau khi payOS xác nhận thanh toán thành công.'}</p>
           </div>
           <Button className="mt-5 w-full" disabled={!selectedPlan || subscribe.isPending} onClick={() => selectedPlan && subscribe.mutate(selectedPlan)}>
             {subscribe.isPending ? 'Đang xử lý...' : 'Nâng cấp tài khoản'}

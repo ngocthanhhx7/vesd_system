@@ -13,6 +13,7 @@ import { env } from '../config/env.js';
 import { ApiError } from '../utils/apiError.js';
 import { validateDiscount } from './discountService.js';
 import { createPayosPaymentLink, getPayosPaymentRequest, verifyPayosPaymentSignature } from './payosService.js';
+import { WALLET_MIN_TOPUP_AMOUNT, normalizeWalletAmount } from './walletService.js';
 
 const frontendBaseUrl = () => env.clientUrl.split(',')[0].trim().replace(/\/$/, '');
 const premiumAccountTypeForRole = (role) => (role === 'designer' ? 'designer_premium' : 'business_premium');
@@ -66,8 +67,9 @@ export async function createPayosEscrowPayment({ projectId, user, discountCode, 
     appliesTo: 'project',
     role: 'client'
   });
-  const amount = Math.round(finalAmount);
-  const platformFee = Math.round(amount * 0.08);
+  const escrowAmount = Math.round(finalAmount);
+  const platformFee = Math.round(escrowAmount * 0.08);
+  const amount = escrowAmount + platformFee;
   const orderCode = generateOrderCode();
   const urls = buildCheckoutUrls('/client/escrow', orderCode, returnUrl, cancelUrl);
 
@@ -82,6 +84,8 @@ export async function createPayosEscrowPayment({ projectId, user, discountCode, 
     metadata: {
       purpose: 'escrow',
       originalAmount,
+      escrowAmount,
+      totalDue: amount,
       discountId: discount?._id,
       discountCode: discount?.code,
       discountAmount,
@@ -97,7 +101,54 @@ export async function createPayosEscrowPayment({ projectId, user, discountCode, 
       description: paymentDescription(orderCode),
       buyerName: user.name,
       buyerEmail: user.email,
-      items: [{ name: project.title, quantity: 1, price: amount }],
+      items: [
+        { name: project.title, quantity: 1, price: escrowAmount },
+        { name: 'Phi san VESD', quantity: 1, price: platformFee }
+      ],
+      returnUrl: urls.returnUrl,
+      cancelUrl: urls.cancelUrl
+    });
+    transaction.metadata = {
+      ...transaction.metadata,
+      payosPaymentLinkId: payosResponse.data?.paymentLinkId,
+      payosCheckoutUrl: payosResponse.data?.checkoutUrl,
+      payosQrCode: payosResponse.data?.qrCode
+    };
+    await transaction.save();
+    return checkoutResponse(transaction, payosResponse);
+  } catch (error) {
+    await markPayosCreationFailed(transaction, error);
+    throw error;
+  }
+}
+
+export async function createPayosWalletTopup({ user, amount, returnUrl, cancelUrl }) {
+  const value = normalizeWalletAmount(amount, { min: WALLET_MIN_TOPUP_AMOUNT });
+  const orderCode = generateOrderCode();
+  const walletPath = user.roles.includes('designer') ? '/designer/earnings' : '/client/wallet';
+  const urls = buildCheckoutUrls(walletPath, orderCode, returnUrl, cancelUrl);
+
+  const transaction = await Transaction.create({
+    userId: user._id,
+    type: 'topup',
+    amount: value,
+    status: 'pending',
+    paymentMethod: 'payos',
+    metadata: {
+      purpose: 'wallet_topup',
+      payosOrderCode: orderCode,
+      payosStatus: 'PENDING'
+    }
+  });
+
+  try {
+    const payosResponse = await createPayosPaymentLink({
+      orderCode,
+      amount: value,
+      description: paymentDescription(orderCode),
+      buyerName: user.name,
+      buyerEmail: user.email,
+      items: [{ name: 'Nap vi VESD', quantity: 1, price: value }],
       returnUrl: urls.returnUrl,
       cancelUrl: urls.cancelUrl
     });
@@ -184,6 +235,53 @@ async function incrementDiscountUsage(transaction) {
   if (discountId) await Discount.findByIdAndUpdate(discountId, { $inc: { usedCount: 1 } });
 }
 
+export async function payPremiumWithWallet({ user, planId, discountCode }) {
+  const plan = await PremiumPlan.findById(planId);
+  if (!plan) throw new ApiError(404, 'Khong tim thay goi Premium');
+
+  const role = user.roles.includes('designer') ? 'designer' : 'client';
+  if (plan.roleTarget !== 'both' && plan.roleTarget !== role) throw new ApiError(403, 'Goi Premium khong ap dung cho loai tai khoan hien tai');
+
+  const { discount, discountAmount, finalAmount } = await validateDiscount({
+    code: discountCode,
+    amount: plan.price,
+    appliesTo: 'premium',
+    role
+  });
+  const amount = Math.round(finalAmount);
+  const accountType = plan.code || premiumAccountTypeForRole(role);
+
+  const wallet = await Wallet.findOneAndUpdate(
+    { userId: user._id, balance: { $gte: amount } },
+    { $inc: { balance: -amount, totalSpent: amount } },
+    { new: true }
+  );
+  if (!wallet) throw new ApiError(400, 'So du vi khong du de thanh toan goi Premium');
+
+  const transaction = await Transaction.create({
+    userId: user._id,
+    type: 'premium',
+    amount,
+    status: 'success',
+    paymentMethod: 'wallet',
+    metadata: {
+      purpose: 'premium',
+      originalAmount: plan.price,
+      discountId: discount?._id,
+      discountCode: discount?.code,
+      discountAmount,
+      planId: plan._id,
+      planName: plan.name,
+      accountType,
+      role
+    }
+  });
+
+  await activatePremiumFromTransaction(transaction);
+  await incrementDiscountUsage(transaction);
+  return { transaction, wallet };
+}
+
 async function activatePremiumFromTransaction(transaction) {
   const plan = await PremiumPlan.findById(transaction.metadata?.planId);
   if (!plan) throw new ApiError(404, 'Khong tim thay goi Premium');
@@ -241,10 +339,20 @@ async function finalizePayosTransaction(transaction, payosData) {
   };
   await transaction.save();
 
-  if (transaction.type === 'deposit') {
+  if (transaction.type === 'topup' || transaction.metadata?.purpose === 'wallet_topup') {
     await Wallet.findOneAndUpdate(
       { userId: transaction.userId },
-      { $inc: { escrowBalance: transaction.amount, totalSpent: transaction.amount + transaction.platformFee } },
+      { $inc: { balance: transaction.amount } },
+      { upsert: true }
+    );
+  }
+
+  if (transaction.type === 'deposit' && transaction.metadata?.purpose === 'escrow') {
+    const escrowAmount = Number(transaction.metadata?.escrowAmount ?? transaction.amount);
+    const totalSpent = Number(transaction.metadata?.totalDue ?? (transaction.amount + transaction.platformFee));
+    await Wallet.findOneAndUpdate(
+      { userId: transaction.userId },
+      { $inc: { escrowBalance: escrowAmount, totalSpent } },
       { upsert: true }
     );
     await Project.findByIdAndUpdate(transaction.projectId, { status: 'escrow_funded' });

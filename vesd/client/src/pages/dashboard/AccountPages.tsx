@@ -12,12 +12,17 @@ export function WalletPage() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const canWithdraw = Boolean(user?.roles.includes('designer'));
+  const canTransferToDesigner = Boolean(user?.roles.includes('client'));
   const { data } = useQuery({ queryKey: ['wallet'], queryFn: endpoints.wallet });
   const { data: tx = [] } = useQuery({ queryKey: ['tx'], queryFn: endpoints.transactions });
   const { data: withdrawals = [] } = useQuery({ queryKey: ['withdrawals'], queryFn: endpoints.withdrawals, enabled: canWithdraw });
+  const [topupAmount, setTopupAmount] = useState('10000');
+  const [topupMessage, setTopupMessage] = useState('');
   const [withdrawForm, setWithdrawForm] = useState({ amount: '', toBin: '', toAccountNumber: '', toAccountName: '' });
   const [withdrawMessage, setWithdrawMessage] = useState('');
   const [transferInstruction, setTransferInstruction] = useState<any>(null);
+  const [transferForm, setTransferForm] = useState({ projectId: '', designerId: '', amount: '', note: '' });
+  const [transferMessage, setTransferMessage] = useState('');
   const refreshMoneyData = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['wallet'] }),
@@ -26,6 +31,24 @@ export function WalletPage() {
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
     ]);
   };
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const orderCode = params.get('orderCode');
+    if (params.get('payos') !== 'success' || !orderCode) return;
+    endpoints.syncPayosPayment(orderCode)
+      .then(async () => {
+        setTopupMessage('payOS đã xác nhận nạp ví thành công.');
+        await refreshMoneyData();
+      })
+      .catch((error) => setTopupMessage(error instanceof Error ? error.message : 'Chưa thể xác nhận giao dịch payOS'));
+  }, []);
+  const topUpWallet = useMutation({
+    mutationFn: () => endpoints.topUpWallet({ amount: Number(topupAmount) }),
+    onSuccess: (result: any) => {
+      if (result?.checkoutUrl) window.location.href = result.checkoutUrl;
+    },
+    onError: (error) => setTopupMessage(error instanceof Error ? error.message : 'Không thể tạo giao dịch nạp ví')
+  });
   const createWithdrawal = useMutation({
     mutationFn: () => endpoints.createWithdrawal({
       amount: Number(withdrawForm.amount),
@@ -49,6 +72,21 @@ export function WalletPage() {
     onError: (error) => setWithdrawMessage(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái rút tiền')
   });
   const setWithdrawField = (key: keyof typeof withdrawForm, value: string) => setWithdrawForm((current) => ({ ...current, [key]: value }));
+  const transferToDesigner = useMutation({
+    mutationFn: () => endpoints.transferToDesigner({
+      projectId: transferForm.projectId,
+      designerId: transferForm.designerId,
+      amount: Number(transferForm.amount),
+      note: transferForm.note || undefined
+    }),
+    onSuccess: async () => {
+      setTransferMessage('Đã chuyển tiền từ ví cho designer.');
+      setTransferForm({ projectId: '', designerId: '', amount: '', note: '' });
+      await refreshMoneyData();
+    },
+    onError: (error) => setTransferMessage(error instanceof Error ? error.message : 'Không thể chuyển tiền cho designer')
+  });
+  const setTransferField = (key: keyof typeof transferForm, value: string) => setTransferForm((current) => ({ ...current, [key]: value }));
 
   return (
     <Dashboard title="Ví tiền">
@@ -57,6 +95,35 @@ export function WalletPage() {
         <Metric label="Đang giữ escrow" value={(data?.escrowBalance || 0).toLocaleString('vi-VN')} icon={ShieldAlert} />
         <Metric label="Đang chờ" value={(data?.pendingBalance || 0).toLocaleString('vi-VN')} icon={Clock} />
       </div>
+
+      <Section title="Nạp ví">
+        <Card>
+          <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+            <Input type="number" min="10000" step="1000" placeholder="Số tiền nạp tối thiểu 10.000đ" value={topupAmount} onChange={(event) => setTopupAmount(event.target.value)} />
+            <Button disabled={topUpWallet.isPending} onClick={() => topUpWallet.mutate()}>
+              {topUpWallet.isPending ? 'Đang tạo...' : 'Nạp ví qua payOS'}
+            </Button>
+          </div>
+          {topupMessage && <p className="mt-3 text-sm text-muted">{topupMessage}</p>}
+        </Card>
+      </Section>
+
+      {canTransferToDesigner && (
+        <Section title="Chuyển tiền cho designer">
+          <Card>
+            <div className="grid gap-3 md:grid-cols-4">
+              <Input placeholder="ID dự án đã hoàn thành" value={transferForm.projectId} onChange={(event) => setTransferField('projectId', event.target.value)} />
+              <Input placeholder="ID designer" value={transferForm.designerId} onChange={(event) => setTransferField('designerId', event.target.value)} />
+              <Input type="number" min="1" placeholder="Số tiền" value={transferForm.amount} onChange={(event) => setTransferField('amount', event.target.value)} />
+              <Input placeholder="Ghi chú" value={transferForm.note} onChange={(event) => setTransferField('note', event.target.value)} />
+            </div>
+            <Button className="mt-4" disabled={transferToDesigner.isPending} onClick={() => transferToDesigner.mutate()}>
+              {transferToDesigner.isPending ? 'Đang chuyển...' : 'Chuyển từ ví'}
+            </Button>
+            {transferMessage && <p className="mt-3 text-sm text-muted">{transferMessage}</p>}
+          </Card>
+        </Section>
+      )}
 
       {canWithdraw && (
         <Section title="Rút tiền Casso">
