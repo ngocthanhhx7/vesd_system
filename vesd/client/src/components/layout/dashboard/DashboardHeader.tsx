@@ -1,31 +1,69 @@
-import { Bell, LogOut, Search, UserRound } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { LogOut, Search, UserRound } from 'lucide-react';
 import { Button } from '../../ui/Button';
 import { useAuth } from '../../../hooks/useAuth';
 import { DashboardRole } from './dashboardNavigation';
 import { useNavigate } from 'react-router-dom';
+import { SearchOverlay } from '../../ui/SearchOverlay';
+import { NotificationBell, NotificationDrawer } from '../../ui/NotificationDrawer';
 
 export function DashboardHeader({ role }: { role: DashboardRole }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const roleLabel = role === 'client' ? 'Khách hàng' : role === 'designer' ? 'Người thiết kế' : 'Quản trị viên';
+
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
+  // Global keyboard shortcut Ctrl+K / Cmd+K
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-10 border-b border-line bg-white">
-      <div className="flex h-16 items-center justify-between px-4 lg:px-8">
-        <div className="flex items-center gap-2 text-base text-muted"><Search size={17} /> Tìm dự án, designer, giao dịch</div>
-        <div className="flex items-center gap-3">
-          <Bell size={18} />
-          <div className="hidden text-right text-base sm:block"><div className="font-semibold">{user?.name}</div><div className="text-muted">{roleLabel}</div></div>
-          <div className="h-9 w-9 overflow-hidden rounded-full bg-soft">
-            {user?.avatar ? <img className="h-full w-full object-cover" src={user.avatar} alt={user.name} /> : <UserRound className="m-1.5 h-6 w-6" />}
+    <>
+      <header className="sticky top-0 z-10 border-b border-line bg-white">
+        <div className="flex h-16 items-center justify-between px-4 lg:px-8">
+          {/* Search trigger */}
+          <button
+            className="header-search-trigger"
+            onClick={() => setSearchOpen(true)}
+          >
+            <Search size={16} />
+            <span className="hidden sm:inline">Tìm kiếm dự án, designer, giao dịch...</span>
+            <span className="sm:hidden">Tìm kiếm...</span>
+            <kbd className="header-search-kbd hidden md:inline-flex">⌘K</kbd>
+          </button>
+
+          {/* Right side */}
+          <div className="flex items-center gap-2">
+            <NotificationBell onClick={() => setNotifOpen(true)} />
+            <div className="hidden text-right text-sm sm:block">
+              <div className="font-semibold text-ink">{user?.name}</div>
+              <div className="text-xs text-muted">{roleLabel}</div>
+            </div>
+            <div className="h-9 w-9 overflow-hidden rounded-full bg-soft">
+              {user?.avatar ? <img className="h-full w-full object-cover" src={user.avatar} alt={user.name} /> : <UserRound className="m-1.5 h-6 w-6 text-muted" />}
+            </div>
+            <Button variant="ghost" aria-label="Đăng xuất" onClick={handleLogout}><LogOut size={16} /></Button>
           </div>
-          <Button variant="ghost" aria-label="Đăng xuất" onClick={handleLogout}><LogOut size={16} /></Button>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Overlays */}
+      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <NotificationDrawer open={notifOpen} onClose={() => setNotifOpen(false)} />
+    </>
   );
 }

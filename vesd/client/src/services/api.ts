@@ -88,5 +88,15 @@ export const endpoints = {
     const form = new FormData();
     form.append('file', file);
     return api<any>('/uploads/image', { method: 'POST', body: form });
-  }
+  },
+  // Search
+  search: (q: string, limit = 5) => api<any>(`/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+  // Notifications
+  notifications: (page = 1, limit = 20) => api<any>(`/notifications?page=${page}&limit=${limit}`),
+  notificationUnreadCount: () => api<{ unreadCount: number }>('/notifications/unread-count'),
+  markNotificationRead: (id: string) => api<any>(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsRead: () => api<any>('/notifications/read-all', { method: 'PATCH' }),
+  // Notification Preferences
+  notificationPreferences: () => api<any>('/users/me/notification-preferences'),
+  updateNotificationPreferences: (body: unknown) => api<any>('/users/me/notification-preferences', { method: 'PATCH', body: JSON.stringify(body) })
 };

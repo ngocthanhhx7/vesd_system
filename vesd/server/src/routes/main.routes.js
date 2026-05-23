@@ -30,6 +30,7 @@ import { createPayosEscrowPayment, createPayosPremiumPayment, createPayosWalletT
 import { handleCassoWithdrawalWebhook, requestCassoWithdrawal, requestPayosWithdrawal, syncPayosWithdrawal } from '../services/withdrawalService.js';
 import { confirmPayosWebhook, getPayosPayoutBalance } from '../services/payosService.js';
 import { transferWalletToDesigner } from '../services/walletService.js';
+import { addSSEClient } from '../services/notificationService.js';
 
 export const mainRoutes = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
@@ -100,7 +101,7 @@ mainRoutes.get('/dashboard/summary', requireAuth, asyncHandler(async (req, res) 
 }));
 
 mainRoutes.patch('/users/me', requireAuth, asyncHandler(async (req, res) => {
-  const allowed = ['name', 'email', 'phone', 'avatar', 'dateOfBirth'];
+  const allowed = ['name', 'email', 'phone', 'avatar', 'dateOfBirth', 'notificationPreferences'];
   const patch = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
   if (patch.email && patch.email !== req.user.email) {
     const exists = await User.findOne({ email: String(patch.email).toLowerCase().trim(), _id: { $ne: req.user._id } });
@@ -110,6 +111,37 @@ mainRoutes.patch('/users/me', requireAuth, asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(req.user._id, patch, { new: true }).select('-passwordHash');
   res.json(user);
 }));
+
+mainRoutes.get('/users/me/notification-preferences', requireAuth, asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select('notificationPreferences').lean();
+  const defaults = {
+    email: { project: false, wallet: false, dispute: true, verification: true, premium: true, system: false },
+    inApp: { project: true, wallet: true, dispute: true, verification: true, premium: true, system: true },
+    emailDigest: 'instant'
+  };
+  res.json({ preferences: { ...defaults, ...user?.notificationPreferences } });
+}));
+
+mainRoutes.patch('/users/me/notification-preferences', requireAuth, asyncHandler(async (req, res) => {
+  const { email, inApp, emailDigest } = req.body;
+  const update = {};
+  if (email && typeof email === 'object') {
+    for (const [cat, val] of Object.entries(email)) {
+      update[`notificationPreferences.email.${cat}`] = Boolean(val);
+    }
+  }
+  if (inApp && typeof inApp === 'object') {
+    for (const [cat, val] of Object.entries(inApp)) {
+      update[`notificationPreferences.inApp.${cat}`] = Boolean(val);
+    }
+  }
+  if (emailDigest && ['instant', 'daily', 'weekly', 'off'].includes(emailDigest)) {
+    update['notificationPreferences.emailDigest'] = emailDigest;
+  }
+  const user = await User.findByIdAndUpdate(req.user._id, { $set: update }, { new: true }).select('notificationPreferences');
+  res.json({ preferences: user.notificationPreferences });
+}));
+
 
 mainRoutes.patch('/users/me/password', requireAuth, asyncHandler(async (req, res) => {
   const currentPassword = String(req.body.currentPassword || '');
@@ -451,18 +483,155 @@ mainRoutes.post('/premium/subscribe', requireAuth, asyncHandler(async (req, res)
   }
   await Notification.create({
     userId: req.user._id,
+    type: 'premium.activated',
+    category: 'premium',
     title: 'Tai khoan Premium da kich hoat',
     message: `${plan.name} co hieu luc den ${endDate.toLocaleDateString('vi-VN')}.`,
-    type: 'premium',
-    link: role === 'designer' ? '/designer/premium' : '/client/premium'
+    actionUrl: role === 'designer' ? '/designer/premium' : '/client/premium'
   });
   res.status(201).json(await subscription.populate('planId'));
 }));
 mainRoutes.get('/premium/my', requireAuth, asyncHandler(async (req, res) => res.json(await Subscription.find({ userId: req.user._id }).populate('planId'))));
 
 mainRoutes.get('/checklists/:category', asyncHandler(async (req, res) => res.json(await ChecklistTemplate.findOne({ category: req.params.category }))));
-mainRoutes.get('/notifications', requireAuth, asyncHandler(async (req, res) => res.json(await Notification.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(30))));
-mainRoutes.patch('/notifications/:id/read', requireAuth, asyncHandler(async (req, res) => res.json(await Notification.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, { isRead: true }, { new: true }))));
+
+// ── Global Search ──
+mainRoutes.get('/search', requireAuth, asyncHandler(async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (q.length < 2) return res.json({ results: {}, totalCount: 0, query: q });
+  const limit = Math.min(Number(req.query.limit) || 5, 10);
+  const regex = new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+  const isAdmin = req.user.roles.includes('admin');
+  const isDesigner = req.user.roles.includes('designer');
+  const userId = req.user._id;
+  const results = {};
+  let totalCount = 0;
+
+  // Projects
+  const projectQuery = isAdmin ? { title: regex } : isDesigner ? { designerId: userId, title: regex } : { clientId: userId, title: regex };
+  const projects = await Project.find(projectQuery).select('title status category').limit(limit).lean();
+  if (projects.length) {
+    results.projects = projects.map(p => ({
+      _id: p._id,
+      title: p.title,
+      status: p.status,
+      subtitle: p.category || '',
+      url: isAdmin ? `/admin/projects` : isDesigner ? `/designer/requests` : `/client`
+    }));
+    totalCount += projects.length;
+  }
+
+  // Users (admin only) or Designers (public search)
+  if (isAdmin) {
+    const users = await User.find({ name: regex }).select('name email avatar roles').limit(limit).lean();
+    if (users.length) {
+      results.users = users.map(u => ({ _id: u._id, title: u.name, subtitle: u.email, avatar: u.avatar, url: '/admin/users' }));
+      totalCount += users.length;
+    }
+  } else {
+    const designers = await DesignerProfile.find({ $or: [{ title: regex }, { skills: regex }] })
+      .populate('userId', 'name avatar')
+      .select('title ratingAverage slug userId')
+      .limit(limit)
+      .lean();
+    if (designers.length) {
+      results.designers = designers.map(d => ({
+        _id: d._id,
+        title: d.userId?.name || d.title,
+        subtitle: d.title || '',
+        avatar: d.userId?.avatar,
+        rating: d.ratingAverage,
+        url: `/designers/${d.slug || d.userId?._id}`
+      }));
+      totalCount += designers.length;
+    }
+  }
+
+  // Transactions
+  const txQuery = isAdmin ? {} : { userId };
+  const txSearch = { ...txQuery, $or: [{ type: regex }, { paymentMethod: regex }] };
+  const transactions = await Transaction.find(txSearch).select('type amount status createdAt').sort({ createdAt: -1 }).limit(limit).lean();
+  if (transactions.length) {
+    results.transactions = transactions.map(t => ({
+      _id: t._id,
+      title: `${t.type} — ${t.amount?.toLocaleString('vi-VN')}đ`,
+      subtitle: new Date(t.createdAt).toLocaleDateString('vi-VN'),
+      status: t.status,
+      url: isAdmin ? '/admin/transactions' : isDesigner ? '/designer/earnings' : '/client/wallet'
+    }));
+    totalCount += transactions.length;
+  }
+
+  // Withdrawals
+  const wdQuery = isAdmin ? { referenceId: regex } : { $or: [{ userId }, { designerId: userId }], referenceId: regex };
+  const withdrawals = await Withdrawal.find(wdQuery).select('amount status referenceId createdAt').sort({ createdAt: -1 }).limit(limit).lean();
+  if (withdrawals.length) {
+    results.withdrawals = withdrawals.map(w => ({
+      _id: w._id,
+      title: `Rút ${w.amount?.toLocaleString('vi-VN')}đ`,
+      subtitle: w.referenceId || new Date(w.createdAt).toLocaleDateString('vi-VN'),
+      status: w.status,
+      url: isAdmin ? '/admin/withdrawals' : isDesigner ? '/designer/earnings' : '/client/wallet/withdraw'
+    }));
+    totalCount += withdrawals.length;
+  }
+
+  res.json({ results, totalCount, query: q });
+}));
+
+// ── Notifications ──
+mainRoutes.get('/notifications', requireAuth, asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20, unreadOnly } = req.query;
+  const query = { userId: req.user._id };
+  if (unreadOnly === 'true') query.isRead = false;
+  const p = Math.max(Number(page), 1);
+  const l = Math.min(Number(limit) || 20, 50);
+  const [notifications, total, unreadCount] = await Promise.all([
+    Notification.find(query).sort({ createdAt: -1 }).skip((p - 1) * l).limit(l).lean(),
+    Notification.countDocuments(query),
+    Notification.countDocuments({ userId: req.user._id, isRead: false })
+  ]);
+  res.json({
+    notifications,
+    pagination: { page: p, limit: l, total, hasMore: p * l < total },
+    unreadCount
+  });
+}));
+
+mainRoutes.get('/notifications/unread-count', requireAuth, asyncHandler(async (req, res) => {
+  const unreadCount = await Notification.countDocuments({ userId: req.user._id, isRead: false });
+  res.json({ unreadCount });
+}));
+
+mainRoutes.patch('/notifications/:id/read', requireAuth, asyncHandler(async (req, res) => {
+  const notif = await Notification.findOneAndUpdate(
+    { _id: req.params.id, userId: req.user._id },
+    { isRead: true, readAt: new Date() },
+    { new: true }
+  );
+  res.json(notif);
+}));
+
+mainRoutes.patch('/notifications/read-all', requireAuth, asyncHandler(async (req, res) => {
+  const result = await Notification.updateMany(
+    { userId: req.user._id, isRead: false },
+    { isRead: true, readAt: new Date() }
+  );
+  res.json({ success: true, updatedCount: result.modifiedCount });
+}));
+
+// ── SSE: real-time notification stream ──
+mainRoutes.get('/notifications/stream', requireAuth, (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive'
+  });
+  res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+  addSSEClient(req.user._id, res);
+  const keepAlive = setInterval(() => res.write(': ping\n\n'), 30000);
+  req.on('close', () => clearInterval(keepAlive));
+});
 
 mainRoutes.post('/uploads/image', requireAuth, upload.single('file'), async (req, res) => {
   const result = await uploadToS3(req.file, 'images');

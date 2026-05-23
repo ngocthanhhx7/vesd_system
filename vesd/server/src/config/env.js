@@ -35,5 +35,13 @@ export const env = {
   casso: {
     webhookSecret: process.env.CASSO_WEBHOOK_SECRET || process.env.CASSO_WEBHOOK_V2_SECRET,
     legacySecureToken: process.env.CASSO_WEBHOOK_LEGACY_TOKEN || process.env.CASSO_WEBHOOK_SECRET
+  },
+  smtp: {
+    host: process.env.SMTP_HOST || '',
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.SMTP_FROM || 'VESD <noreply@vesd.site>'
   }
 };

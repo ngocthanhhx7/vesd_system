@@ -23,7 +23,26 @@ const userSchema = new Schema(
     phone: String,
     dateOfBirth: Date,
     emailVerified: { type: Boolean, default: false },
-    status: { type: String, enum: ['active', 'banned', 'pending'], default: 'active' }
+    status: { type: String, enum: ['active', 'banned', 'pending'], default: 'active' },
+    notificationPreferences: {
+      email: {
+        project: { type: Boolean, default: false },
+        wallet: { type: Boolean, default: false },
+        dispute: { type: Boolean, default: true },
+        verification: { type: Boolean, default: true },
+        premium: { type: Boolean, default: true },
+        system: { type: Boolean, default: false }
+      },
+      inApp: {
+        project: { type: Boolean, default: true },
+        wallet: { type: Boolean, default: true },
+        dispute: { type: Boolean, default: true },
+        verification: { type: Boolean, default: true },
+        premium: { type: Boolean, default: true },
+        system: { type: Boolean, default: true }
+      },
+      emailDigest: { type: String, enum: ['instant', 'daily', 'weekly', 'off'], default: 'instant' }
+    }
   },
   { timestamps: true }
 );
@@ -237,14 +256,20 @@ disputeSchema.index({ projectId: 1, status: 1 });
 const notificationSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    title: String,
+    type: { type: String, required: true },
+    category: { type: String, enum: ['project', 'wallet', 'dispute', 'verification', 'premium', 'system'], default: 'system' },
+    title: { type: String, required: true },
     message: String,
-    type: String,
+    actionUrl: String,
+    metadata: Schema.Types.Mixed,
     isRead: { type: Boolean, default: false },
-    link: String
+    readAt: Date
   },
   { timestamps: true }
 );
+notificationSchema.index({ userId: 1, createdAt: -1 });
+notificationSchema.index({ userId: 1, isRead: 1 });
+
 
 const premiumPlanSchema = new Schema(
   {

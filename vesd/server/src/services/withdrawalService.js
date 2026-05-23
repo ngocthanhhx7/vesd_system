@@ -1,5 +1,6 @@
-import { SavedBankAccount, Transaction, Wallet, Withdrawal } from '../models/index.js';
+import { SavedBankAccount, Transaction, User, Wallet, Withdrawal } from '../models/index.js';
 import { ApiError } from '../utils/apiError.js';
+import { notify, broadcastNotification } from './notificationService.js';
 import { verifyCassoLegacySecureToken, verifyCassoWebhookV2Signature } from './cassoService.js';
 import { createPayosSinglePayout, getPayosPayout } from './payosService.js';
 
@@ -83,6 +84,7 @@ async function applyPayoutState(withdrawal, payoutData) {
     await Wallet.findOneAndUpdate({ userId: withdrawalOwnerId(withdrawal) }, { $inc: { pendingBalance: -withdrawal.amount } }, { upsert: true });
     withdrawal.status = 'paid';
     if (transaction) transaction.status = 'success';
+    notify({ userId: withdrawalOwnerId(withdrawal), type: 'wallet.withdraw_completed', category: 'wallet', title: `Rút ${withdrawal.amount.toLocaleString('vi-VN')}đ thành công`, actionUrl: '/client/wallet' });
   }
 
   if (nextState === 'rejected' && !['rejected', 'paid'].includes(withdrawal.status)) {
@@ -93,6 +95,7 @@ async function applyPayoutState(withdrawal, payoutData) {
     );
     withdrawal.status = 'rejected';
     if (transaction) transaction.status = 'failed';
+    notify({ userId: withdrawalOwnerId(withdrawal), type: 'wallet.withdraw_rejected', category: 'wallet', title: `Yêu cầu rút ${withdrawal.amount.toLocaleString('vi-VN')}đ bị từ chối`, actionUrl: '/client/wallet' });
   }
 
   withdrawal.metadata = { ...(withdrawal.metadata || {}), payosData: payoutData };
@@ -179,6 +182,12 @@ export async function requestCassoWithdrawal({ userId, designerId, amount, accou
       });
     }
   }
+
+  // Notify user
+  notify({ userId: ownerId, type: 'wallet.withdraw_requested', category: 'wallet', title: `Yêu cầu rút ${value.toLocaleString('vi-VN')}đ đang được xử lý`, actionUrl: '/client/wallet/withdraw' });
+  // Notify admins
+  const admins = await User.find({ roles: 'admin' }).select('_id').lean();
+  broadcastNotification({ userIds: admins.map(a => a._id), type: 'wallet.withdraw_requested', category: 'wallet', title: `Yêu cầu rút tiền mới: ${value.toLocaleString('vi-VN')}đ`, message: `Từ ${normalizedAccount.toAccountName}`, actionUrl: '/admin/withdrawals' });
 
   return {
     withdrawal,
