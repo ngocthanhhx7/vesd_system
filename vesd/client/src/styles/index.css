@@ -386,3 +386,64 @@ img {
   border-left: 4px solid #2453D6;
 }
 
+/* ── Dashboard Sidebar ── */
+.sidebar-container {
+  background: linear-gradient(180deg, #1a2f6d 0%, #1e3a8a 35%, #1a2f6d 100%);
+  border-right: 1px solid rgba(255, 255, 255, .06);
+  z-index: 20;
+}
+
+/* Subtle orb accents for depth */
+.sidebar-container::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -80px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 140, 255, .15) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.sidebar-container::after {
+  content: '';
+  position: absolute;
+  bottom: 40px;
+  left: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99, 140, 255, .10) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Scrollbar */
+.sidebar-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .12);
+  border-radius: 4px;
+}
+
+/* Active nav item entrance */
+.sidebar-nav-active {
+  animation: sidebarActiveIn 250ms ease-out;
+}
+
+@keyframes sidebarActiveIn {
+  from {
+    opacity: 0.7;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

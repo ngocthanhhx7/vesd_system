@@ -1,32 +1,130 @@
+import {
+  LayoutDashboard,
+  FolderPlus,
+  Wallet,
+  Crown,
+  Settings,
+  UserCircle,
+  Briefcase,
+  Inbox,
+  BadgeDollarSign,
+  Users,
+  ShieldCheck,
+  FolderKanban,
+  Lock,
+  ArrowDownToLine,
+  AlertTriangle,
+  Star,
+  ListChecks,
+  TicketPercent,
+  type LucideIcon
+} from 'lucide-react';
+
 export type DashboardRole = 'client' | 'designer' | 'admin';
 
-export const dashboardLinks: Record<DashboardRole, string[][]> = {
+export type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+export type NavGroup = {
+  title?: string;
+  items: NavItem[];
+};
+
+export const dashboardNav: Record<DashboardRole, NavGroup[]> = {
   client: [
-    ['/client', 'Tổng quan'],
-    ['/client/create-project', 'Đăng dự án'],
-    ['/client/wallet', 'Ví tiền'],
-    ['/client/premium', 'Premium'],
-    ['/client/settings', 'Cài đặt']
+    {
+      items: [
+        { href: '/client', label: 'Tổng quan', icon: LayoutDashboard },
+      ]
+    },
+    {
+      title: 'Dự án',
+      items: [
+        { href: '/client/create-project', label: 'Đăng dự án', icon: FolderPlus },
+      ]
+    },
+    {
+      title: 'Tài chính',
+      items: [
+        { href: '/client/wallet', label: 'Ví tiền', icon: Wallet },
+        { href: '/client/premium', label: 'Premium', icon: Crown },
+      ]
+    },
+    {
+      title: 'Tài khoản',
+      items: [
+        { href: '/client/settings', label: 'Cài đặt', icon: Settings },
+      ]
+    }
   ],
   designer: [
-    ['/designer', 'Tổng quan'],
-    ['/designer/profile', 'Hồ sơ'],
-    ['/designer/portfolio', 'Hồ sơ năng lực'],
-    ['/designer/requests', 'Yêu cầu'],
-    ['/designer/earnings', 'Thu nhập'],
-    ['/designer/premium', 'Premium']
+    {
+      items: [
+        { href: '/designer', label: 'Tổng quan', icon: LayoutDashboard },
+      ]
+    },
+    {
+      title: 'Hồ sơ',
+      items: [
+        { href: '/designer/profile', label: 'Hồ sơ', icon: UserCircle },
+        { href: '/designer/portfolio', label: 'Hồ sơ năng lực', icon: Briefcase },
+      ]
+    },
+    {
+      title: 'Công việc',
+      items: [
+        { href: '/designer/requests', label: 'Yêu cầu', icon: Inbox },
+      ]
+    },
+    {
+      title: 'Tài chính',
+      items: [
+        { href: '/designer/earnings', label: 'Thu nhập', icon: BadgeDollarSign },
+        { href: '/designer/premium', label: 'Premium', icon: Crown },
+      ]
+    }
   ],
   admin: [
-    ['/admin', 'Tổng quan'],
-    ['/admin/users', 'Người dùng'],
-    ['/admin/verification', 'Xác minh'],
-    ['/admin/projects', 'Dự án'],
-    ['/admin/escrow', 'Escrow'],
-    ['/admin/withdrawals', 'Rút tiền'],
-    ['/admin/disputes', 'Khiếu nại'],
-    ['/admin/reviews', 'Đánh giá'],
-    ['/admin/checklists', 'Checklist'],
-    ['/admin/premium', 'Premium'],
-    ['/admin/discounts', 'Mã giảm giá']
+    {
+      items: [
+        { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
+      ]
+    },
+    {
+      title: 'Quản lý',
+      items: [
+        { href: '/admin/users', label: 'Người dùng', icon: Users },
+        { href: '/admin/verification', label: 'Xác minh', icon: ShieldCheck },
+        { href: '/admin/projects', label: 'Dự án', icon: FolderKanban },
+      ]
+    },
+    {
+      title: 'Tài chính',
+      items: [
+        { href: '/admin/escrow', label: 'Escrow', icon: Lock },
+        { href: '/admin/withdrawals', label: 'Rút tiền', icon: ArrowDownToLine },
+        { href: '/admin/discounts', label: 'Mã giảm giá', icon: TicketPercent },
+      ]
+    },
+    {
+      title: 'Hỗ trợ',
+      items: [
+        { href: '/admin/disputes', label: 'Khiếu nại', icon: AlertTriangle },
+        { href: '/admin/reviews', label: 'Đánh giá', icon: Star },
+        { href: '/admin/checklists', label: 'Checklist', icon: ListChecks },
+        { href: '/admin/premium', label: 'Premium', icon: Crown },
+      ]
+    }
   ]
 };
+
+// Legacy flat format for DashboardHeader mobile menu
+export const dashboardLinks: Record<DashboardRole, string[][]> = Object.fromEntries(
+  Object.entries(dashboardNav).map(([role, groups]) => [
+    role,
+    groups.flatMap(g => g.items.map(i => [i.href, i.label]))
+  ])
+) as Record<DashboardRole, string[][]>;
