@@ -8,6 +8,8 @@ import { asyncHandler, ApiError } from '../utils/apiError.js';
 import {
   ChecklistTemplate,
   ClientProfile,
+  Conversation,
+  DirectMessage,
   Discount,
   DesignerProfile,
   Dispute,
@@ -38,6 +40,24 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const pageParams = (req) => ({ page: Math.max(Number(req.query.page || 1), 1), limit: Math.min(Number(req.query.limit || 12), 50) });
 const premiumAccountTypeForRole = (role) => (role === 'designer' ? 'designer_premium' : 'business_premium');
 const listQuery = (value) => String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
+const objectIdPattern = /^[0-9a-fA-F]{24}$/;
+
+function messagePreview(content, attachments = []) {
+  const value = String(content || '').trim();
+  if (value) return value.slice(0, 180);
+  return attachments.length ? 'Da gui tep dinh kem' : '';
+}
+
+async function getConversationForUser(user, id) {
+  if (!objectIdPattern.test(String(id))) throw new ApiError(400, 'Cuoc tro chuyen khong hop le');
+  const conversation = await Conversation.findOne({ _id: id, participants: user._id });
+  if (!conversation) throw new ApiError(404, 'Khong tim thay cuoc tro chuyen');
+  return conversation;
+}
+
+function inboxPathFor(user, conversationId) {
+  return user.roles?.includes('designer') ? `/designer/messages/${conversationId}` : `/client/messages/${conversationId}`;
+}
 
 mainRoutes.post('/payments/payos/webhook', asyncHandler(async (req, res) => {
   res.json(await handlePayosPaymentWebhook(req.body));
@@ -391,6 +411,103 @@ mainRoutes.post('/reviews', requireAuth, asyncHandler(async (req, res) => {
   res.status(201).json(review);
 }));
 mainRoutes.get('/reviews/designer/:designerId', asyncHandler(async (req, res) => res.json(await Review.find({ revieweeId: req.params.designerId, status: 'visible' }).populate('reviewerId', 'name avatar'))));
+
+mainRoutes.get('/conversations/my', requireAuth, asyncHandler(async (req, res) => {
+  const conversations = await Conversation.find({ participants: req.user._id })
+    .populate('clientId designerId', 'name email avatar roles')
+    .sort({ lastMessageAt: -1, updatedAt: -1 })
+    .lean();
+  res.json(conversations);
+}));
+
+mainRoutes.post('/conversations/direct', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
+  const designerId = String(req.body.designerId || '');
+  const content = String(req.body.content || '').trim();
+  if (!objectIdPattern.test(designerId)) throw new ApiError(400, 'Designer khong hop le');
+  if (String(req.user._id) === designerId) throw new ApiError(400, 'Khong the tu nhan tin cho chinh minh');
+
+  const designerProfile = await DesignerProfile.findOne({ userId: designerId }).populate('userId', 'name email avatar roles');
+  if (!designerProfile?.userId) throw new ApiError(404, 'Khong tim thay designer');
+
+  const conversation = await Conversation.findOneAndUpdate(
+    { clientId: req.user._id, designerId },
+    {
+      $setOnInsert: {
+        clientId: req.user._id,
+        designerId,
+        participants: [req.user._id, designerId]
+      }
+    },
+    { upsert: true, new: true }
+  );
+
+  let message = null;
+  if (content) {
+    message = await DirectMessage.create({ conversationId: conversation._id, senderId: req.user._id, content });
+    conversation.lastMessage = messagePreview(content);
+    conversation.lastMessageAt = message.createdAt;
+    conversation.unreadBy = [designerId];
+    await conversation.save();
+    await Notification.create({
+      userId: designerId,
+      type: 'message.direct',
+      category: 'system',
+      title: `${req.user.name} da nhan tin cho ban`,
+      message: conversation.lastMessage,
+      actionUrl: inboxPathFor(designerProfile.userId, conversation._id)
+    });
+  }
+
+  await conversation.populate('clientId designerId', 'name email avatar roles');
+  res.status(message ? 201 : 200).json({ conversation, message });
+}));
+
+mainRoutes.get('/conversations/:id/messages', requireAuth, asyncHandler(async (req, res) => {
+  const conversation = await getConversationForUser(req.user, req.params.id);
+  await conversation.populate('clientId designerId', 'name email avatar roles');
+  const messages = await DirectMessage.find({ conversationId: conversation._id })
+    .populate('senderId', 'name avatar roles')
+    .sort({ createdAt: 1 })
+    .lean();
+  res.json({ conversation, messages });
+}));
+
+mainRoutes.post('/conversations/:id/messages', requireAuth, asyncHandler(async (req, res) => {
+  const conversation = await getConversationForUser(req.user, req.params.id);
+  const content = String(req.body.content || '').trim();
+  const attachments = Array.isArray(req.body.attachments) ? req.body.attachments : [];
+  if (!content && !attachments.length) throw new ApiError(400, 'Tin nhan khong duoc de trong');
+
+  const message = await DirectMessage.create({
+    conversationId: conversation._id,
+    senderId: req.user._id,
+    content,
+    attachments
+  });
+  const recipients = conversation.participants.filter((participant) => String(participant) !== String(req.user._id));
+  conversation.lastMessage = messagePreview(content, attachments);
+  conversation.lastMessageAt = message.createdAt;
+  conversation.unreadBy = recipients;
+  await conversation.save();
+
+  const recipientUsers = await User.find({ _id: { $in: recipients } }).select('name roles');
+  await Notification.insertMany(recipientUsers.map((recipient) => ({
+    userId: recipient._id,
+    type: 'message.direct',
+    category: 'system',
+    title: `${req.user.name} da gui tin nhan moi`,
+    message: conversation.lastMessage,
+    actionUrl: inboxPathFor(recipient, conversation._id)
+  })));
+
+  res.status(201).json(await message.populate('senderId', 'name avatar roles'));
+}));
+
+mainRoutes.patch('/conversations/:id/read', requireAuth, asyncHandler(async (req, res) => {
+  const conversation = await getConversationForUser(req.user, req.params.id);
+  await Conversation.updateOne({ _id: conversation._id }, { $pull: { unreadBy: req.user._id } });
+  res.json({ success: true });
+}));
 
 mainRoutes.post('/disputes', requireAuth, asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.body.projectId);

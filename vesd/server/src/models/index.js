@@ -345,6 +345,31 @@ const projectCommentSchema = new Schema(
 );
 projectCommentSchema.index({ projectId: 1, createdAt: 1 });
 
+const conversationSchema = new Schema(
+  {
+    clientId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    designerId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    participants: [{ type: Schema.Types.ObjectId, ref: 'User', required: true }],
+    lastMessage: String,
+    lastMessageAt: Date,
+    unreadBy: [{ type: Schema.Types.ObjectId, ref: 'User' }]
+  },
+  { timestamps: true }
+);
+conversationSchema.index({ clientId: 1, designerId: 1 }, { unique: true });
+conversationSchema.index({ participants: 1, lastMessageAt: -1 });
+
+const directMessageSchema = new Schema(
+  {
+    conversationId: { type: Schema.Types.ObjectId, ref: 'Conversation', required: true },
+    senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    content: String,
+    attachments: [fileSchema]
+  },
+  { timestamps: true }
+);
+directMessageSchema.index({ conversationId: 1, createdAt: 1 });
+
 export const User = model('User', userSchema);
 export const ClientProfile = model('ClientProfile', clientProfileSchema);
 export const DesignerProfile = model('DesignerProfile', designerProfileSchema);
@@ -362,3 +387,5 @@ export const Discount = model('Discount', discountSchema);
 export const Subscription = model('Subscription', subscriptionSchema);
 export const ChecklistTemplate = model('ChecklistTemplate', checklistTemplateSchema);
 export const ProjectComment = model('ProjectComment', projectCommentSchema);
+export const Conversation = model('Conversation', conversationSchema);
+export const DirectMessage = model('DirectMessage', directMessageSchema);

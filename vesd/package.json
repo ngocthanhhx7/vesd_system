@@ -8,7 +8,12 @@
     "dev:client": "npm run dev --prefix client",
     "seed": "npm run seed --prefix server",
     "test": "npm test --prefix server && npm test --prefix client",
-    "build": "npm run build --prefix client"
+    "build": "npm run build --prefix client",
+    "focus": "gsd",
+    "focus:25": "gsd 25 -n -c cyan",
+    "focus:50": "gsd 50 -n -b -c green"
+  },
+  "devDependencies": {
+    "get-shit-done": "^0.0.2"
   }
 }
-

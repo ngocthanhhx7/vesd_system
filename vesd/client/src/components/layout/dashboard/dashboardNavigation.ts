@@ -7,6 +7,7 @@ import {
   UserCircle,
   Briefcase,
   Inbox,
+  MessageCircle,
   BadgeDollarSign,
   Users,
   ShieldCheck,
@@ -44,6 +45,7 @@ export const dashboardNav: Record<DashboardRole, NavGroup[]> = {
       title: 'Dự án',
       items: [
         { href: '/client/create-project', label: 'Đăng dự án', icon: FolderPlus },
+        { href: '/client/messages', label: 'Tin nhắn', icon: MessageCircle },
       ]
     },
     {
@@ -77,6 +79,7 @@ export const dashboardNav: Record<DashboardRole, NavGroup[]> = {
       title: 'Công việc',
       items: [
         { href: '/designer/requests', label: 'Yêu cầu', icon: Inbox },
+        { href: '/designer/messages', label: 'Tin nhắn', icon: MessageCircle },
       ]
     },
     {

@@ -58,6 +58,52 @@ Client: `http://localhost:5173`
 API: `http://localhost:5000/api/v1`  
 Health: `http://localhost:5000/health`
 
+## Productivity Timer: get-shit-done
+
+Project đã tích hợp [`get-shit-done`](https://github.com/gsd-build/get-shit-done/) ở root monorepo dưới dạng dev dependency. Đây là CLI timer đơn giản giúp chạy Pomodoro/focus session ngay trong terminal.
+
+### Cài đặt
+
+Nếu clone project mới, chạy:
+
+```bash
+npm install
+npm run install:all
+```
+
+### Cách sử dụng
+
+Chạy timer tuỳ ý số phút:
+
+```bash
+npm run focus -- 25
+```
+
+Hoặc dùng các script có sẵn:
+
+```bash
+npm run focus:25
+npm run focus:50
+```
+
+Tuỳ chọn CLI:
+
+```bash
+npx gsd <minutes> [options]
+```
+
+- `-n`, `--notification`: bật thông báo khi hết giờ.
+- `-b`, `--break`: tự chạy thêm 5 phút nghỉ sau khi hết timer.
+- `-c`, `--color <color>`: đổi màu progress bar, ví dụ `red`, `yellow`, `green`, `blue`, `cyan`, `magenta`, `black`.
+
+Ví dụ:
+
+```bash
+npx gsd 30 -n -b -c blue
+```
+
+Lưu ý: package này khá cũ và kéo theo một số dependency có cảnh báo audit; chỉ nên dùng như công cụ development/local productivity, không ảnh hưởng runtime client/server.
+
 ## Demo Accounts
 
 - Admin: `admin@vesd.vn` / `12345678`

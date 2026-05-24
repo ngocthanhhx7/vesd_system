@@ -7,6 +7,7 @@ export function PublicHeader() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const dashboardPath = user?.roles.includes('admin') ? '/admin' : user?.roles.includes('designer') ? '/designer' : '/client';
+  const messagesPath = user?.roles.includes('designer') ? '/designer/messages' : user?.roles.includes('client') ? '/client/messages' : dashboardPath;
   const accountPath = user?.roles.includes('admin') ? '/admin/settings' : user?.roles.includes('designer') ? '/designer/settings' : '/client/settings';
   const passwordPath = user?.roles.includes('admin') ? '/admin/password' : user?.roles.includes('designer') ? '/designer/password' : '/client/password';
 
@@ -49,7 +50,7 @@ export function PublicHeader() {
         </nav>
         <div className="flex items-center gap-6">
           <button aria-label="Tìm kiếm" className="text-white/95 hover:text-white"><Search size={24} /></button>
-          <button aria-label="Tin nhắn" className="hidden text-white/95 hover:text-white sm:block"><Mail size={23} /></button>
+          <button aria-label="Tin nhắn" className="hidden text-white/95 hover:text-white sm:block" onClick={() => navigate(user ? messagesPath : '/login')}><Mail size={23} /></button>
           {user ? (
             <div className="group relative flex h-16 items-center">
               <button aria-label="Tài khoản" className="h-9 w-9 overflow-hidden rounded-full border border-white/30 bg-white/10">

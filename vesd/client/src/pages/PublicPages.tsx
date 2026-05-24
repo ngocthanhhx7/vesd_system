@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, CheckCircle2, Filter, Folder, Heart, Search, Send, Star, Users } from 'lucide-react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ArrowRight, Award, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock3, Eye, Filter, Folder, Heart, MapPin, MessageCircle, Search, Send, ShieldCheck, Sparkles, Star, Users, WalletCards } from 'lucide-react';
 import { endpoints } from '../services/api';
 import { Badge, Card, EmptyState, Input, RatingStars, Select, Skeleton } from '../components/ui/Primitives';
 import { Button } from '../components/ui/Button';
@@ -449,23 +449,221 @@ function DesignerPagination({ page, pages, onPageChange }: { page: number; pages
   return <div className="mt-14 flex items-center justify-center gap-5 text-2xl text-brand">{pageItems.map((item, index) => <span key={item} className="flex items-center gap-5">{index > 0 && item - pageItems[index - 1] > 1 && <span>...</span>}<button className={item === page ? 'font-bold' : 'font-normal'} onClick={() => onPageChange(item)}>{item}</button></span>)}{page < pages && <button className="ml-4 inline-flex items-center gap-2 font-medium" onClick={() => onPageChange(page + 1)}>Trang kế <ArrowRight /></button>}</div>;
 }
 
+const profileCategoryLabels: Record<string, string> = {
+  'logo-design': 'Thiết kế logo',
+  'brand-identity': 'Nhận diện thương hiệu',
+  'poster-design': 'Poster',
+  'social-media-design': 'Mạng xã hội',
+  'packaging-design': 'Bao bì',
+  'ui-ux-design': 'UI/UX'
+};
+
+function formatVnd(value?: number) {
+  return typeof value === 'number' && value > 0 ? `${value.toLocaleString('vi-VN')}đ` : 'Trao đổi theo brief';
+}
+
 export function DesignerProfilePage() {
   const { slug = '' } = useParams();
+  const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
+  const [draft, setDraft] = useState('');
+  const [contactMessage, setContactMessage] = useState('');
   const { data, isLoading } = useQuery({ queryKey: ['designer', slug], queryFn: () => endpoints.designer(slug) });
+  const startConversation = useMutation({
+    mutationFn: ({ designerId, content }: { designerId: string; content: string }) => endpoints.startDirectConversation({ designerId, content }),
+    onSuccess: (result) => navigate(`/client/messages/${result.conversation._id}`),
+    onError: (error) => setContactMessage(error instanceof Error ? error.message : 'Chưa thể mở cuộc trò chuyện')
+  });
+
   if (isLoading) return <main className="container-page py-10"><Skeleton className="h-96" /></main>;
   const profile = data?.profile;
   if (!profile) return <main className="container-page py-10"><EmptyState title="Không tìm thấy designer" /></main>;
   const user = profile.userId;
+  const portfolio = data.portfolio || [];
+  const reviews = data.reviews || [];
+  const categoryNames = (profile.categories?.length ? profile.categories : ['brand-identity']).map((item: string) => profileCategoryLabels[item] || item);
+  const skills = profile.skills?.length ? profile.skills : categoryNames;
+  const coverImage = portfolio[0]?.images?.[0]?.url || '/assets/figma-hero-laptop.jpg';
+  const avatar = user.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(user.name || profile.title || 'vesd')}`;
+  const defaultMessage = `Xin chào ${user.name}, tôi muốn trao đổi về một dự án thiết kế.`;
+  const portfolioItems = portfolio.length ? portfolio : [
+    { _id: 'fallback-1', title: 'Bộ nhận diện thương hiệu', description: 'Logo, guideline màu sắc và key visual cho chiến dịch ra mắt.', images: [{ url: '/assets/figma-blue-board.png' }], tags: ['Branding', 'Guideline'] },
+    { _id: 'fallback-2', title: 'Thiết kế mobile app', description: 'Luồng onboarding, hồ sơ người dùng và màn hình giao dịch.', images: [{ url: '/assets/figma-mobile-mockup.png' }], tags: ['UI/UX', 'Mobile'] },
+    { _id: 'fallback-3', title: 'Ấn phẩm social media', description: 'Template hình ảnh nhất quán cho nội dung quảng cáo đa kênh.', images: [{ url: '/assets/figma-business-card.png' }], tags: ['Social', 'Campaign'] }
+  ];
+  const metrics = [
+    { label: 'Dự án hoàn thành', value: (profile.completedProjects || 0).toLocaleString('vi-VN'), icon: BriefcaseBusiness },
+    { label: 'Đánh giá', value: profile.ratingAverage ? profile.ratingAverage.toFixed(1) : 'Mới', icon: Star },
+    { label: 'Lượt xem hồ sơ', value: (profile.profileViews || 0).toLocaleString('vi-VN'), icon: Eye },
+    { label: 'Giá khởi điểm', value: formatVnd(profile.startingPrice), icon: WalletCards }
+  ];
+
+  function handleStartConversation() {
+    setContactMessage('');
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+    if (!currentUser.roles.includes('client')) {
+      setContactMessage('Vui lòng dùng tài khoản khách hàng để nhắn tin trực tiếp với designer.');
+      return;
+    }
+    startConversation.mutate({ designerId: user._id, content: draft.trim() || defaultMessage });
+  }
 
   return (
-    <main className="container-page py-10">
+    <main className="bg-white pb-16">
       <Seo title={`${user.name} - ${profile.title} | VESD`} description={`${user.name} nhận dự án ${profile.categories?.join(', ')} từ ${profile.startingPrice?.toLocaleString('vi-VN')}đ.`} schema={{ '@context': 'https://schema.org', '@type': 'Person', name: user.name, jobTitle: profile.title }} />
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-        <Card><div className="flex flex-wrap items-center gap-4"><img className="h-24 w-24 rounded-full" src={user.avatar} alt={user.name} /><div><div className="flex gap-2"><h1 className="text-3xl font-black">{user.name}</h1>{profile.verificationStatus === 'verified' && <Badge tone="success">Đã xác minh</Badge>}{profile.premiumStatus === 'premium' && <Badge tone="premium">Premium</Badge>}</div><p className="text-muted">{profile.title}</p><RatingStars value={profile.ratingAverage} /></div></div><p className="mt-6 text-slate-700">{profile.bio}</p><div className="mt-5 flex flex-wrap gap-2">{profile.skills?.map((s: string) => <Badge key={s}>{s}</Badge>)}</div></Card>
-        <Card><p className="text-sm text-muted">Giá khởi điểm</p><p className="text-3xl font-black">{profile.startingPrice?.toLocaleString('vi-VN')}đ</p><Link to="/client/create-project"><Button className="mt-5 w-full">Thuê designer</Button></Link><Button variant="secondary" className="mt-3 w-full">Lưu hồ sơ</Button></Card>
-      </div>
-      <h2 className="mt-10 text-2xl font-black">Hồ sơ năng lực</h2><div className="mt-4 grid gap-4 md:grid-cols-3">{data.portfolio?.map((item: any) => <Card key={item._id}><img className="h-48 w-full rounded-lg object-cover" src={item.images?.[0]?.url} alt={item.title} loading="lazy" /><h3 className="mt-3 font-bold">{item.title}</h3><p className="text-sm text-muted">{item.description}</p></Card>)}</div>
-      <h2 className="mt-10 text-2xl font-black">Đánh giá</h2><div className="mt-4 grid gap-4 md:grid-cols-2">{data.reviews?.map((r: any) => <Card key={r._id}><RatingStars value={r.rating} /><p className="mt-3 text-sm">{r.content}</p></Card>)}</div>
+      <section className="relative h-[300px] overflow-hidden bg-brand text-white">
+        <img className="absolute inset-0 h-full w-full object-cover opacity-70" src={coverImage} alt="" loading="eager" />
+        <div className="absolute inset-0 bg-gradient-to-r from-brand via-brand/70 to-brand/10" />
+        <div className="container-page relative z-10 flex h-full items-end pb-24">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold uppercase tracking-[.18em] text-white/80">VESD Designer Profile</p>
+            <h1 className="mt-3 text-[34px] font-black leading-tight md:text-[48px]">{user.name}</h1>
+            <p className="mt-3 max-w-xl text-base font-medium text-white/90 md:text-lg">{profile.title || 'Designer đồ họa'}</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="container-page relative z-10 -mt-16">
+        <div className="rounded-[18px] border border-line bg-white p-5 shadow-[0_18px_48px_rgba(36,83,214,0.16)] md:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <img className="h-28 w-28 rounded-full border-4 border-white bg-soft object-cover shadow-soft" src={avatar} alt={user.name} />
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-3xl font-black text-ink">{user.name}</h2>
+                  {profile.verificationStatus === 'verified' && <Badge tone="success">Đã xác minh</Badge>}
+                  {profile.premiumStatus === 'premium' && <Badge tone="premium">Premium</Badge>}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
+                  <span className="inline-flex items-center gap-1.5"><MapPin size={16} /> Việt Nam</span>
+                  <span className="inline-flex items-center gap-1.5"><Clock3 size={16} /> {profile.availability === 'available' ? 'Sẵn sàng nhận dự án' : 'Trao đổi lịch làm việc'}</span>
+                  <span className="inline-flex items-center gap-1.5"><Award size={16} /> {profile.experience || 'Kinh nghiệm dự án thực tế'}</span>
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                  <RatingStars value={profile.ratingAverage} />
+                  <span className="text-sm font-semibold text-ink">{profile.ratingAverage ? profile.ratingAverage.toFixed(1) : 'Chưa có đánh giá'}</span>
+                  <span className="text-sm text-muted">({profile.ratingCount || reviews.length} đánh giá)</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button className="rounded-full px-6" onClick={handleStartConversation} disabled={startConversation.isPending}>
+                <MessageCircle size={18} /> {startConversation.isPending ? 'Đang mở...' : 'Nhắn tin'}
+              </Button>
+              <Link to="/client/create-project">
+                <Button variant="secondary" className="w-full rounded-full px-6"><BriefcaseBusiness size={18} /> Thuê designer</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-7 grid gap-4 md:grid-cols-4">
+          {metrics.map(({ label, value, icon: Icon }) => (
+            <div key={label} className="rounded-[14px] border border-line bg-white p-5 shadow-[0_8px_24px_rgba(36,83,214,0.07)]">
+              <Icon className="h-5 w-5 text-brand" />
+              <p className="mt-3 text-2xl font-black text-ink">{value}</p>
+              <p className="mt-1 text-sm text-muted">{label}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
+          <div className="space-y-8">
+            <section className="rounded-[18px] border border-line bg-white p-6">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <h2 className="text-2xl font-black">Giới thiệu</h2>
+                <div className="flex flex-wrap gap-2">{categoryNames.map((item: string) => <Badge key={item} tone="info">{item}</Badge>)}</div>
+              </div>
+              <p className="mt-5 text-base leading-8 text-slate-700">{profile.bio || 'Designer Việt Nam có kinh nghiệm thực chiến với startup, SME và thương hiệu địa phương. Mạnh về brief rõ ràng, file bàn giao đúng chuẩn và phản hồi nhanh.'}</p>
+              <div className="mt-6 flex flex-wrap gap-2">{skills.map((skill: string) => <Badge key={skill}>{skill}</Badge>)}</div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-2xl font-black">Hồ sơ năng lực</h2>
+                <span className="text-sm font-semibold text-muted">{portfolioItems.length} dự án nổi bật</span>
+              </div>
+              <div className="mt-4 grid gap-5 md:grid-cols-3">
+                {portfolioItems.map((item: any, index: number) => (
+                  <article key={item._id || item.title} className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_8px_24px_rgba(36,83,214,0.07)]">
+                    <img className="aspect-[4/3] w-full object-cover" src={item.images?.[0]?.url || ['/assets/figma-blue-board.png', '/assets/figma-mobile-board.png', '/assets/figma-business-card.png'][index % 3]} alt={item.title} loading="lazy" />
+                    <div className="p-4">
+                      <h3 className="text-base font-bold text-ink">{item.title}</h3>
+                      <p className="mt-2 min-h-[48px] text-sm leading-6 text-muted">{item.description || 'Thiết kế theo brief, có guideline và file bàn giao rõ ràng.'}</p>
+                      <div className="mt-4 flex flex-wrap gap-2">{(item.tags || item.tools || []).slice(0, 3).map((tag: string) => <span key={tag} className="rounded-full bg-soft px-2.5 py-1 text-xs font-semibold text-brand">{tag}</span>)}</div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="grid gap-5 md:grid-cols-2">
+              <div className="rounded-[18px] border border-line bg-white p-6">
+                <div className="flex items-center gap-3"><ShieldCheck className="text-brand" /><h2 className="text-xl font-black">Quy trình làm việc</h2></div>
+                <div className="mt-5 space-y-4 text-sm leading-6 text-slate-700">
+                  <p><span className="font-bold text-ink">1. Nhận brief:</span> xác định mục tiêu, người xem và phạm vi bàn giao.</p>
+                  <p><span className="font-bold text-ink">2. Lên concept:</span> gửi moodboard, hướng hình ảnh và timeline.</p>
+                  <p><span className="font-bold text-ink">3. Bàn giao:</span> đóng gói file nguồn, export và checklist nghiệm thu.</p>
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-line bg-white p-6">
+                <div className="flex items-center gap-3"><Sparkles className="text-brand" /><h2 className="text-xl font-black">Thông tin chuyên môn</h2></div>
+                <dl className="mt-5 grid gap-4 text-sm">
+                  <div><dt className="font-semibold text-muted">Học vấn</dt><dd className="mt-1 font-bold text-ink">{profile.education || 'Thiết kế đồ họa / truyền thông thị giác'}</dd></div>
+                  <div><dt className="font-semibold text-muted">Kinh nghiệm</dt><dd className="mt-1 font-bold text-ink">{profile.experience || '3-5 năm kinh nghiệm'}</dd></div>
+                  <div><dt className="font-semibold text-muted">Danh mục mạnh</dt><dd className="mt-1 font-bold text-ink">{categoryNames.join(', ')}</dd></div>
+                </dl>
+              </div>
+            </section>
+
+            <section>
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-2xl font-black">Đánh giá</h2>
+                <span className="text-sm font-semibold text-muted">{reviews.length || profile.ratingCount || 0} phản hồi</span>
+              </div>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {reviews.length ? reviews.map((review: any) => (
+                  <article key={review._id} className="rounded-[14px] border border-line bg-white p-5">
+                    <div className="flex items-center justify-between gap-3">
+                      <RatingStars value={review.rating} />
+                      <span className="text-xs font-semibold text-muted">{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-slate-700">{review.content}</p>
+                  </article>
+                )) : <div className="md:col-span-2"><EmptyState title="Chưa có đánh giá công khai" description="Khách hàng có thể bắt đầu trao đổi để đánh giá mức độ phù hợp trước khi thuê." /></div>}
+              </div>
+            </section>
+          </div>
+
+          <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
+            <div className="rounded-[18px] border border-line bg-white p-6 shadow-[0_10px_30px_rgba(36,83,214,0.10)]">
+              <p className="text-sm font-semibold text-muted">Gói dịch vụ bắt đầu từ</p>
+              <p className="mt-2 text-3xl font-black text-ink">{formatVnd(profile.startingPrice)}</p>
+              <p className="mt-2 text-sm leading-6 text-muted">Gửi tin nhắn trực tiếp để thống nhất brief, deadline và phạm vi bàn giao trước khi tạo dự án.</p>
+              <textarea
+                className="focus-ring mt-5 min-h-[118px] w-full resize-none rounded-xl border border-line bg-white px-4 py-3 text-sm leading-6"
+                placeholder={defaultMessage}
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+              />
+              <Button className="mt-4 w-full rounded-full" onClick={handleStartConversation} disabled={startConversation.isPending}><MessageCircle size={18} /> Nhắn tin cho designer</Button>
+              <Link to="/client/create-project"><Button variant="secondary" className="mt-3 w-full rounded-full"><CalendarDays size={18} /> Tạo brief dự án</Button></Link>
+              {contactMessage && <p className="mt-3 text-sm text-muted">{contactMessage}</p>}
+            </div>
+            <div className="rounded-[18px] border border-line bg-soft p-6">
+              <h3 className="text-lg font-black">Cam kết trên VESD</h3>
+              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
+                <p className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-brand" /> Trao đổi minh bạch trước khi đặt cọc escrow.</p>
+                <p className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-brand" /> Theo dõi milestone, feedback và file bàn giao trong workspace.</p>
+                <p className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-brand" /> Hồ sơ, portfolio và đánh giá được đồng bộ trên hệ thống.</p>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
     </main>
   );
 }
