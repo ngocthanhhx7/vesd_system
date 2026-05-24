@@ -6,18 +6,35 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
+const DEFAULT_CLIENT_URL = 'http://localhost:5173';
+
+export function parseClientUrls(value) {
+  return String(value || DEFAULT_CLIENT_URL)
+    .split(',')
+    .map((url) => url.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+}
+
+const clientUrls = parseClientUrls(process.env.CLIENT_URL);
+const publicClientUrls = process.env.PUBLIC_CLIENT_URL ? parseClientUrls(process.env.PUBLIC_CLIENT_URL) : [];
+const publicClientUrl = publicClientUrls[0] || clientUrls[0] || DEFAULT_CLIENT_URL;
+
 export const env = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   mongoUri: process.env.MONGO_URI || 'mongodb://localhost:27017/vesd',
   jwtSecret: process.env.JWT_SECRET || 'dev_secret_change_me',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+  clientUrl: publicClientUrl,
+  clientUrls,
   aws: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     region: process.env.AWS_REGION || 'us-east-1',
-    s3Bucket: process.env.AWS_S3_BUCKET || 'vesd-bucket'
+    s3Bucket: process.env.AWS_S3_BUCKET || 'vesd-bucket',
+    s3Endpoint: process.env.AWS_S3_ENDPOINT || '',
+    s3PublicUrl: process.env.AWS_S3_PUBLIC_URL || '',
+    s3ForcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === 'true'
   },
   googleClientId: process.env.GOOGLE_CLIENT_ID,
   payos: {

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { parseClientUrls } from '../config/env.js';
 
 test('role guard rule: admin can access admin area', () => {
   const user = { roles: ['admin'] };
@@ -22,3 +23,9 @@ test('auth password minimum length policy', () => {
   assert.equal('12345678'.length >= 8, true);
 });
 
+test('client urls config supports comma-separated origins', () => {
+  assert.deepEqual(parseClientUrls('https://vesd.site, https://www.vesd.site/'), [
+    'https://vesd.site',
+    'https://www.vesd.site'
+  ]);
+});

@@ -15,7 +15,7 @@ import { validateDiscount } from './discountService.js';
 import { createPayosPaymentLink, getPayosPaymentRequest, verifyPayosPaymentSignature } from './payosService.js';
 import { WALLET_MIN_TOPUP_AMOUNT, normalizeWalletAmount } from './walletService.js';
 
-const frontendBaseUrl = () => env.clientUrl.split(',')[0].trim().replace(/\/$/, '');
+const frontendBaseUrl = () => env.clientUrl;
 const premiumAccountTypeForRole = (role) => (role === 'designer' ? 'designer_premium' : 'business_premium');
 
 function generateOrderCode() {

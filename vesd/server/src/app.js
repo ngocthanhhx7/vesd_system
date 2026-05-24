@@ -16,7 +16,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const app = express();
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: env.clientUrl.split(','), credentials: true }));
+app.use(cors({ origin: env.clientUrls, credentials: true }));
 app.use(compression());
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -29,4 +29,3 @@ app.use('/api/v1', mainRoutes);
 app.get('/health', (_req, res) => res.json({ ok: true, name: 'VESD API' }));
 app.use(notFound);
 app.use(errorHandler);
-

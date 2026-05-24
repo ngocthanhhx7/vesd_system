@@ -20,7 +20,15 @@ function getTransporter() {
 }
 
 // ── HTML Template ──
+function absoluteClientUrl(path = '') {
+  if (/^https?:\/\//i.test(path)) return path;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${env.clientUrl}${normalizedPath}`;
+}
+
 function buildEmailHTML({ title, body, actionUrl, actionLabel }) {
+  const actionHref = actionUrl ? absoluteClientUrl(actionUrl) : '';
+  const settingsHref = absoluteClientUrl('/client/settings');
   return `
 <!DOCTYPE html>
 <html lang="vi">
@@ -47,11 +55,11 @@ function buildEmailHTML({ title, body, actionUrl, actionLabel }) {
   </div>
   <div class="body">
     ${body}
-    ${actionUrl ? `<p style="text-align:center;margin-top:24px;"><a href="${env.clientUrl}${actionUrl}" class="btn">${actionLabel || 'Xem chi tiết'}</a></p>` : ''}
+    ${actionHref ? `<p style="text-align:center;margin-top:24px;"><a href="${actionHref}" class="btn">${actionLabel || 'Xem chi tiết'}</a></p>` : ''}
   </div>
   <div class="footer">
     <p>Bạn nhận được email này vì đã đăng ký tài khoản tại <a href="${env.clientUrl}">VESD</a>.</p>
-    <p>Quản lý thông báo trong <a href="${env.clientUrl}/client/settings">Cài đặt</a></p>
+    <p>Quản lý thông báo trong <a href="${settingsHref}">Cài đặt</a></p>
   </div>
 </div>
 </body>

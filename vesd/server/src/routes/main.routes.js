@@ -806,20 +806,20 @@ mainRoutes.get('/notifications/stream', requireAuth, (req, res) => {
   req.on('close', () => clearInterval(keepAlive));
 });
 
-mainRoutes.post('/uploads/image', requireAuth, upload.single('file'), async (req, res) => {
+mainRoutes.post('/uploads/image', requireAuth, upload.single('file'), asyncHandler(async (req, res) => {
   const result = await uploadToS3(req.file, 'images');
   res.status(201).json(result);
-});
+}));
 mainRoutes.post('/uploads/avatar', requireAuth, upload.single('file'), asyncHandler(async (req, res) => {
   if (!req.file) throw new ApiError(400, 'Vui long chon file avatar');
   if (!req.file.mimetype?.startsWith('image/')) throw new ApiError(400, 'Avatar phai la file anh');
   const result = await uploadToS3(req.file, 'avatar');
   res.status(201).json(result);
 }));
-mainRoutes.post('/uploads/file', requireAuth, upload.single('file'), async (req, res) => {
+mainRoutes.post('/uploads/file', requireAuth, upload.single('file'), asyncHandler(async (req, res) => {
   const result = await uploadToS3(req.file, 'files');
   res.status(201).json(result);
-});
+}));
 
 mainRoutes.get('/admin/users', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await User.find(req.query.role ? { roles: req.query.role } : {}).select('-passwordHash').sort({ createdAt: -1 }))));
 mainRoutes.patch('/admin/users/:id/status', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await User.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true }).select('-passwordHash'))));
