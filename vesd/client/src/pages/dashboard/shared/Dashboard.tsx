@@ -6,7 +6,6 @@ export function Dashboard({ title, children }: { title: string; children: React.
           <p className="text-base font-bold uppercase tracking-wide text-brand">Không gian VESD</p>
           <h1 className="text-4xl font-black">{title}</h1>
         </div>
-        <div className="hidden rounded-full bg-white px-4 py-2 text-base font-semibold text-brand shadow-sm md:block">Sàn giao dịch có escrow</div>
       </div>
       {children}
     </div>
