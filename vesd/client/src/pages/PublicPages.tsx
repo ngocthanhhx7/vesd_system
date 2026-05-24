@@ -114,6 +114,7 @@ const categories = [
 ];
 
 export function HomePage() {
+  const { user } = useAuth();
   const { data } = useQuery({ queryKey: ['featured-designers'], queryFn: () => endpoints.designers('?limit=4&sort=popularity') });
   const { data: stats } = useQuery({ queryKey: ['public-stats'], queryFn: endpoints.publicStats });
   const { data: homeDiscounts = [] } = useQuery({ queryKey: ['home-discount'], queryFn: () => endpoints.activeDiscounts('?appliesTo=premium&role=both&home=true') });
@@ -159,6 +160,8 @@ export function HomePage() {
     ['Tin tức mới của VESD', 'Workshop kết nối và phát triển kỹ năng cho các freelancer của nền tảng. Workshop kết nối và phát triển kỹ năng cho các freelancer của nền tảng'],
     ['Tin tức mới của VESD', 'Workshop kết nối và phát triển kỹ năng cho các freelancer của nền tảng']
   ];
+  const dashboardPath = user?.roles.includes('admin') ? '/admin' : user?.roles.includes('designer') ? '/designer' : '/client';
+  const jobsPath = user?.roles.includes('designer') ? '/designer/jobs' : user ? dashboardPath : '/register';
 
   return (
     <>
@@ -178,7 +181,7 @@ export function HomePage() {
             <img className="hero-action-image absolute inset-0 h-full w-full object-cover object-center" src="/assets/banner-designer.png" alt="" loading="eager" />
             <span className="absolute bottom-[121px] left-1/2 flex h-[38px] w-[164px] -translate-x-1/2 items-center justify-center rounded-[20px] border-[3px] border-white font-['Plus_Jakarta_Sans'] text-base font-semibold text-white transition group-hover:bg-white group-hover:text-brand">T&#236;m designer</span>
           </Link>
-          <Link className="hero-action group relative h-full overflow-hidden" to="/register" aria-label="T&#236;m vi&#7879;c">
+          <Link className="hero-action group relative h-full overflow-hidden" to={jobsPath} aria-label="T&#236;m vi&#7879;c">
             <img className="hero-action-image absolute inset-0 h-full w-full object-cover object-center" src="/assets/banner-job.png" alt="" loading="eager" />
             <span className="absolute bottom-[121px] left-1/2 flex h-[38px] w-[164px] -translate-x-1/2 items-center justify-center rounded-[20px] border-[3px] border-white font-['Plus_Jakarta_Sans'] text-base font-semibold text-white transition group-hover:bg-white group-hover:text-brand">T&#236;m vi&#7879;c</span>
           </Link>

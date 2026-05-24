@@ -7,6 +7,8 @@ export function PublicHeader() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const dashboardPath = user?.roles.includes('admin') ? '/admin' : user?.roles.includes('designer') ? '/designer' : '/client';
+  const jobsPath = user?.roles.includes('designer') ? '/designer/jobs' : user ? dashboardPath : '/register';
+  const projectsPath = user?.roles.includes('designer') ? '/designer/projects' : user?.roles.includes('client') ? '/client/projects' : '/client/create-project';
   const messagesPath = user?.roles.includes('designer') ? '/designer/messages' : user?.roles.includes('client') ? '/client/messages' : dashboardPath;
   const accountPath = user?.roles.includes('admin') ? '/admin/settings' : user?.roles.includes('designer') ? '/designer/settings' : '/client/settings';
   const passwordPath = user?.roles.includes('admin') ? '/admin/password' : user?.roles.includes('designer') ? '/designer/password' : '/client/password';
@@ -24,7 +26,7 @@ export function PublicHeader() {
         </Link>
         <nav className="hidden h-full items-center gap-[65px] text-base font-normal tracking-[.02em] md:flex">
           <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/designers">Thuê Freelancer</NavLink>
-          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/register">Tìm việc</NavLink>
+          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to={jobsPath}>Tìm việc</NavLink>
           <div className="group flex h-full items-center">
             <button className="flex items-center gap-2 text-white/95 hover:text-white">
               Danh mục <ChevronDown size={22} />
@@ -46,7 +48,7 @@ export function PublicHeader() {
               </div>
             </div>
           </div>
-          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/client/create-project">Dự án</NavLink>
+          <NavLink className="flex h-full items-center text-white/95 hover:text-white" to={projectsPath}>Dự án</NavLink>
         </nav>
         <div className="flex items-center gap-6">
           <button aria-label="Tìm kiếm" className="text-white/95 hover:text-white"><Search size={24} /></button>
