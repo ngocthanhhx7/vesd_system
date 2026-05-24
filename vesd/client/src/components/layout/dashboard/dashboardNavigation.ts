@@ -44,6 +44,7 @@ export const dashboardNav: Record<DashboardRole, NavGroup[]> = {
     {
       title: 'Dự án',
       items: [
+        { href: '/client/projects', label: 'Dự án của tôi', icon: FolderKanban },
         { href: '/client/create-project', label: 'Đăng dự án', icon: FolderPlus },
         { href: '/client/messages', label: 'Tin nhắn', icon: MessageCircle },
       ]
@@ -78,6 +79,8 @@ export const dashboardNav: Record<DashboardRole, NavGroup[]> = {
     {
       title: 'Công việc',
       items: [
+        { href: '/designer/jobs', label: 'Tìm việc', icon: Briefcase },
+        { href: '/designer/projects', label: 'Dự án của tôi', icon: FolderKanban },
         { href: '/designer/requests', label: 'Yêu cầu', icon: Inbox },
         { href: '/designer/messages', label: 'Tin nhắn', icon: MessageCircle },
       ]

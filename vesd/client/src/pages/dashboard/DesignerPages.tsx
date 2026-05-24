@@ -66,21 +66,57 @@ export function PortfolioManager() {
 }
 
 export function RequestsPage() {
+  const queryClient = useQueryClient();
+  const [message, setMessage] = useState('');
+  const { data = [], isLoading } = useQuery({ queryKey: ['designer-projects'], queryFn: endpoints.myProjects });
+  const requests = data.filter((project: any) => project.status === 'pending_designer');
+  const accept = useMutation({
+    mutationFn: (id: string) => endpoints.acceptProject(id),
+    onSuccess: async () => {
+      setMessage('Đã chấp nhận yêu cầu dự án.');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['designer-projects'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-projects'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      ]);
+    },
+    onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể chấp nhận yêu cầu')
+  });
+  const reject = useMutation({
+    mutationFn: (id: string) => endpoints.rejectProject(id),
+    onSuccess: async () => {
+      setMessage('Đã từ chối yêu cầu dự án.');
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['designer-projects'] }),
+        queryClient.invalidateQueries({ queryKey: ['my-projects'] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      ]);
+    },
+    onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể từ chối yêu cầu')
+  });
+
   return (
     <Dashboard title="Yêu cầu dự án">
       <Section title="Yêu cầu mới">
-        {[1, 2, 3].map((index) => (
-          <Card key={index}>
-            <h3 className="font-bold">Yêu cầu thiết kế #{index}</h3>
-            <p className="text-base text-muted">Khách hàng cần đề xuất phạm vi công việc và timeline.</p>
+        {isLoading ? Array.from({ length: 3 }).map((_, index) => <Card key={index} className="h-40 animate-pulse bg-white"><span className="sr-only">Đang tải</span></Card>) : requests.length ? requests.map((project: any) => (
+          <Card key={project._id}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="font-bold">{project.title}</h3>
+                <p className="text-base text-muted">{project.clientId?.name || 'Khách hàng VESD'} · {project.category}</p>
+              </div>
+              <Badge tone={project.priorityLevel === 'premium' ? 'premium' : 'info'}>{project.priorityLevel === 'premium' ? 'Premium' : 'Tiêu chuẩn'}</Badge>
+            </div>
+            <p className="mt-3 line-clamp-2 text-base text-muted">{project.description || 'Khách hàng cần đề xuất phạm vi công việc và timeline.'}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button>Chấp nhận</Button>
+              <Button disabled={accept.isPending} onClick={() => accept.mutate(project._id)}>Chấp nhận</Button>
               <Button variant="secondary">Gửi đề xuất</Button>
-              <Button variant="danger">Từ chối</Button>
+              <Button variant="danger" disabled={reject.isPending} onClick={() => reject.mutate(project._id)}>Từ chối</Button>
             </div>
           </Card>
-        ))}
+        )) : <Card><p className="font-semibold">Chưa có yêu cầu trực tiếp.</p><p className="mt-1 text-base text-muted">Các dự án bạn tự nhận từ trang Tìm việc sẽ nằm trong Dự án của tôi.</p></Card>}
       </Section>
+      {message && <p className="mt-4 rounded-lg bg-white px-4 py-3 text-sm text-muted">{message}</p>}
     </Dashboard>
   );
 }

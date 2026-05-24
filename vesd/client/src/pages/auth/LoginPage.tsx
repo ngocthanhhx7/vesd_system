@@ -7,18 +7,57 @@ import { AuthShell } from './AuthShell';
 import { Eye, EyeOff } from 'lucide-react';
 import { GoogleAuthButton } from './GoogleAuthButton';
 
+const REMEMBERED_LOGIN_KEY = 'vesd_remembered_login';
+
+type RememberedLogin = {
+  email: string;
+  password: string;
+};
+
+function getRememberedLogin(): RememberedLogin | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.localStorage.getItem(REMEMBERED_LOGIN_KEY);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Partial<RememberedLogin>;
+    if (typeof parsed.email !== 'string' || typeof parsed.password !== 'string') return null;
+
+    return { email: parsed.email, password: parsed.password };
+  } catch {
+    window.localStorage.removeItem(REMEMBERED_LOGIN_KEY);
+    return null;
+  }
+}
+
+function updateRememberedLogin(remember: boolean, loginData: RememberedLogin) {
+  if (!remember) {
+    window.localStorage.removeItem(REMEMBERED_LOGIN_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(REMEMBERED_LOGIN_KEY, JSON.stringify(loginData));
+}
+
 export function LoginPage() {
   const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberedLogin] = useState(getRememberedLogin);
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const email = String(fd.get('email'));
+    const password = String(fd.get('password'));
+    const rememberMe = fd.get('rememberMe') === 'on';
+
     try {
-      await login(String(fd.get('email')), String(fd.get('password')));
+      await login(email, password);
+      updateRememberedLogin(rememberMe, { email, password });
       navigate('/');
     } catch (err: any) {
       setError(err.message);
@@ -42,7 +81,7 @@ export function LoginPage() {
         <div className="space-y-1.5">
           <label className="text-sm font-semibold">Tài khoản</label>
           <div className="relative">
-            <Input name="email" type="text" placeholder="Email hoặc số điện thoại" defaultValue="client@vesd.vn" className="w-full pr-10 border-gray-300" />
+            <Input name="email" type="text" placeholder="Email hoặc số điện thoại" defaultValue={rememberedLogin?.email ?? ''} className="w-full pr-10 border-gray-300" />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
               <Eye className="h-5 w-5 text-gray-400" />
             </div>
@@ -56,7 +95,7 @@ export function LoginPage() {
               name="password" 
               type={showPassword ? 'text' : 'password'} 
               placeholder="Nhập mật khẩu" 
-              defaultValue="12345678" 
+              defaultValue={rememberedLogin?.password ?? ''}
               className="w-full pr-10 border-gray-300" 
             />
             <button 
@@ -71,7 +110,7 @@ export function LoginPage() {
 
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-[#3a5bcf] focus:ring-[#3a5bcf]" />
+            <input name="rememberMe" type="checkbox" defaultChecked={Boolean(rememberedLogin)} className="h-4 w-4 rounded border-gray-300 text-[#3a5bcf] focus:ring-[#3a5bcf]" />
             <span className="text-gray-600">Ghi nhớ tôi</span>
           </label>
           <Link className="text-[#3a5bcf] hover:underline" to="/forgot-password">Quên mật khẩu?</Link>

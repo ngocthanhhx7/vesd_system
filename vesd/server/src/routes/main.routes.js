@@ -266,8 +266,55 @@ mainRoutes.delete('/portfolio/:id', requireAuth, requireRole('designer'), asyncH
 mainRoutes.post('/projects', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
   const clientProfile = await ClientProfile.findOne({ userId: req.user._id });
   const priorityLevel = clientProfile?.accountType === 'business_premium' && clientProfile?.premiumStatus === 'premium' ? 'premium' : 'standard';
-  const project = await Project.create({ ...req.body, clientId: req.user._id, priorityLevel, status: 'draft' });
+  const project = await Project.create({ ...req.body, clientId: req.user._id, priorityLevel, status: 'pending_designer' });
   res.status(201).json(project);
+}));
+mainRoutes.get('/projects/open', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
+  const { q = '', category = '', budget = '', urgent = '', sort = 'match' } = req.query;
+  const designerProfile = await DesignerProfile.findOne({ userId: req.user._id }).lean();
+  const query = {
+    $and: [{ $or: [{ designerId: { $exists: false } }, { designerId: null }] }],
+    status: 'pending_designer'
+  };
+  if (category) query.category = category;
+  if (urgent === 'true') query.urgent = true;
+  if (budget) query['budget.max'] = { $lte: Number(budget) };
+  if (q) {
+    const regex = new RegExp(String(q).trim(), 'i');
+    query.$and.push({ $or: [{ title: regex }, { description: regex }, { category: regex }, { stylePreferences: regex }, { deliverables: regex }] });
+  }
+
+  const projects = await Project.find(query)
+    .populate('clientId', 'name avatar email')
+    .sort({ priorityLevel: -1, createdAt: -1 })
+    .limit(80)
+    .lean();
+
+  const profileTerms = new Set([
+    ...(designerProfile?.categories || []),
+    ...(designerProfile?.skills || []),
+    ...(designerProfile?.styleTags || [])
+  ].map((value) => String(value).toLowerCase()));
+
+  const items = projects.map((project) => {
+    const terms = [
+      project.category,
+      ...(project.stylePreferences || []),
+      ...(project.deliverables || []),
+      project.preferredDesignerLevel
+    ].filter(Boolean).map((value) => String(value).toLowerCase());
+    const matchedTerms = terms.filter((term) => profileTerms.has(term));
+    const matchScore = Math.min(98, 56 + matchedTerms.length * 12 + (project.priorityLevel === 'premium' ? 6 : 0) + (project.urgent ? 4 : 0));
+    return { ...project, matchScore, matchedTerms: [...new Set(matchedTerms)] };
+  });
+
+  items.sort((a, b) => {
+    if (sort === 'budget') return (b.budget?.max || 0) - (a.budget?.max || 0);
+    if (sort === 'deadline') return new Date(a.deadline || 8640000000000000) - new Date(b.deadline || 8640000000000000);
+    return b.matchScore - a.matchScore || new Date(b.createdAt) - new Date(a.createdAt);
+  });
+
+  res.json({ items, designerProfile });
 }));
 mainRoutes.get('/projects/my', requireAuth, asyncHandler(async (req, res) => {
   const query = req.user.roles.includes('admin') ? {} : req.user.roles.includes('designer') ? { designerId: req.user._id } : { clientId: req.user._id };
@@ -297,6 +344,14 @@ mainRoutes.post('/projects/:id/accept', requireAuth, requireRole('designer'), as
   project.status = 'agreement_pending';
   await project.save();
   res.json(project);
+}));
+mainRoutes.post('/projects/:id/claim', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
+  const project = await Project.findOne({ _id: req.params.id, status: 'pending_designer', $or: [{ designerId: { $exists: false } }, { designerId: null }] });
+  if (!project) throw new ApiError(404, 'Du an khong con mo hoac da co designer nhan');
+  project.designerId = req.user._id;
+  project.status = 'agreement_pending';
+  await project.save();
+  res.json(await project.populate('clientId designerId', 'name avatar email'));
 }));
 mainRoutes.post('/projects/:id/reject', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
