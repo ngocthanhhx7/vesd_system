@@ -1,6 +1,6 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowUpRight, Clock, CreditCard, ShieldAlert } from 'lucide-react';
+import { ArrowUpRight, Camera, Clock, CreditCard, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, Divider, FileUpload, FormGroup, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
@@ -468,6 +468,8 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('profile');
   const [form, setForm] = useState({ name: '', email: '', phone: '', avatar: '', dateOfBirth: '' });
   const [message, setMessage] = useState('');
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   useEffect(() => {
     if (!data?.user) return;
@@ -491,6 +493,38 @@ export function SettingsPage() {
   });
   const setField = (key: keyof typeof form, value: string) => setForm((current) => ({ ...current, [key]: value }));
 
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setMessage('Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WebP)');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('Ảnh tối đa 5MB');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+    try {
+      setAvatarUploading(true);
+      const result = await endpoints.uploadImage(file);
+      const avatarUrl = result.url;
+      setForm((current) => ({ ...current, avatar: avatarUrl }));
+      const updatedUser = await endpoints.updateMe({ avatar: avatarUrl });
+      updateUser(updatedUser);
+      queryClient.invalidateQueries({ queryKey: ['my-account'] });
+      setMessage('Đã cập nhật ảnh đại diện');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Không thể tải ảnh lên');
+      setTimeout(() => setMessage(''), 3000);
+    } finally {
+      setAvatarUploading(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = '';
+    }
+  };
+
   return (
     <Dashboard title="Cài đặt tài khoản">
       {/* Tab nav */}
@@ -504,13 +538,30 @@ export function SettingsPage() {
       {activeTab === 'profile' && (
         <Card>
           <div className="mb-5 flex items-center gap-4">
-            <div className="h-16 w-16 overflow-hidden rounded-full bg-soft">{form.avatar ? <img className="h-full w-full object-cover" src={form.avatar} alt={form.name} /> : null}</div>
+            <div className="avatar-upload-wrapper" onClick={() => !avatarUploading && avatarInputRef.current?.click()}>
+              <div className="h-16 w-16 overflow-hidden rounded-full bg-soft">
+                {form.avatar ? <img className="h-full w-full object-cover" src={form.avatar} alt={form.name} /> : null}
+              </div>
+              <div className="avatar-upload-overlay">
+                {avatarUploading ? (
+                  <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                ) : (
+                  <Camera className="h-5 w-5 text-white" />
+                )}
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+            </div>
             <div><h2 className="text-xl font-black">{form.name || 'Tài khoản VESD'}</h2><p className="text-sm text-muted">{data?.user?.emailVerified ? '✅ Email đã xác thực' : '⚠️ Email chưa xác thực'}</p></div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <Input placeholder="Tên hiển thị" value={form.name} onChange={(event) => setField('name', event.target.value)} />
             <Input type="email" placeholder="Gmail" value={form.email} onChange={(event) => setField('email', event.target.value)} />
-            <Input placeholder="Đường dẫn avatar" value={form.avatar} onChange={(event) => setField('avatar', event.target.value)} />
             <Input type="date" value={form.dateOfBirth} onChange={(event) => setField('dateOfBirth', event.target.value)} />
             <Input placeholder="Số điện thoại" value={form.phone} onChange={(event) => setField('phone', event.target.value)} />
           </div>

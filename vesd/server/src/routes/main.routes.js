@@ -322,7 +322,8 @@ mainRoutes.get('/projects/my', requireAuth, asyncHandler(async (req, res) => {
 }));
 mainRoutes.get('/projects/:id', requireAuth, asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
-  const comments = await ProjectComment.find({ projectId: project._id }).populate('senderId', 'name avatar');
+  await project.populate('clientId designerId', 'name avatar email');
+  const comments = await ProjectComment.find({ projectId: project._id }).populate('senderId', 'name avatar').sort({ createdAt: 1 });
   res.json({ project, comments });
 }));
 mainRoutes.patch('/projects/:id', requireAuth, asyncHandler(async (req, res) => {

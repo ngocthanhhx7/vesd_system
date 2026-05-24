@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
-import { BarChart3, BriefcaseBusiness, CheckCircle2, Clock, CreditCard, Filter, Search, Sparkles } from 'lucide-react';
-import { Badge, Card, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { BarChart3, BriefcaseBusiness, CalendarDays, CheckCircle2, CircleDollarSign, Clock, CreditCard, Filter, Hash, Search, Sparkles, UserRound } from 'lucide-react';
+import { Badge, Card, Input, Select, Skeleton, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
 import { endpoints } from '../../services/api';
 import { Dashboard } from './shared/Dashboard';
@@ -42,6 +42,30 @@ function listFromText(value: FormDataEntryValue | null) {
 
 function formatVnd(value?: number) {
   return value ? `${value.toLocaleString('vi-VN')}đ` : 'Trao đổi';
+}
+
+function formatDate(value?: string | Date) {
+  if (!value) return 'Chưa đặt';
+  return new Date(value).toLocaleDateString('vi-VN');
+}
+
+function shortProjectCode(value?: string) {
+  return value ? `#${value.slice(-6).toUpperCase()}` : '#------';
+}
+
+function userName(value: any, fallback: string) {
+  return value && typeof value === 'object' && value.name ? value.name : fallback;
+}
+
+function milestoneStatusText(status?: string) {
+  const labels: Record<string, string> = {
+    approved: 'Hoàn thành',
+    in_progress: 'Đang thực hiện',
+    pending: 'Đang chờ xử lý',
+    revision_requested: 'Cần chỉnh sửa',
+    submitted: 'Chờ duyệt'
+  };
+  return labels[status || ''] || 'Đang chờ xử lý';
 }
 
 export function CreateProjectPage() {
@@ -339,17 +363,99 @@ export function EscrowPage() {
 }
 
 export function WorkspacePage({ designer = false }: { designer?: boolean }) {
+  const { id } = useParams<{ id: string }>();
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['project', id],
+    queryFn: () => endpoints.project(id as string),
+    enabled: Boolean(id)
+  });
+  const project = data?.project;
+  const budget = project?.agreement?.price || project?.budget?.agreed || project?.budget?.max || project?.budget?.min;
+  const milestones = project?.milestones?.length
+    ? project.milestones.map((milestone: any) => ({
+      title: milestone.title || 'Milestone',
+      status: milestoneStatusText(milestone.status)
+    }))
+    : workspaceSteps.map((step, index) => ({
+      title: step,
+      status: index < 2 ? 'Hoàn thành' : 'Đang chờ xử lý'
+    }));
+
   return (
-    <Dashboard title={designer ? 'Không gian dự án của designer' : 'Không gian dự án của khách hàng'}>
+    <Dashboard title={project?.title ? `Không gian: ${project.title}` : designer ? 'Không gian dự án của designer' : 'Không gian dự án của khách hàng'}>
+      {isLoading && (
+        <Card className="mb-4 border-line">
+          <Skeleton className="h-7 w-2/5" />
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        </Card>
+      )}
+      {error && (
+        <Card className="mb-4 border-line">
+          <p className="font-semibold text-red-500">{error instanceof Error ? error.message : 'Không thể tải thông tin dự án'}</p>
+        </Card>
+      )}
+      {project && (
+        <Card className="mb-4 border-line">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={project.priorityLevel === 'premium' ? 'premium' : 'info'}>{project.category || 'Dự án thiết kế'}</Badge>
+                <StatusBadge status={project.status} />
+              </div>
+              <h2 className="mt-3 text-2xl font-black">{project.title}</h2>
+              {project.description && <p className="mt-1 max-w-4xl text-base text-muted">{project.description}</p>}
+            </div>
+            <div className="rounded-lg bg-soft px-3 py-2 text-right">
+              <p className="text-sm font-semibold text-muted">Mã dự án</p>
+              <p className="font-black text-brand">{shortProjectCode(project._id)}</p>
+            </div>
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="flex items-center gap-3 rounded-lg bg-soft p-3">
+              <UserRound className="h-5 w-5 text-brand" />
+              <div>
+                <p className="text-sm text-muted">{designer ? 'Khách hàng' : 'Designer'}</p>
+                <p className="font-bold">{designer ? userName(project.clientId, 'Khách hàng VESD') : userName(project.designerId, 'Chưa có designer')}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg bg-soft p-3">
+              <CircleDollarSign className="h-5 w-5 text-brand" />
+              <div>
+                <p className="text-sm text-muted">Ngân sách</p>
+                <p className="font-bold">{formatVnd(budget)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg bg-soft p-3">
+              <CalendarDays className="h-5 w-5 text-brand" />
+              <div>
+                <p className="text-sm text-muted">Deadline</p>
+                <p className="font-bold">{formatDate(project.agreement?.deadline || project.deadline)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg bg-soft p-3">
+              <Hash className="h-5 w-5 text-brand" />
+              <div>
+                <p className="text-sm text-muted">Lần chỉnh sửa</p>
+                <p className="font-bold">{project.revisionUsed || 0}/{project.revisionLimit || project.agreement?.revisionLimit || 2}</p>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <Card>
           <h2 className="font-bold">Tiến độ milestone</h2>
-          {workspaceSteps.map((step, index) => (
-            <div key={step} className="mt-4 flex gap-3">
+          {milestones.map((milestone: any) => (
+            <div key={milestone.title} className="mt-4 flex gap-3">
               <div className="mt-1 h-3 w-3 rounded-full bg-brand" />
               <div>
-                <p className="font-semibold">{step}</p>
-                <p className="text-base text-muted">{index < 2 ? 'Hoàn thành' : 'Đang chờ xử lý'}</p>
+                <p className="font-semibold">{milestone.title}</p>
+                <p className="text-base text-muted">{milestone.status}</p>
               </div>
             </div>
           ))}

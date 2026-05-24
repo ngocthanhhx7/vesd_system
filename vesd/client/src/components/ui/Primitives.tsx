@@ -36,23 +36,29 @@ export function RatingStars({ value = 5 }: { value?: number }) {
 
 export function StatusBadge({ status }: { status?: string }) {
   const danger = ['cancelled', 'disputed', 'banned', 'rejected', 'failed'];
-  const success = ['completed', 'verified', 'success', 'active', 'approved', 'paid'];
-  const warning = ['pending', 'payment_pending', 'revision_requested', 'under_review'];
+  const success = ['completed', 'verified', 'success', 'active', 'approved', 'paid', 'final_submitted'];
+  const warning = ['pending', 'pending_designer', 'agreement_pending', 'payment_pending', 'revision_requested', 'under_review'];
   const labels: Record<string, string> = {
     active: 'Đang hoạt động',
+    agreement_pending: 'Chờ thỏa thuận',
     approved: 'Đã duyệt',
     banned: 'Đã khóa',
     cancelled: 'Đã hủy',
     completed: 'Hoàn thành',
     disputed: 'Đang khiếu nại',
     draft: 'Bản nháp',
+    escrow_funded: 'Đã escrow',
     failed: 'Thất bại',
+    final_submitted: 'Đã bàn giao',
     free: 'Miễn phí',
+    in_progress: 'Đang làm',
     payment_pending: 'Chờ thanh toán',
     paid: 'Đã chi',
     pending: 'Đang chờ',
+    pending_designer: 'Chờ designer',
     rejected: 'Từ chối',
     revision_requested: 'Yêu cầu chỉnh sửa',
+    submitted: 'Chờ duyệt',
     success: 'Thành công',
     under_review: 'Đang xét duyệt',
     verified: 'Đã xác minh'
