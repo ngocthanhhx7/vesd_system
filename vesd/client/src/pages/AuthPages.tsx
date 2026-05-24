@@ -3,3 +3,4 @@ export { LoginPage } from './auth/LoginPage';
 export { RegisterPage } from './auth/RegisterPage';
 export { ResetPasswordPage } from './auth/ResetPasswordPage';
 export { RoleSelectionPage } from './auth/RoleSelectionPage';
+export { VerifyEmailPage } from './auth/VerifyEmailPage';

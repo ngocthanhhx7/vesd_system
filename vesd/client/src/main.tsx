@@ -6,7 +6,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './hooks/useAuth';
 import { DashboardLayout, Protected, PublicLayout } from './components/layout/Layout';
 import { CategoryPage, DesignerProfilePage, DesignersPage, HelpPage, HomePage, PricingPage } from './pages/PublicPages';
-import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, RoleSelectionPage } from './pages/AuthPages';
+import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, RoleSelectionPage, VerifyEmailPage } from './pages/AuthPages';
 import {
   AdminDashboard,
   AdminDiscountsPage,
@@ -58,7 +58,8 @@ const router = createBrowserRouter([
       { path: '/register', element: <RegisterPage /> },
       { path: '/role-selection', element: <RoleSelectionPage /> },
       { path: '/forgot-password', element: <ForgotPasswordPage /> },
-      { path: '/reset-password', element: <ResetPasswordPage /> }
+      { path: '/reset-password', element: <ResetPasswordPage /> },
+      { path: '/verify-email', element: <VerifyEmailPage /> }
     ]
   },
   {

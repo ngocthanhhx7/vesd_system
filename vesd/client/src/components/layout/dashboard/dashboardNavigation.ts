@@ -91,6 +91,12 @@ export const dashboardNav: Record<DashboardRole, NavGroup[]> = {
         { href: '/designer/earnings', label: 'Thu nhập', icon: BadgeDollarSign },
         { href: '/designer/premium', label: 'Premium', icon: Crown },
       ]
+    },
+    {
+      title: 'Tài khoản',
+      items: [
+        { href: '/designer/settings', label: 'Cài đặt', icon: Settings },
+      ]
     }
   ],
   admin: [
@@ -122,6 +128,12 @@ export const dashboardNav: Record<DashboardRole, NavGroup[]> = {
         { href: '/admin/reviews', label: 'Đánh giá', icon: Star },
         { href: '/admin/checklists', label: 'Checklist', icon: ListChecks },
         { href: '/admin/premium', label: 'Premium', icon: Crown },
+      ]
+    },
+    {
+      title: 'Tài khoản',
+      items: [
+        { href: '/admin/settings', label: 'Cài đặt', icon: Settings },
       ]
     }
   ]

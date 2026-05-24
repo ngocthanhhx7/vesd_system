@@ -10,6 +10,7 @@ type AuthContextValue = {
   logout: () => void;
   hasRole: (role: string) => boolean;
   updateUser: (user: ApiUser) => void;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -49,7 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
     },
     hasRole: (role) => Boolean(user?.roles.includes(role)),
-    updateUser: (nextUser) => setUser(nextUser)
+    updateUser: (nextUser) => setUser(nextUser),
+    refreshUser: async () => {
+      try {
+        const data = await endpoints.me();
+        setUser(data.user);
+      } catch { /* ignore */ }
+    }
   }), [user, loading]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

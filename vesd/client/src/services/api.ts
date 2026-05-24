@@ -107,5 +107,8 @@ export const endpoints = {
   markAllNotificationsRead: () => api<any>('/notifications/read-all', { method: 'PATCH' }),
   // Notification Preferences
   notificationPreferences: () => api<any>('/users/me/notification-preferences'),
-  updateNotificationPreferences: (body: unknown) => api<any>('/users/me/notification-preferences', { method: 'PATCH', body: JSON.stringify(body) })
+  updateNotificationPreferences: (body: unknown) => api<any>('/users/me/notification-preferences', { method: 'PATCH', body: JSON.stringify(body) }),
+  // Email Verification
+  sendVerificationEmail: () => api<any>('/auth/send-verification-email', { method: 'POST' }),
+  verifyEmail: (token: string) => api<any>(`/auth/verify-email?token=${encodeURIComponent(token)}`)
 };
