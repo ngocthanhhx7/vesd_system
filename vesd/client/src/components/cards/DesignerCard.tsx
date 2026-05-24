@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Bookmark, BriefcaseBusiness, Clock3, WalletCards } from 'lucide-react';
 import { Card } from '../ui/Primitives';
+import { Avatar } from '../ui/Avatar';
 
 export function DesignerCard({ profile }: { profile: any }) {
   const user = profile.userId || {};
@@ -15,7 +16,7 @@ export function DesignerCard({ profile }: { profile: any }) {
         <Bookmark className="text-muted" size={17} />
       </div>
       <div className="mt-3 flex items-start gap-[14px]">
-        <img className="h-[30px] w-[30px] rounded-full bg-soft object-cover" src={user.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${profile.title}`} alt={user.name || profile.title} loading="lazy" />
+        <Avatar className="h-[30px] w-[30px] text-[10px]" src={user.avatar} name={user.name || profile.title} loading="lazy" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-[19.77px] font-semibold leading-6">{user.name || 'Vũ Tuấn Khang'}</div>
           <p className="text-xs leading-4 text-ink">Thanh Xuân, Hà Nội</p>

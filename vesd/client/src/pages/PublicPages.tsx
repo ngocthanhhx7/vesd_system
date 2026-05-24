@@ -5,6 +5,7 @@ import { ArrowRight, Award, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock
 import { endpoints } from '../services/api';
 import { Badge, Card, EmptyState, Input, RatingStars, Select, Skeleton } from '../components/ui/Primitives';
 import { Button } from '../components/ui/Button';
+import { Avatar } from '../components/ui/Avatar';
 import { DesignerCard } from '../components/cards/DesignerCard';
 import { Seo } from '../components/seo/Seo';
 import { useAuth } from '../hooks/useAuth';
@@ -533,7 +534,7 @@ export function DesignerProfilePage() {
         <div className="rounded-[18px] border border-line bg-white p-5 shadow-[0_18px_48px_rgba(36,83,214,0.16)] md:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <img className="h-28 w-28 rounded-full border-4 border-white bg-soft object-cover shadow-soft" src={avatar} alt={user.name} />
+              <Avatar className="h-28 w-28 border-4 border-white text-2xl shadow-soft" src={avatar} name={user.name} />
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-3xl font-black text-ink">{user.name}</h2>

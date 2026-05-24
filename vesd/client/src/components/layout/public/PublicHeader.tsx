@@ -2,6 +2,7 @@
 import { ChevronDown, KeyRound, LayoutDashboard, LogOut, Mail, Menu, Search, Settings, UserRound } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { hotMenu, serviceSlug } from './publicNavigation';
+import { Avatar } from '../../ui/Avatar';
 
 export function PublicHeader() {
   const { user, logout } = useAuth();
@@ -56,7 +57,7 @@ export function PublicHeader() {
           {user ? (
             <div className="group relative flex h-16 items-center">
               <button aria-label="Tài khoản" className="h-9 w-9 overflow-hidden rounded-full border border-white/30 bg-white/10">
-                {user.avatar ? <img className="h-full w-full object-cover" src={user.avatar} alt={user.name} /> : <UserRound className="m-1.5 h-6 w-6" />}
+                <Avatar className="h-full w-full bg-white/10 text-white" src={user.avatar} name={user.name} fallbackClassName="text-white" />
               </button>
               <div className="invisible absolute right-0 top-14 w-56 rounded-lg border border-line bg-white py-2 text-ink opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100">
                 <button className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-soft" onClick={() => navigate(dashboardPath)}><LayoutDashboard size={17} />Bảng điều khiển</button>

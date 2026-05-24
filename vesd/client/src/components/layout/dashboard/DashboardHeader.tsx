@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { LogOut, Search, UserRound } from 'lucide-react';
+import { LogOut, Search } from 'lucide-react';
 import { Button } from '../../ui/Button';
+import { Avatar } from '../../ui/Avatar';
 import { useAuth } from '../../../hooks/useAuth';
 import { DashboardRole } from './dashboardNavigation';
 import { useNavigate } from 'react-router-dom';
@@ -53,9 +54,7 @@ export function DashboardHeader({ role }: { role: DashboardRole }) {
               <div className="font-semibold text-ink">{user?.name}</div>
               <div className="text-xs text-muted">{roleLabel}</div>
             </div>
-            <div className="h-9 w-9 overflow-hidden rounded-full bg-soft">
-              {user?.avatar ? <img className="h-full w-full object-cover" src={user.avatar} alt={user.name} /> : <UserRound className="m-1.5 h-6 w-6 text-muted" />}
-            </div>
+            <Avatar className="h-9 w-9" src={user?.avatar} name={user?.name} fallbackClassName="text-muted" />
             <Button variant="ghost" aria-label="Đăng xuất" onClick={handleLogout}><LogOut size={16} /></Button>
           </div>
         </div>

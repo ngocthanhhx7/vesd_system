@@ -1,7 +1,8 @@
 import { Link, NavLink } from 'react-router-dom';
 import { dashboardNav, DashboardRole } from './dashboardNavigation';
 import { useAuth } from '../../../hooks/useAuth';
-import { ChevronRight, UserRound } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import { Avatar } from '../../ui/Avatar';
 
 export function DashboardSidebar({ role }: { role: DashboardRole }) {
   const { user } = useAuth();
@@ -19,12 +20,7 @@ export function DashboardSidebar({ role }: { role: DashboardRole }) {
       {/* User Card */}
       <div className="mx-4 mt-4 rounded-xl bg-white/10 px-3 py-3 backdrop-blur-sm">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/20">
-            {user?.avatar
-              ? <img className="h-full w-full object-cover" src={user.avatar} alt={user?.name} />
-              : <UserRound className="h-5 w-5 text-white/80" />
-            }
-          </div>
+          <Avatar className="h-9 w-9 bg-white/20 text-white" src={user?.avatar} name={user?.name} fallbackClassName="text-white/80" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold text-white">{user?.name || 'Tài khoản'}</p>
             <p className="truncate text-xs text-white/60">

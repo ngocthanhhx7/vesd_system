@@ -4,6 +4,7 @@ import { ArrowUpRight, Camera, CheckCircle, Clock, CreditCard, Mail, ShieldAlert
 import { Link } from 'react-router-dom';
 import { Card, Divider, FileUpload, FormGroup, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
+import { Avatar } from '../../components/ui/Avatar';
 import { endpoints } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { Dashboard, Section } from './shared/Dashboard';
@@ -552,9 +553,7 @@ export function SettingsPage() {
         <Card>
           <div className="mb-5 flex items-center gap-4">
             <div className="avatar-upload-wrapper" onClick={() => !avatarUploading && avatarInputRef.current?.click()}>
-              <div className="h-16 w-16 overflow-hidden rounded-full bg-soft">
-                {form.avatar ? <img className="h-full w-full object-cover" src={form.avatar} alt={form.name} /> : null}
-              </div>
+              <Avatar className="h-16 w-16" src={form.avatar} name={form.name} />
               <div className="avatar-upload-overlay">
                 {avatarUploading ? (
                   <svg className="h-5 w-5 animate-spin text-white" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>

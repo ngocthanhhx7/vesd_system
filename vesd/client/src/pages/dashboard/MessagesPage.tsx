@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Inbox, MessageCircle, Send, UserRound } from 'lucide-react';
 import { endpoints } from '../../services/api';
 import { Button } from '../../components/ui/Button';
+import { Avatar } from '../../components/ui/Avatar';
 import { EmptyState, Skeleton, Textarea } from '../../components/ui/Primitives';
 import { useAuth } from '../../hooks/useAuth';
 import { Dashboard } from './shared/Dashboard';
@@ -111,7 +112,7 @@ export function MessagesPage() {
                   className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition ${active ? 'bg-soft' : 'hover:bg-soft/70'}`}
                   onClick={() => openConversation(conversation._id)}
                 >
-                  <img className="h-11 w-11 rounded-full bg-soft object-cover" src={avatarFor(participant, conversation._id)} alt={participant?.name || 'Người dùng'} />
+                  <Avatar className="h-11 w-11" src={avatarFor(participant, conversation._id)} name={participant?.name || 'Người dùng'} />
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
                       <span className="truncate text-sm font-bold text-ink">{participant?.name || 'Người dùng VESD'}</span>
@@ -143,7 +144,7 @@ export function MessagesPage() {
             <div className="flex min-h-[640px] flex-col">
               <header className="flex items-center justify-between border-b border-line px-5 py-4">
                 <div className="flex items-center gap-3">
-                  <img className="h-11 w-11 rounded-full bg-soft object-cover" src={avatarFor(activeOther, activeId)} alt={activeOther?.name || 'Người dùng'} />
+                  <Avatar className="h-11 w-11" src={avatarFor(activeOther, activeId)} name={activeOther?.name || 'Người dùng'} />
                   <div>
                     <h2 className="text-lg font-black">{activeOther?.name || 'Người dùng VESD'}</h2>
                     <p className="text-sm text-muted">Trao đổi trực tiếp trước khi tạo brief hoặc milestone.</p>
