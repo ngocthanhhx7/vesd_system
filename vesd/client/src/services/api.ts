@@ -98,6 +98,11 @@ export const endpoints = {
     form.append('file', file);
     return api<any>('/uploads/image', { method: 'POST', body: form });
   },
+  uploadAvatar: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api<any>('/uploads/avatar', { method: 'POST', body: form });
+  },
   // Search
   search: (q: string, limit = 5) => api<any>(`/search?q=${encodeURIComponent(q)}&limit=${limit}`),
   // Notifications

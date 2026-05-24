@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowUpRight, Camera, Clock, CreditCard, ShieldAlert } from 'lucide-react';
+import { ArrowUpRight, Camera, CheckCircle, Clock, CreditCard, Mail, ShieldAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, Divider, FileUpload, FormGroup, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
@@ -462,7 +462,7 @@ export function ReviewsPage() {
 }
 
 export function SettingsPage() {
-  const { updateUser } = useAuth();
+  const { updateUser, refreshUser } = useAuth();
   const queryClient = useQueryClient();
   const { data } = useQuery({ queryKey: ['my-account'], queryFn: endpoints.myAccount });
   const [activeTab, setActiveTab] = useState<'profile' | 'notifications' | 'security'>('profile');
@@ -470,6 +470,7 @@ export function SettingsPage() {
   const [message, setMessage] = useState('');
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
+  const [verifyEmailMsg, setVerifyEmailMsg] = useState('');
 
   useEffect(() => {
     if (!data?.user) return;
@@ -508,7 +509,7 @@ export function SettingsPage() {
     }
     try {
       setAvatarUploading(true);
-      const result = await endpoints.uploadImage(file);
+      const result = await endpoints.uploadAvatar(file);
       const avatarUrl = result.url;
       setForm((current) => ({ ...current, avatar: avatarUrl }));
       const updatedUser = await endpoints.updateMe({ avatar: avatarUrl });
@@ -524,6 +525,18 @@ export function SettingsPage() {
       if (avatarInputRef.current) avatarInputRef.current.value = '';
     }
   };
+
+  const sendVerification = useMutation({
+    mutationFn: () => endpoints.sendVerificationEmail(),
+    onSuccess: () => {
+      setVerifyEmailMsg('Đã gửi email xác thực! Vui lòng kiểm tra hộp thư của bạn.');
+      setTimeout(() => setVerifyEmailMsg(''), 8000);
+    },
+    onError: (error) => {
+      setVerifyEmailMsg(error instanceof Error ? error.message : 'Không thể gửi email xác thực');
+      setTimeout(() => setVerifyEmailMsg(''), 5000);
+    }
+  });
 
   return (
     <Dashboard title="Cài đặt tài khoản">
@@ -557,7 +570,30 @@ export function SettingsPage() {
                 onChange={handleAvatarUpload}
               />
             </div>
-            <div><h2 className="text-xl font-black">{form.name || 'Tài khoản VESD'}</h2><p className="text-sm text-muted">{data?.user?.emailVerified ? '✅ Email đã xác thực' : '⚠️ Email chưa xác thực'}</p></div>
+            <div>
+              <h2 className="text-xl font-black">{form.name || 'Tài khoản VESD'}</h2>
+              {data?.user?.emailVerified ? (
+                <p className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-green-600">
+                  <CheckCircle className="h-4 w-4" /> Email đã xác thực
+                </p>
+              ) : (
+                <div className="mt-0.5">
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-amber-600">
+                    ⚠️ Email chưa xác thực
+                  </p>
+                  <button
+                    type="button"
+                    className="mt-1 inline-flex items-center gap-1.5 rounded-lg bg-brand/10 px-3 py-1.5 text-xs font-semibold text-brand transition-colors hover:bg-brand/20"
+                    disabled={sendVerification.isPending}
+                    onClick={() => sendVerification.mutate()}
+                  >
+                    <Mail className="h-3.5 w-3.5" />
+                    {sendVerification.isPending ? 'Đang gửi...' : 'Gửi email xác thực'}
+                  </button>
+                  {verifyEmailMsg && <p className="mt-1.5 text-xs text-muted">{verifyEmailMsg}</p>}
+                </div>
+              )}
+            </div>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             <Input placeholder="Tên hiển thị" value={form.name} onChange={(event) => setField('name', event.target.value)} />

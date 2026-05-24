@@ -810,6 +810,12 @@ mainRoutes.post('/uploads/image', requireAuth, upload.single('file'), async (req
   const result = await uploadToS3(req.file, 'images');
   res.status(201).json(result);
 });
+mainRoutes.post('/uploads/avatar', requireAuth, upload.single('file'), asyncHandler(async (req, res) => {
+  if (!req.file) throw new ApiError(400, 'Vui long chon file avatar');
+  if (!req.file.mimetype?.startsWith('image/')) throw new ApiError(400, 'Avatar phai la file anh');
+  const result = await uploadToS3(req.file, 'avatar');
+  res.status(201).json(result);
+}));
 mainRoutes.post('/uploads/file', requireAuth, upload.single('file'), async (req, res) => {
   const result = await uploadToS3(req.file, 'files');
   res.status(201).json(result);
