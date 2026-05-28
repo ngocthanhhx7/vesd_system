@@ -173,18 +173,18 @@ export function HomePage() {
           <div className="hero-main relative h-full overflow-hidden">
             <img className="absolute inset-0 h-full w-full object-cover object-left" src="/assets/banner-main.png" alt="" loading="eager" />
             <div className="relative z-10 flex h-full flex-col justify-center pl-[8.25vw] pt-[42px]">
-              <p className="font-['Plus_Jakarta_Sans'] text-[20px] font-medium leading-6 tracking-[.02em]">&mdash; N&#417;i T&#224;i N&#259;ng Vi&#7879;t K&#7871;t N&#7889;i D&#7921; &#193;n</p>
-              <p className="mt-[18px] max-w-[640px] font-['Plus_Jakarta_Sans'] text-[48px] font-semibold leading-[60px] tracking-[.01em]">Minh b&#7841;ch &ndash; An to&#224;n &ndash; Chuy&#234;n nghi&#7879;p</p>
-              <Link className="mt-[33px] flex h-[56px] w-[225px] items-center justify-center rounded-[28px] bg-white font-['Plus_Jakarta_Sans'] text-[20px] font-semibold text-brand transition hover:scale-[1.03]" to="/designers">Kh&#225;m Ph&#225;</Link>
+              <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium leading-5 tracking-[.02em] sm:text-[20px] sm:leading-6">&mdash; N&#417;i T&#224;i N&#259;ng Vi&#7879;t K&#7871;t N&#7889;i D&#7921; &#193;n</p>
+              <p className="mt-3 max-w-[640px] font-['Plus_Jakarta_Sans'] text-[30px] font-semibold leading-[38px] tracking-[.01em] sm:mt-[18px] sm:text-[48px] sm:leading-[60px]">Minh b&#7841;ch &ndash; An to&#224;n &ndash; Chuy&#234;n nghi&#7879;p</p>
+              <Link className="mt-5 flex h-11 w-[168px] items-center justify-center rounded-[28px] bg-white font-['Plus_Jakarta_Sans'] text-base font-semibold text-brand transition hover:scale-[1.03] sm:mt-[33px] sm:h-[56px] sm:w-[225px] sm:text-[20px]" to="/designers">Kh&#225;m Ph&#225;</Link>
             </div>
           </div>
           <Link className="hero-action group relative h-full overflow-hidden" to="/designers" aria-label="T&#236;m designer">
             <img className="hero-action-image absolute inset-0 h-full w-full object-cover object-center" src="/assets/banner-designer.png" alt="" loading="eager" />
-            <span className="absolute bottom-[121px] left-1/2 flex h-[38px] w-[164px] -translate-x-1/2 items-center justify-center rounded-[20px] border-[3px] border-white font-['Plus_Jakarta_Sans'] text-base font-semibold text-white transition group-hover:bg-white group-hover:text-brand">T&#236;m designer</span>
+            <span className="absolute bottom-8 left-1/2 flex h-[38px] w-[164px] -translate-x-1/2 items-center justify-center rounded-[20px] border-[3px] border-white font-['Plus_Jakarta_Sans'] text-base font-semibold text-white transition group-hover:bg-white group-hover:text-brand lg:bottom-[121px]">T&#236;m designer</span>
           </Link>
           <Link className="hero-action group relative h-full overflow-hidden" to={jobsPath} aria-label="T&#236;m vi&#7879;c">
             <img className="hero-action-image absolute inset-0 h-full w-full object-cover object-center" src="/assets/banner-job.png" alt="" loading="eager" />
-            <span className="absolute bottom-[121px] left-1/2 flex h-[38px] w-[164px] -translate-x-1/2 items-center justify-center rounded-[20px] border-[3px] border-white font-['Plus_Jakarta_Sans'] text-base font-semibold text-white transition group-hover:bg-white group-hover:text-brand">T&#236;m vi&#7879;c</span>
+            <span className="absolute bottom-8 left-1/2 flex h-[38px] w-[164px] -translate-x-1/2 items-center justify-center rounded-[20px] border-[3px] border-white font-['Plus_Jakarta_Sans'] text-base font-semibold text-white transition group-hover:bg-white group-hover:text-brand lg:bottom-[121px]">T&#236;m vi&#7879;c</span>
           </Link>
         </div>
       </section>
@@ -197,45 +197,45 @@ export function HomePage() {
       <section className="home-orb-bg min-h-[661px] overflow-hidden py-5 text-white">
         <div className="container-page">
           <h2 className="text-center text-[32px] font-bold leading-[38px]">Danh mục</h2>
-          <div className="mt-[46px] grid gap-x-[22px] gap-y-6 md:grid-cols-4">
+          <div className="mt-7 grid grid-cols-2 gap-3 sm:mt-[46px] sm:gap-x-[22px] sm:gap-y-6 md:grid-cols-4">
             {categoryCards.map(([title, description], index) => (
               <Link
                 key={`${title}-${description}-${index}`}
-                className={`group flex min-h-[218px] flex-col items-center justify-center rounded-xl border border-[#CED8F4] px-5 py-10 text-center text-white shadow-[0_3px_8px_rgba(48,150,137,0.05)] transition hover:-translate-y-1 hover:bg-white/10 ${index < 4 ? 'bg-white/[0.06]' : 'bg-white/0'}`}
+                className={`group flex min-h-[156px] flex-col items-center justify-center rounded-xl border border-[#CED8F4] px-3 py-5 text-center text-white shadow-[0_3px_8px_rgba(48,150,137,0.05)] transition hover:-translate-y-1 hover:bg-white/10 sm:min-h-[218px] sm:px-5 sm:py-10 ${index < 4 ? 'bg-white/[0.06]' : 'bg-white/0'}`}
                 to="/designers"
               >
-                <h3 className="text-xl font-semibold leading-6">{title}</h3>
-                <p className="mt-6 max-w-[214px] text-[14.8px] leading-[22px] text-white">{description}</p>
-                <span className="mt-6 rounded-xl bg-[#E9EFFF] px-3 py-2 text-[14.8px] leading-none text-brand transition group-hover:bg-white">Xem thêm</span>
+                <h3 className="text-base font-semibold leading-5 sm:text-xl sm:leading-6">{title}</h3>
+                <p className="mt-3 max-w-[214px] text-xs leading-[18px] text-white sm:mt-6 sm:text-[14.8px] sm:leading-[22px]">{description}</p>
+                <span className="mt-4 rounded-xl bg-[#E9EFFF] px-3 py-2 text-xs leading-none text-brand transition group-hover:bg-white sm:mt-6 sm:text-[14.8px]">Xem thêm</span>
               </Link>
             ))}
             </div>
           </div>
       </section>
-      <section className="bg-white pb-[178px] pt-[77px]">
-        <div className="home-milestone-bg relative h-[540px] overflow-visible text-white">
+      <section className="bg-white pb-10 pt-12 md:pb-[178px] md:pt-[77px]">
+        <div className="home-milestone-bg relative overflow-visible pb-5 text-white md:h-[540px] md:pb-0">
           <div className="container-page">
-            <h2 className="pt-[51px] text-center text-[32px] font-bold leading-[30px]">Một số Milestones của VESD</h2>
-            <div className="mx-auto mt-[104px] grid max-w-[1070px] grid-cols-2 gap-y-10 text-center md:grid-cols-4 md:gap-x-[33px]">
+            <h2 className="pt-8 text-center text-2xl font-bold leading-8 md:pt-[51px] md:text-[32px] md:leading-[30px]">Một số Milestones của VESD</h2>
+            <div className="mx-auto mt-10 grid max-w-[1070px] grid-cols-2 gap-y-8 text-center md:mt-[104px] md:grid-cols-4 md:gap-x-[33px] md:gap-y-10">
               {milestoneItems.map(({ icon: Icon, value, label }) => (
                 <div key={label} className="flex flex-col items-center gap-3">
-                  <Icon className="h-[69px] w-[69px] stroke-[1.8]" />
+                  <Icon className="h-11 w-11 stroke-[1.8] md:h-[69px] md:w-[69px]" />
                   <div>
-                    <p className="text-[34px] font-semibold leading-[41px] tracking-wide"><CountUpNumber value={value} /></p>
-                    <p className="mt-[14px] text-[17px] font-medium leading-5">{label}</p>
+                    <p className="text-2xl font-semibold leading-8 tracking-wide md:text-[34px] md:leading-[41px]"><CountUpNumber value={value} /></p>
+                    <p className="mt-2 text-sm font-medium leading-5 md:mt-[14px] md:text-[17px]">{label}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-          <div className="container-page absolute -bottom-[116px] left-1/2 -translate-x-1/2">
+          <div className="container-page mt-8 md:absolute md:-bottom-[116px] md:left-1/2 md:mt-0 md:-translate-x-1/2">
             <div className="home-premium-banner grid min-h-[207px] overflow-hidden rounded-[20px] text-white shadow-[0_-9px_41px_rgba(6,23,82,0.43)] md:grid-cols-[1.05fr_.7fr_1.45fr]">
               <div className="flex flex-col justify-center px-[8.4%] py-8">
-                <p className="text-2xl font-bold leading-7 tracking-[.02em]">{homeDiscount?.name || 'Gi?m gi? VESD premium'}</p>
-                <p className="mt-2 text-4xl font-bold leading-[43px] tracking-[.02em]">{homeDiscountValue}</p>
+                <p className="text-xl font-bold leading-7 tracking-[.02em] md:text-2xl">{homeDiscount?.name || 'Giảm giá VESD premium'}</p>
+                <p className="mt-2 text-3xl font-bold leading-9 tracking-[.02em] md:text-4xl md:leading-[43px]">{homeDiscountValue}</p>
                 <Link className="mt-6 flex h-[30px] w-[208px] items-center justify-center rounded-[20px] border-2 border-white text-xs font-bold tracking-[.02em]" to="/pricing">Mua ngay</Link>
               </div>
-              <div className="flex items-center justify-center border-y border-white/20 font-['Zen_Tokyo_Zoo'] text-[42px] font-normal leading-none tracking-wide md:border-x md:border-y-0">LIMITED</div>
+              <div className="flex items-center justify-center border-y border-white/20 py-4 font-['Zen_Tokyo_Zoo'] text-[34px] font-normal leading-none tracking-wide md:border-x md:border-y-0 md:py-0 md:text-[42px]">LIMITED</div>
               <div className="grid grid-cols-4 text-center">
                 {[
                   [countdown.days, 'Ngày'],
@@ -243,33 +243,33 @@ export function HomePage() {
                   [countdown.minutes, 'Phút'],
                   [countdown.seconds, 'Giây']
                 ].map(([value, label]) => {
-                  return <div key={label} className="flex flex-col items-center justify-center border-l border-white/25 px-2 py-8"><span className="font-['Zen_Dots'] text-4xl italic leading-[43px] tracking-[.02em]">{value}</span><span className="mt-4 text-2xl font-bold leading-7 tracking-[.02em]">{label}</span></div>;
+                  return <div key={label} className="flex flex-col items-center justify-center border-l border-white/25 px-2 py-5 md:py-8"><span className="font-['Zen_Dots'] text-2xl italic leading-8 tracking-[.02em] md:text-4xl md:leading-[43px]">{value}</span><span className="mt-2 text-sm font-bold leading-5 tracking-[.02em] md:mt-4 md:text-2xl md:leading-7">{label}</span></div>;
                 })}
             </div>
           </div>
         </div>
         </div>
       </section>
-      <section className="home-cta-pattern relative h-[518px] overflow-hidden bg-brand text-white">
+      <section className="home-cta-pattern relative min-h-[360px] overflow-hidden bg-brand py-12 text-white md:h-[518px] md:py-0">
         <img className="absolute right-0 top-0 hidden h-[554px] w-[46.5%] object-cover lg:block" src="/assets/figma-hero-laptop.jpg" alt="Freelancer VESD" loading="lazy" />
         <div className="container-page relative z-10 flex h-full items-center">
           <div className="max-w-[496px]">
-            <h2 className="text-[36px] font-semibold leading-[43px]">Trở thành Freelancer của VESD Hôm nay</h2>
+            <h2 className="text-[30px] font-semibold leading-[38px] md:text-[36px] md:leading-[43px]">Trở thành Freelancer của VESD Hôm nay</h2>
             <p className="mt-5 text-base font-medium leading-6">Tham gia vào cộng đồng freelancer chúng tôi với nhiều ưu đãi hấp dẫn cùng với những đặc quyền chỉ riêng VESD có</p>
             <div className="mt-[35px] flex flex-wrap gap-[22px]">
-              <Link className="flex h-[32px] w-[234px] items-center justify-center rounded-[20px] bg-brand text-[11.3px] font-medium uppercase shadow-[0_0_0_1px_rgba(255,255,255,0.15)]" to="/register">Tham Gia Ngay</Link>
-              <Link className="flex h-[32px] w-[234px] items-center justify-center rounded-[20px] border border-white text-[11.3px] font-medium uppercase" to="/help">Tìm Hiểu Thêm</Link>
+              <Link className="flex h-[36px] w-full items-center justify-center rounded-[20px] bg-brand text-[11.3px] font-medium uppercase shadow-[0_0_0_1px_rgba(255,255,255,0.15)] sm:w-[234px]" to="/register">Tham Gia Ngay</Link>
+              <Link className="flex h-[36px] w-full items-center justify-center rounded-[20px] border border-white text-[11.3px] font-medium uppercase sm:w-[234px]" to="/help">Tìm Hiểu Thêm</Link>
             </div>
           </div>
         </div>
       </section>
-      <section className="bg-white pb-[123px] pt-[70px]">
+      <section className="bg-white pb-16 pt-14 md:pb-[123px] md:pt-[70px]">
         <div className="container-page">
           <div className="mx-auto max-w-[582px]">
-            <h2 className="text-center text-[36px] font-semibold leading-[27px]">Top VESD designer</h2>
+            <h2 className="text-center text-[30px] font-semibold leading-9 md:text-[36px] md:leading-[27px]">Top VESD designer</h2>
             <div className="mt-[23px] h-0.5 bg-brand" />
           </div>
-          <div className="mt-[60px] grid justify-center gap-[49px] md:grid-cols-[282px_282px_282px]">
+          <div className="mt-10 grid justify-center gap-5 md:mt-[60px] md:grid-cols-[282px_282px_282px] md:gap-[49px]">
             {featured.slice(0, 3).map((profile: any, index: number) => <div key={profile._id} className={index === 1 ? 'md:-mt-[46px]' : ''}><DesignerCard profile={profile} /></div>)}
           </div>
           <div className="mt-[6px] flex flex-col items-center gap-3 text-base font-medium text-[#5871B3]">
@@ -304,13 +304,13 @@ export function HomePage() {
           </div>
         </div>
       </section>
-      <section className="home-news-bg mb-[61px] mt-[84px] overflow-hidden pb-[41px] pt-[15px]">
+      <section className="home-news-bg mb-12 mt-14 overflow-hidden pb-[41px] pt-[15px] md:mb-[61px] md:mt-[84px]">
         <div className="mx-auto w-[min(1031px,calc(100%_-_32px))]">
           <h2 className="text-center text-[28px] font-bold leading-[34px] text-white">Tin tức mới nhất</h2>
           <div className="mt-[18px] grid justify-center gap-[19px] lg:grid-cols-[346px_346px_346px]">
             {figmaNewsCards.map(([title, description], index) => (
               <article key={`${title}-${index}`} className="relative h-[416px] overflow-hidden rounded-[16px] bg-brand text-white shadow-[0_5px_18px_rgba(9,30,92,0.3)]">
-                <img className="absolute left-1/2 top-1/2 h-[470px] w-[397px] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover object-center" src="/assets/news-card.png" alt={title} loading="lazy" />
+                <img className="absolute left-1/2 top-1/2 h-[470px] w-full min-w-[346px] max-w-none -translate-x-1/2 -translate-y-1/2 object-cover object-center md:w-[397px]" src="/assets/news-card.png" alt={title} loading="lazy" />
                 <div className="relative z-10 flex h-full flex-col px-[22px] pt-[31px]">
                   <h3 className="max-w-[305px] font-['Plus_Jakarta_Sans'] text-[29px] font-semibold leading-[36px] tracking-[-.04em]">{title}</h3>
                   <p className="mt-[16px] max-w-[282px] font-['Plus_Jakarta_Sans'] text-[16px] font-medium leading-[21px] tracking-[-.04em]">{description}</p>
