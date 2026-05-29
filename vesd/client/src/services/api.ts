@@ -79,6 +79,7 @@ export const endpoints = {
   acceptProject: (id: string) => api<any>(`/projects/${id}/accept`, { method: 'POST' }),
   rejectProject: (id: string) => api<any>(`/projects/${id}/reject`, { method: 'POST' }),
   claimProject: (id: string) => api<any>(`/projects/${id}/claim`, { method: 'POST' }),
+  saveProjectAgreement: (id: string, body: unknown) => api<any>(`/projects/${id}/agreement`, { method: 'POST', body: JSON.stringify(body) }),
   startProject: (id: string, body: unknown = {}) => api<any>(`/projects/${id}/start`, { method: 'POST', body: JSON.stringify(body) }),
   addProjectComment: (id: string, body: unknown) => api<any>(`/projects/${id}/comments`, { method: 'POST', body: JSON.stringify(body) }),
   submitMilestone: (projectId: string, milestoneId: string, files: unknown[]) => api<any>(`/projects/${projectId}/milestones/${milestoneId}/submit`, { method: 'POST', body: JSON.stringify({ files }) }),

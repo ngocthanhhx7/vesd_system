@@ -469,56 +469,46 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   const [uploadProgress, setUploadProgress] = useState('');
   const [revisionText, setRevisionText] = useState('');
   const [commentText, setCommentText] = useState('');
+
+  const [agreedPrice, setAgreedPrice] = useState(0);
+  const [agreedDeadline, setAgreedDeadline] = useState('');
+  const [agreedScope, setAgreedScope] = useState('');
+  const [milestoneType, setMilestoneType] = useState<'single' | 'double'>('single');
+  const [escrowDiscountCode, setEscrowDiscountCode] = useState('');
+  const [escrowPaymentMethod, setEscrowPaymentMethod] = useState('wallet');
+  const [topupSuggestion, setTopupSuggestion] = useState<any>(null);
+
   const { data, isLoading, error } = useQuery({
     queryKey: ['project', id],
     queryFn: () => endpoints.project(id as string),
     enabled: Boolean(id)
   });
   const project = data?.project;
+
+  const { data: wallet } = useQuery({
+    queryKey: ['wallet'],
+    queryFn: endpoints.wallet,
+    enabled: !designer && project?.status === 'payment_pending'
+  });
+
+  useEffect(() => {
+    if (project) {
+      setAgreedPrice(project.agreement?.price || project.budget?.max || 0);
+      setAgreedDeadline(project.agreement?.deadline ? new Date(project.agreement.deadline).toISOString().split('T')[0] : (project.deadline ? new Date(project.deadline).toISOString().split('T')[0] : ''));
+      setAgreedScope(project.agreement?.scope || project.description || '');
+      setMilestoneType(project.milestones?.length === 2 ? 'double' : 'single');
+    }
+  }, [project]);
+
   const comments = data?.comments || [];
   const budget = project?.agreement?.price || project?.budget?.agreed || project?.budget?.max || project?.budget?.min;
   const milestones = project?.milestones?.length
     ? project.milestones.map((milestone: any, index: number, list: any[]) => displayMilestone(project, milestone, index, list.length))
     : workspaceSteps.map((step, index) => ({ _id: `fallback-${index}`, title: step, status: index < 2 ? 'approved' : 'pending', submittedFiles: [] }));
   const projectCompleted = project?.status === 'completed';
-
-  async function refreshProject() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['project', id] }),
-      queryClient.invalidateQueries({ queryKey: ['my-projects'] }),
-      queryClient.invalidateQueries({ queryKey: ['designer-projects'] }),
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
-    ]);
-  }
-
-  async function uploadFiles(files: File[], progressPrefix = 'Đang tải file') {
-    validateProjectFiles(files);
-    const uploaded = [];
-    for (let index = 0; index < files.length; index += 1) {
-      const file = files[index];
-      setUploadProgress(`${progressPrefix} ${index + 1}/${files.length}: ${file.name} (${formatFileSize(file.size)})`);
-      const result = await endpoints.uploadFile(file);
-      uploaded.push({
-        url: result.url,
-        name: result.name || file.name,
-        type: result.type || file.type || fileKind(file),
         key: result.key,
         size: result.size || file.size,
         checklistItem: fileChecklistItem(file)
-      });
-    }
-    return uploaded;
-  }
-
-  const startProject = useMutation({
-    mutationFn: () => endpoints.startProject(id as string, { content: 'Designer bắt đầu thực hiện dự án' }),
-    onSuccess: async () => { setMessage('Đã chuyển dự án sang trạng thái đang làm.'); await refreshProject(); },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể bắt đầu dự án')
-  });
-  const submitMilestone = useMutation({
-    mutationFn: async (milestoneId: string) => {
-      const uploaded = await uploadFiles(milestoneFiles[milestoneId] || [], 'Đang tải milestone');
-      setUploadProgress('Đang gửi milestone cho khách hàng...');
       return endpoints.submitMilestone(id as string, milestoneId, uploaded);
     },
     onSuccess: async () => { setMessage('Đã gửi milestone cho khách hàng duyệt.'); setMilestoneFiles({}); await refreshProject(); },
