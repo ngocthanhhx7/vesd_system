@@ -60,6 +60,8 @@ function userName(value: any, fallback: string) {
 function milestoneStatusText(status?: string) {
   const labels: Record<string, string> = {
     approved: 'Hoàn thành',
+    completed: 'Đã duyệt bàn giao cuối',
+    final_submitted: 'Chờ khách duyệt bàn giao cuối',
     in_progress: 'Đang thực hiện',
     pending: 'Đang chờ xử lý',
     revision_requested: 'Cần chỉnh sửa',
@@ -397,12 +399,42 @@ function canPreviewFile(file: any) {
   return type.startsWith('image/') || type.includes('pdf') || name.match(/\.(png|jpg|jpeg|svg|pdf)$/);
 }
 
+function finalStepStatus(project: any) {
+  if (project?.status === 'completed') return 'completed';
+  if (project?.status === 'final_submitted') return 'final_submitted';
+  if (project?.status === 'revision_requested') return 'revision_requested';
+  return project?.finalFiles?.length ? 'submitted' : 'pending';
+}
+
+function feedbackStepStatus(project: any) {
+  if (project?.status === 'revision_requested') return 'revision_requested';
+  if (['final_submitted', 'completed'].includes(project?.status)) return 'approved';
+  return 'pending';
+}
+
+function displayMilestone(project: any, milestone: any) {
+  const title = String(milestone.title || '').toLowerCase();
+  if (title.includes('bàn giao cuối') || title.includes('ban giao cuoi')) {
+    return { ...milestone, status: finalStepStatus(project) };
+  }
+  if (title.includes('phản hồi') || title.includes('phan hoi')) {
+    return { ...milestone, status: feedbackStepStatus(project) };
+  }
+  return milestone;
+}
+
+function errorDetails(error: unknown) {
+  const details = (error as Error & { details?: unknown })?.details;
+  return Array.isArray(details) ? details.map(String) : [];
+}
+
 export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
   const [message, setMessage] = useState('');
   const [milestoneFiles, setMilestoneFiles] = useState<Record<string, File[]>>({});
   const [finalFiles, setFinalFiles] = useState<File[]>([]);
+  const [finalError, setFinalError] = useState('');
   const [revisionText, setRevisionText] = useState('');
   const [commentText, setCommentText] = useState('');
   const { data, isLoading, error } = useQuery({
@@ -414,7 +446,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   const comments = data?.comments || [];
   const budget = project?.agreement?.price || project?.budget?.agreed || project?.budget?.max || project?.budget?.min;
   const milestones = project?.milestones?.length
-    ? project.milestones
+    ? project.milestones.map((milestone: any) => displayMilestone(project, milestone))
     : workspaceSteps.map((step, index) => ({ _id: `fallback-${index}`, title: step, status: index < 2 ? 'approved' : 'pending', submittedFiles: [] }));
 
   async function refreshProject() {
@@ -463,14 +495,20 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   });
   const submitFinal = useMutation({
     mutationFn: async () => endpoints.submitFinalFiles(id as string, await uploadFiles(finalFiles), 'Designer bàn giao file cuối'),
-    onSuccess: async () => { setMessage('Đã bàn giao file cuối cho khách hàng.'); setFinalFiles([]); await refreshProject(); },
+    onSuccess: async () => { setFinalError(''); setMessage('Đã bàn giao file cuối cho khách hàng.'); setFinalFiles([]); await refreshProject(); },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể bàn giao file cuối')
   });
   const completeProject = useMutation({
     mutationFn: () => endpoints.completeProject(id as string),
-    onMutate: () => setMessage('Đang duyệt bàn giao cuối...'),
-    onSuccess: async () => { setMessage('Đã hoàn tất dự án và giải ngân escrow.'); await refreshProject(); },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể hoàn tất dự án')
+    onMutate: () => { setFinalError(''); setMessage('Đang duyệt bàn giao cuối...'); },
+    onSuccess: async () => { setFinalError(''); setMessage('Đã hoàn tất dự án và giải ngân escrow.'); await refreshProject(); },
+    onError: (err) => {
+      const missing = errorDetails(err);
+      const base = err instanceof Error ? err.message : 'Không thể hoàn tất dự án';
+      const nextMessage = missing.length ? `${base}: ${missing.join(', ')}` : base;
+      setFinalError(nextMessage);
+      setMessage(nextMessage);
+    }
   });
   const sendComment = useMutation({
     mutationFn: () => endpoints.addProjectComment(id as string, { content: commentText.trim(), type: 'message' }),
@@ -537,6 +575,11 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
             <h3 className="font-bold">Bàn giao file cuối</h3>
             <p className="mt-1 text-sm text-muted">Designer cần gửi nhiều file gồm ảnh PNG/JPG và file gốc AI, PDF, SVG, font chữ hoặc package ZIP.</p>
             {!!project?.finalFiles?.length && <FileList projectId={id as string} files={project.finalFiles} allowDownload={!designer && project.status === 'completed'} />}
+            {finalError && (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                {finalError}
+              </div>
+            )}
             {designer ? (
               <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
                 <Input type="file" multiple accept={handoffAccept} onChange={(event) => setFinalFiles(Array.from(event.currentTarget.files || []))} />

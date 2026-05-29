@@ -39,7 +39,11 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   if (token) headers.set('Authorization', `Bearer ${token}`);
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   const data = await response.json().catch(() => null);
-  if (!response.ok) throw new Error(data?.message || 'Loi ket noi API');
+  if (!response.ok) {
+    const error = new Error(data?.message || 'Loi ket noi API') as Error & { details?: unknown };
+    error.details = data?.details;
+    throw error;
+  }
   return data as T;
 }
 

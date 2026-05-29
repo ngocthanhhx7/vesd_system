@@ -132,9 +132,16 @@ export async function completeProject({ project, userId }) {
   if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client duoc hoan tat du an');
   const template = await ChecklistTemplate.findOne({ category: project.category });
   if (template) {
-    const uploadedLabels = new Set((project.finalFiles || []).map((file) => file.checklistItem).filter(Boolean));
-    const missing = template.items.filter((item) => item.required && !uploadedLabels.has(item.label));
-    if (missing.length) throw new ApiError(400, 'Thieu file ban giao bat buoc', missing.map((item) => item.label));
+    const finalFiles = project.finalFiles || [];
+    const uploadedLabels = new Set(finalFiles.map((file) => String(file.checklistItem || '').toLowerCase()).filter(Boolean));
+    const uploadedExtensions = new Set(finalFiles.map((file) => String(file.name || file.url || '').split('.').pop()?.toLowerCase()).filter(Boolean));
+    const missing = template.items.filter((item) => {
+      if (!item.required) return false;
+      const labelMatched = uploadedLabels.has(String(item.label || '').toLowerCase());
+      const formatMatched = (item.acceptedFormats || []).some((format) => uploadedExtensions.has(String(format).toLowerCase()));
+      return !labelMatched && !formatMatched;
+    });
+    if (missing.length) throw new ApiError(400, 'Thiếu file bàn giao bắt buộc', missing.map((item) => item.label));
   }
   await releaseProjectFunds({ project, amount: (await getProjectEscrowStats(project._id)).remaining, reason: 'project_completed' });
   project.status = 'completed';
