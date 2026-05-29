@@ -506,25 +506,94 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
     ? project.milestones.map((milestone: any, index: number, list: any[]) => displayMilestone(project, milestone, index, list.length))
     : workspaceSteps.map((step, index) => ({ _id: `fallback-${index}`, title: step, status: index < 2 ? 'approved' : 'pending', submittedFiles: [] }));
   const projectCompleted = project?.status === 'completed';
+  async function refreshProject() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['project', id] }),
+      queryClient.invalidateQueries({ queryKey: ['my-projects'] }),
+      queryClient.invalidateQueries({ queryKey: ['designer-projects'] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+    ]);
+  }
+
+  async function uploadFiles(files: File[], progressPrefix = 'Đang tải file') {
+    validateProjectFiles(files);
+    const uploaded = [];
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      setUploadProgress(`${progressPrefix} ${index + 1}/${files.length}: ${file.name} (${formatFileSize(file.size)})`);
+      const result = await endpoints.uploadFile(file);
+      uploaded.push({
+        url: result.url,
+        name: result.name || file.name,
+        type: result.type || file.type || fileKind(file),
         key: result.key,
         size: result.size || file.size,
         checklistItem: fileChecklistItem(file)
+      });
+    }
+    return uploaded;
+  }
+
+  const startProject = useMutation({
+    mutationFn: () => endpoints.startProject(id as string, { content: 'Designer bắt đầu thực hiện dự án' }),
+    onSuccess: async () => { setMessage('Đã chuyển dự án sang trạng thái đang làm.'); await refreshProject(); },
+    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể bắt đầu dự án')
+  });
+
+  const saveAgreement = useMutation({
+    mutationFn: (body: any) => endpoints.saveProjectAgreement(id as string, body),
+    onSuccess: async () => {
+      setMessage('Đã gửi đề xuất thỏa thuận thành công. Đang chờ khách hàng thanh toán Escrow.');
+      await refreshProject();
+    },
+    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể lưu thỏa thuận')
+  });
+
+  const payEscrow = useMutation({
+    mutationFn: () => endpoints.payEscrow({
+      projectId: id as string,
+      discountCode: escrowDiscountCode || undefined,
+      paymentMethod: escrowPaymentMethod
+    }),
+    onSuccess: async (result: any) => {
+      if (result?.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+        return;
+      }
+      setTopupSuggestion(null);
+      setMessage('Đã khóa tiền thuê trong escrow thành công. Dự án đã sẵn sàng thực hiện.');
+      await refreshProject();
+    },
+    onError: (error) => {
+      const details = (error as Error & { details?: any })?.details;
+      setTopupSuggestion(details?.action === 'topup' ? details : null);
+      setMessage(error instanceof Error ? error.message : 'Không thể thanh toán escrow');
+    }
+  });
+
+  const submitMilestone = useMutation({
+    mutationFn: async (milestoneId: string) => {
+      const uploaded = await uploadFiles(milestoneFiles[milestoneId] || [], 'Đang tải milestone');
+      setUploadProgress('Đang gửi milestone cho khách hàng...');
       return endpoints.submitMilestone(id as string, milestoneId, uploaded);
     },
     onSuccess: async () => { setMessage('Đã gửi milestone cho khách hàng duyệt.'); setMilestoneFiles({}); await refreshProject(); },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể gửi milestone'),
     onSettled: () => setUploadProgress('')
   });
+
   const approveMilestone = useMutation({
     mutationFn: (milestoneId: string) => endpoints.approveMilestone(id as string, milestoneId),
     onSuccess: async () => { setMessage('Đã duyệt milestone.'); await refreshProject(); },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể duyệt milestone')
   });
+
   const requestRevision = useMutation({
     mutationFn: () => endpoints.requestRevision(id as string, revisionText.trim()),
     onSuccess: async () => { setMessage('Đã gửi yêu cầu chỉnh sửa.'); setRevisionText(''); await refreshProject(); },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể gửi yêu cầu chỉnh sửa')
   });
+
   const submitFinal = useMutation({
     mutationFn: async () => {
       setFinalError('');
@@ -540,6 +609,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
     },
     onSettled: () => setUploadProgress('')
   });
+
   const completeProject = useMutation({
     mutationFn: (allowMissingFiles: boolean = false) => endpoints.completeProject(id as string, allowMissingFiles),
     onMutate: () => { setFinalError(''); setMessage('Đang duyệt bàn giao cuối...'); },
@@ -559,6 +629,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
       setMessage(nextMessage);
     }
   });
+
   const sendComment = useMutation({
     mutationFn: () => endpoints.addProjectComment(id as string, { content: commentText.trim(), type: 'message' }),
     onSuccess: async () => { setCommentText(''); await refreshProject(); },
@@ -595,82 +666,268 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
       {message && <p className="mb-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-muted">{message}</p>}
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <Card>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-bold">Tiến độ milestone</h2>
-            {designer && project?.status === 'escrow_funded' && <Button disabled={startProject.isPending} onClick={() => startProject.mutate()}>Bắt đầu dự án</Button>}
-          </div>
-          <div className="mt-4 space-y-4">
-            {milestones.map((milestone: any) => (
-              <div key={milestone._id || milestone.title} className="rounded-lg border border-line bg-soft/70 p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div><p className="font-semibold">{milestone.title}</p><p className="text-base text-muted">{milestoneStatusText(milestone.status)}</p></div>
-                  <StatusBadge status={milestone.status} />
-                </div>
-                {!!milestone.submittedFiles?.length && <FileList projectId={id as string} files={milestone.submittedFiles} />}
-                {designer && !String(milestone._id || '').startsWith('fallback') && (
-                  <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
-                    <Input type="file" multiple accept="image/png,image/jpeg,.pdf,.svg,.ai" onChange={(event) => setMilestoneFiles((current) => ({ ...current, [milestone._id]: Array.from(event.currentTarget.files || []) }))} />
-                    <Button disabled={submitMilestone.isPending || !(milestoneFiles[milestone._id]?.length)} onClick={() => submitMilestone.mutate(milestone._id)}>Gửi milestone</Button>
-                  </div>
-                )}
-                {!designer && milestone.status === 'submitted' && !String(milestone._id || '').startsWith('fallback') && (
-                  <Button className="mt-4" disabled={approveMilestone.isPending} onClick={() => approveMilestone.mutate(milestone._id)}>Duyệt milestone</Button>
-                )}
+          {['agreement_pending', 'payment_pending'].includes(project?.status) ? (
+            <div className="space-y-6">
+              <div className="rounded-lg bg-brand/5 border border-brand/20 p-5">
+                <h3 className="text-lg font-black text-brand flex items-center gap-2">
+                  <Sparkles className="h-5 w-5" /> 
+                  {project.status === 'agreement_pending' ? 'Giai đoạn 1: Thiết lập thỏa thuận dự án' : 'Giai đoạn 2: Thanh toán Escrow bảo hộ'}
+                </h3>
+                <p className="mt-1 text-sm text-muted">
+                  {project.status === 'agreement_pending' 
+                    ? 'Hai bên trao đổi chi tiết công việc, thời gian và giá cả. Designer sẽ điền thông tin đề xuất ở dưới.' 
+                    : 'Designer đã đề xuất thỏa thuận. Khách hàng vui lòng kiểm tra chi tiết và thực hiện thanh toán khóa tiền để kích hoạt dự án.'}
+                </p>
               </div>
-            ))}
-          </div>
 
-          <div className="mt-6 rounded-lg border border-line bg-soft/70 p-4">
-            <h3 className="font-bold">Bàn giao file cuối</h3>
-            <p className="mt-1 text-sm text-muted">Designer cần gửi nhiều file gồm ảnh PNG/JPG và file gốc AI, PDF, SVG, font chữ hoặc package ZIP.</p>
-            {!!project?.finalFiles?.length && (!projectCompleted || designer) && <FileList projectId={id as string} files={project.finalFiles} allowDownload={!designer && projectCompleted} />}
-            {finalError && (
-              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-                {finalError}
-                {canApproveWithMissingFiles && (
-                  <label className="mt-3 flex items-start gap-2 text-sm font-semibold text-red-800">
-                    <input className="mt-1 h-4 w-4 accent-brand" type="checkbox" checked={allowMissingFinalFiles} onChange={(event) => setAllowMissingFinalFiles(event.target.checked)} />
-                    <span>Tôi đã kiểm tra file hiện có và vẫn chấp nhận duyệt bàn giao dù còn thiếu file bắt buộc.</span>
-                  </label>
-                )}
-              </div>
-            )}
-            {designer ? (
-              <div className="mt-4 space-y-3">
-                <div className="grid gap-3 md:grid-cols-[1fr_auto]">
-                  <Input type="file" multiple accept={handoffAccept} onChange={(event) => { setFinalError(''); setFinalFiles(Array.from(event.currentTarget.files || [])); }} />
-                  <Button disabled={submitFinal.isPending || !finalFiles.length} onClick={() => submitFinal.mutate()}>
-                    {submitFinal.isPending ? 'Đang gửi...' : 'Bàn giao file cuối'}
-                  </Button>
-                </div>
-                {!!finalFiles.length && (
-                  <div className="rounded-lg bg-white px-4 py-3 text-sm text-muted">
-                    <p className="font-semibold text-ink">Đã chọn {finalFiles.length} file</p>
-                    <div className="mt-2 grid gap-1">
-                      {finalFiles.map((file) => <p key={`${file.name}-${file.size}`}>{file.name} · {formatFileSize(file.size)}</p>)}
+              {project.status === 'agreement_pending' ? (
+                designer ? (
+                  <div className="space-y-4">
+                    <h4 className="font-bold border-b pb-2">Đề xuất thỏa thuận của bạn</h4>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className="text-sm font-semibold text-muted block mb-1">Giá trọn gói (VNĐ)</label>
+                        <Input 
+                          type="number" 
+                          value={agreedPrice} 
+                          onChange={(e) => setAgreedPrice(Number(e.target.value))} 
+                          placeholder="Nhập giá thỏa thuận" 
+                        />
+                        <p className="text-xs text-muted mt-1">Ngân sách brief của khách: {formatVnd(project.budget?.max)}</p>
+                      </div>
+                      <div>
+                        <label className="text-sm font-semibold text-muted block mb-1">Hạn bàn giao</label>
+                        <Input 
+                          type="date" 
+                          value={agreedDeadline} 
+                          onChange={(e) => setAgreedDeadline(e.target.value)} 
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-sm font-semibold text-muted block mb-1">Chia mốc thanh toán</label>
+                        <Select 
+                          value={milestoneType} 
+                          onChange={(e) => setMilestoneType(e.target.value as 'single' | 'double')}
+                        >
+                          <option value="single">Thanh toán 1 lần (100% khi hoàn thành)</option>
+                          <option value="double">Chia làm 2 mốc (50% concept - 50% hoàn thành)</option>
+                        </Select>
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="text-sm font-semibold text-muted block mb-1">Phạm vi công việc & Cam kết chỉnh sửa</label>
+                        <Textarea 
+                          value={agreedScope} 
+                          onChange={(e) => setAgreedScope(e.target.value)} 
+                          placeholder="Mô tả phạm vi bàn giao, cam kết chỉnh sửa..." 
+                          rows={4}
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      className="w-full mt-4" 
+                      disabled={saveAgreement.isPending || agreedPrice <= 0 || !agreedDeadline}
+                      onClick={() => {
+                        const finalMilestones = milestoneType === 'single' 
+                          ? [{ title: 'Bàn giao sản phẩm cuối cùng', amount: agreedPrice, dueDate: new Date(agreedDeadline) }]
+                          : [
+                              { title: 'Duyệt phác thảo / Concept', amount: Math.round(agreedPrice * 0.5), dueDate: new Date(Date.now() + 3 * 86400000) },
+                              { title: 'Bàn giao sản phẩm cuối cùng', amount: Math.round(agreedPrice * 0.5), dueDate: new Date(agreedDeadline) }
+                            ];
+                        saveAgreement.mutate({
+                          price: agreedPrice,
+                          deadline: agreedDeadline,
+                          scope: agreedScope,
+                          milestones: finalMilestones,
+                          deliverables: project.deliverables,
+                          revisionLimit: project.revisionLimit
+                        });
+                      }}
+                    >
+                      {saveAgreement.isPending ? 'Đang gửi đề xuất...' : 'Gửi đề xuất thỏa thuận cho khách hàng'}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-10 bg-soft/50 rounded-lg border border-dashed border-line">
+                    <Clock className="h-12 w-12 text-brand mx-auto mb-3 animate-pulse" />
+                    <h4 className="font-bold text-ink">Đang chờ designer gửi đề xuất thỏa thuận</h4>
+                    <p className="text-sm text-muted mt-2 max-w-md mx-auto">
+                      Vui lòng sử dụng khung chat bên cạnh để thảo luận về yêu cầu, chi phí và thời gian thực hiện dự án. Designer sẽ gửi bản thiết lập thỏa thuận sau khi thống nhất.
+                    </p>
+                  </div>
+                )
+              ) : (
+                <div className="space-y-6">
+                  <div className="bg-soft p-4 rounded-lg border border-line">
+                    <h4 className="font-bold mb-3 border-b pb-2">Chi tiết thỏa thuận đã đề xuất</h4>
+                    <div className="grid gap-3 text-sm md:grid-cols-2">
+                      <div><span className="text-muted">Giá trọn gói:</span> <strong className="text-brand text-base">{formatVnd(project.agreement?.price)}</strong></div>
+                      <div><span className="text-muted">Hạn bàn giao:</span> <strong>{formatDate(project.agreement?.deadline)}</strong></div>
+                      <div className="md:col-span-2"><span className="text-muted">Phạm vi công việc:</span> <p className="mt-1 p-2 bg-white rounded border border-line whitespace-pre-line text-xs">{project.agreement?.scope || 'Không có mô tả chi tiết.'}</p></div>
+                    </div>
+
+                    <h5 className="font-bold mt-4 mb-2 text-xs uppercase tracking-wider text-muted">Các mốc thanh toán dự kiến:</h5>
+                    <div className="space-y-2">
+                      {project.milestones?.map((milestone: any, index: number) => (
+                        <div key={milestone._id || index} className="flex justify-between items-center text-xs p-2 bg-white rounded border border-line">
+                          <span>{milestone.title}</span>
+                          <strong className="text-brand">{formatVnd(milestone.amount)}</strong>
+                        </div>
+                      ))}
                     </div>
                   </div>
+
+                  {designer ? (
+                    <div className="text-center py-8 bg-soft/50 rounded-lg border border-dashed border-line">
+                      <Clock className="h-10 w-10 text-brand mx-auto mb-3 animate-pulse" />
+                      <h4 className="font-bold text-ink">Đã gửi đề xuất thỏa thuận</h4>
+                      <p className="text-sm text-muted mt-2 max-w-md mx-auto">
+                        Đang chờ khách hàng xác nhận các điều khoản và thực hiện thanh toán Escrow để kích hoạt dự án bắt đầu làm việc.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <h4 className="font-bold border-b pb-2">Thực hiện thanh toán Escrow bảo hộ</h4>
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-800 space-y-1">
+                        <p className="font-bold">VESD Escrow bảo vệ bạn:</p>
+                        <p>1. Số tiền của bạn sẽ được giữ an toàn trên hệ thống VESD.</p>
+                        <p>2. Tiền chỉ được giải ngân cho designer khi bạn duyệt từng mốc bàn giao đạt yêu cầu.</p>
+                        <p>3. Phí sàn 5% đã được bao gồm, không thu thêm phụ phí.</p>
+                      </div>
+
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <label className="text-sm font-semibold text-muted block mb-1">Phương thức thanh toán</label>
+                          <Select 
+                            value={escrowPaymentMethod} 
+                            onChange={(e) => setEscrowPaymentMethod(e.target.value)}
+                          >
+                            <option value="wallet">Thanh toán qua ví VESD</option>
+                            <option value="payos">Cổng thanh toán PayOS (QR Ngân hàng)</option>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-semibold text-muted block mb-1">Mã giảm giá (nếu có)</label>
+                          <Input 
+                            placeholder="Nhập mã ưu đãi" 
+                            value={escrowDiscountCode} 
+                            onChange={(e) => setEscrowDiscountCode(e.target.value)} 
+                          />
+                        </div>
+                      </div>
+
+                      {escrowPaymentMethod === 'wallet' && (
+                        <div className="mt-2 rounded-lg bg-soft p-3 text-sm flex items-center justify-between border border-line">
+                          <div>
+                            <p className="text-xs text-muted">Số dư ví của bạn</p>
+                            <p className="font-bold text-ink">{formatVnd(wallet?.balance || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted text-right">Tổng thanh toán</p>
+                            <p className="font-black text-brand text-right">{formatVnd(project.agreement?.price)}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {topupSuggestion && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+                          <span>Cần nạp thêm tối thiểu {formatVnd(topupSuggestion.topupAmount)} để thanh toán dự án.</span>
+                          <Link className="focus-ring rounded-lg bg-brand px-4 py-2 text-white text-xs font-bold" to="/client/wallet/topup">Nạp tiền ngay</Link>
+                        </div>
+                      )}
+
+                      <Button 
+                        className="w-full mt-2" 
+                        disabled={payEscrow.isPending}
+                        onClick={() => payEscrow.mutate()}
+                      >
+                        {payEscrow.isPending ? 'Đang thực hiện thanh toán...' : escrowPaymentMethod === 'wallet' ? 'Xác nhận & Thanh toán bằng ví' : 'Xác nhận & Thanh toán PayOS'}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="font-bold">Tiến độ milestone</h2>
+                {designer && project?.status === 'escrow_funded' && <Button disabled={startProject.isPending} onClick={() => startProject.mutate()}>Bắt đầu dự án</Button>}
+              </div>
+              <div className="mt-4 space-y-4">
+                {milestones.map((milestone: any) => (
+                  <div key={milestone._id || milestone.title} className="rounded-lg border border-line bg-soft/70 p-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div><p className="font-semibold">{milestone.title}</p><p className="text-base text-muted">{milestoneStatusText(milestone.status)}</p></div>
+                      <StatusBadge status={milestone.status} />
+                    </div>
+                    {!!milestone.submittedFiles?.length && <FileList projectId={id as string} files={milestone.submittedFiles} />}
+                    {designer && !String(milestone._id || '').startsWith('fallback') && (
+                      <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+                        <Input type="file" multiple accept="image/png,image/jpeg,.pdf,.svg,.ai" onChange={(event) => setMilestoneFiles((current) => ({ ...current, [milestone._id]: Array.from(event.currentTarget.files || []) }))} />
+                        <Button disabled={submitMilestone.isPending || !(milestoneFiles[milestone._id]?.length)} onClick={() => submitMilestone.mutate(milestone._id)}>Gửi milestone</Button>
+                      </div>
+                    )}
+                    {!designer && milestone.status === 'submitted' && !String(milestone._id || '').startsWith('fallback') && (
+                      <Button className="mt-4" disabled={approveMilestone.isPending} onClick={() => approveMilestone.mutate(milestone._id)}>Duyệt milestone</Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 rounded-lg border border-line bg-soft/70 p-4">
+                <h3 className="font-bold">Bàn giao file cuối</h3>
+                <p className="mt-1 text-sm text-muted">Designer cần gửi nhiều file gồm ảnh PNG/JPG và file gốc AI, PDF, SVG, font chữ hoặc package ZIP.</p>
+                {!!project?.finalFiles?.length && (!projectCompleted || designer) && <FileList projectId={id as string} files={project.finalFiles} allowDownload={!designer && projectCompleted} />}
+                {finalError && (
+                  <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                    {finalError}
+                    {canApproveWithMissingFiles && (
+                      <label className="mt-3 flex items-start gap-2 text-sm font-semibold text-red-800">
+                        <input className="mt-1 h-4 w-4 accent-brand" type="checkbox" checked={allowMissingFinalFiles} onChange={(event) => setAllowMissingFinalFiles(event.target.checked)} />
+                        <span>Tôi đã kiểm tra file hiện có và vẫn chấp nhận duyệt bàn giao dù còn thiếu file bắt buộc.</span>
+                      </label>
+                    )}
+                  </div>
                 )}
-                {uploadProgress && <p className="rounded-lg bg-white px-4 py-3 text-sm font-semibold text-brand">{uploadProgress}</p>}
+                {designer ? (
+                  <div className="mt-4 space-y-3">
+                    <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+                      <Input type="file" multiple accept={handoffAccept} onChange={(event) => { setFinalError(''); setFinalFiles(Array.from(event.currentTarget.files || [])); }} />
+                      <Button disabled={submitFinal.isPending || !finalFiles.length} onClick={() => submitFinal.mutate()}>
+                        {submitFinal.isPending ? 'Đang gửi...' : 'Bàn giao file cuối'}
+                      </Button>
+                    </div>
+                    {!!finalFiles.length && (
+                      <div className="rounded-lg bg-white px-4 py-3 text-sm text-muted">
+                        <p className="font-semibold text-ink">Đã chọn {finalFiles.length} file</p>
+                        <div className="mt-2 grid gap-1">
+                          {finalFiles.map((file) => <p key={`${file.name}-${file.size}`}>{file.name} · {formatFileSize(file.size)}</p>)}
+                        </div>
+                      </div>
+                    )}
+                    {uploadProgress && <p className="rounded-lg bg-white px-4 py-3 text-sm font-semibold text-brand">{uploadProgress}</p>}
+                  </div>
+                ) : !projectCompleted ? (
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Button disabled={completeProject.isPending || project?.status !== 'final_submitted'} onClick={() => completeProject.mutate(canApproveWithMissingFiles && allowMissingFinalFiles)}>
+                      {completeProject.isPending ? 'Đang duyệt...' : canApproveWithMissingFiles && allowMissingFinalFiles ? 'Duyệt dù thiếu file' : 'Duyệt bàn giao cuối'}
+                    </Button>
+                    <Button variant="secondary" disabled={!revisionText.trim() || requestRevision.isPending} onClick={() => requestRevision.mutate()}>Yêu cầu chỉnh sửa</Button>
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-brand">Bàn giao cuối đã được duyệt và escrow đã giải ngân.</p>
+                )}
+                {!designer && projectCompleted && !!project?.finalFiles?.length && (
+                  <div className="mt-4 rounded-lg bg-white p-4">
+                    <h4 className="font-bold">Tải file bàn giao đã duyệt</h4>
+                    <p className="mt-1 text-sm text-muted">Các file cuối đã được duyệt và có thể tải về tại đây.</p>
+                    <FileList projectId={id as string} files={project.finalFiles} allowDownload />
+                  </div>
+                )}
               </div>
-            ) : !projectCompleted ? (
-              <div className="mt-4 flex flex-wrap gap-3">
-                <Button disabled={completeProject.isPending || project?.status !== 'final_submitted'} onClick={() => completeProject.mutate(canApproveWithMissingFiles && allowMissingFinalFiles)}>
-                  {completeProject.isPending ? 'Đang duyệt...' : canApproveWithMissingFiles && allowMissingFinalFiles ? 'Duyệt dù thiếu file' : 'Duyệt bàn giao cuối'}
-                </Button>
-                <Button variant="secondary" disabled={!revisionText.trim() || requestRevision.isPending} onClick={() => requestRevision.mutate()}>Yêu cầu chỉnh sửa</Button>
-              </div>
-            ) : (
-              <p className="mt-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-brand">Bàn giao cuối đã được duyệt và escrow đã giải ngân.</p>
-            )}
-            {!designer && projectCompleted && !!project?.finalFiles?.length && (
-              <div className="mt-4 rounded-lg bg-white p-4">
-                <h4 className="font-bold">Tải file bàn giao đã duyệt</h4>
-                <p className="mt-1 text-sm text-muted">Các file cuối đã được duyệt và có thể tải về tại đây.</p>
-                <FileList projectId={id as string} files={project.finalFiles} allowDownload />
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </Card>
         <Card>
           <h2 className="font-bold">Trao đổi và phản hồi</h2>
