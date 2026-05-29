@@ -144,7 +144,10 @@ export async function requestRevision({ project, userId, content }) {
 
 export async function completeProject({ project, userId, allowMissingFiles = false }) {
   if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client duoc hoan tat du an');
-  if (project.status === 'completed') return project;
+  if (project.status === 'completed') {
+    await releaseProjectFunds({ project, amount: (await getProjectEscrowStats(project._id)).remaining, reason: 'project_completed' });
+    return project;
+  }
   const template = await ChecklistTemplate.findOne({ category: project.category });
   if (template) {
     const finalFiles = project.finalFiles || [];

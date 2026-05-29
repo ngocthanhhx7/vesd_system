@@ -41,7 +41,7 @@ function listFromText(value: FormDataEntryValue | null) {
 }
 
 function formatVnd(value?: number) {
-  return value ? `${value.toLocaleString('vi-VN')}đ` : 'Trao đổi';
+  return typeof value === 'number' ? `${value.toLocaleString('vi-VN')}đ` : 'Trao đổi';
 }
 
 function formatDate(value?: string | Date) {
