@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { env } from '../config/env.js';
@@ -101,4 +101,20 @@ export async function deleteFromS3(key) {
     Bucket: BUCKET,
     Key: key
   }));
+}
+
+export async function getFromS3(key) {
+  return s3.send(new GetObjectCommand({
+    Bucket: BUCKET,
+    Key: key
+  }));
+}
+
+export function s3KeyFromUrl(url = '') {
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname.replace(/^\/+/, '').split('/').map(decodeURIComponent).join('/');
+  } catch {
+    return '';
+  }
 }

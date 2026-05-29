@@ -5,6 +5,7 @@ const { Schema, model } = mongoose;
 const fileSchema = new Schema(
   {
     url: String,
+    key: String,
     name: String,
     type: String,
     size: Number,

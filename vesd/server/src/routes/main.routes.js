@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
-import { uploadToS3 } from '../utils/s3.js';
+import { deleteFromS3, getFromS3, s3KeyFromUrl, uploadToS3 } from '../utils/s3.js';
 import slugify from 'slugify';
 import { requireAuth, requireRole } from '../middlewares/auth.js';
 import { asyncHandler, ApiError } from '../utils/apiError.js';
@@ -46,6 +46,25 @@ function messagePreview(content, attachments = []) {
   const value = String(content || '').trim();
   if (value) return value.slice(0, 180);
   return attachments.length ? 'Da gui tep dinh kem' : '';
+}
+
+function fileKey(file = {}) {
+  return file.key || s3KeyFromUrl(file.url);
+}
+
+async function deleteProjectFiles(files = []) {
+  await Promise.all((files || [])
+    .map(fileKey)
+    .filter(Boolean)
+    .filter((key) => key.startsWith('files/'))
+    .map((key) => deleteFromS3(key).catch(() => null)));
+}
+
+function projectHasFileKey(project, key) {
+  if (!key) return false;
+  const finalFiles = project.finalFiles || [];
+  const milestoneFiles = (project.milestones || []).flatMap((milestone) => milestone.submittedFiles || []);
+  return [...finalFiles, ...milestoneFiles].some((file) => fileKey(file) === key);
 }
 
 async function getConversationForUser(user, id) {
@@ -387,6 +406,7 @@ mainRoutes.post('/projects/:id/milestones/:milestoneId/submit', requireAuth, req
   const project = await getOwnedProject(req.user, req.params.id);
   const milestone = project.milestones.id(req.params.milestoneId);
   if (!milestone) throw new ApiError(404, 'Khong tim thay milestone');
+  await deleteProjectFiles(milestone.submittedFiles);
   milestone.status = 'submitted';
   milestone.submittedFiles = req.body.files || [];
   project.status = 'submitted';
@@ -396,6 +416,7 @@ mainRoutes.post('/projects/:id/milestones/:milestoneId/submit', requireAuth, req
 mainRoutes.post('/projects/:id/final-files', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
   if (String(project.designerId) !== String(req.user._id)) throw new ApiError(403, 'Khong phai designer cua du an');
+  await deleteProjectFiles(project.finalFiles);
   project.finalFiles = req.body.files || [];
   project.status = 'final_submitted';
   await project.save();
