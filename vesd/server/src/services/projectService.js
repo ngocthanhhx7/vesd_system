@@ -17,10 +17,13 @@ export async function getOwnedProject(user, id) {
 async function getProjectEscrowStats(projectId) {
   const [depositTransactions, releaseTransactions] = await Promise.all([
     Transaction.find({ projectId, type: 'deposit', status: 'success' }).select('amount metadata'),
-    Transaction.find({ projectId, type: 'release', status: 'success' }).select('amount')
+    Transaction.find({ projectId, type: 'release', status: 'success' }).select('amount platformFee metadata')
   ]);
   const escrowPaid = depositTransactions.reduce((sum, transaction) => sum + Number(transaction.metadata?.escrowAmount ?? transaction.amount ?? 0), 0);
-  const released = releaseTransactions.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+  const released = releaseTransactions.reduce((sum, transaction) => {
+    const grossAmount = transaction.metadata?.grossAmount;
+    return sum + Number(grossAmount ?? (Number(transaction.amount || 0) + Number(transaction.platformFee || 0)));
+  }, 0);
   return { escrowPaid, released, remaining: Math.max(escrowPaid - released, 0) };
 }
 
@@ -30,23 +33,26 @@ async function releaseProjectFunds({ project, amount, reason }) {
   const { remaining } = await getProjectEscrowStats(project._id);
   const releaseAmount = Math.min(value, remaining);
   if (releaseAmount <= 0) return null;
+  const platformFee = calculatePlatformFee(releaseAmount);
+  const designerAmount = Math.max(releaseAmount - platformFee, 0);
 
   const transaction = await Transaction.create({
     userId: project.designerId,
     projectId: project._id,
     type: 'release',
-    amount: releaseAmount,
-    platformFee: 0,
+    amount: designerAmount,
+    platformFee,
     status: 'success',
     paymentMethod: 'escrow',
     metadata: {
+      grossAmount: releaseAmount,
       reason,
-      feeCollectedAt: 'funding'
+      feeCollectedAt: 'completion'
     }
   });
   await Wallet.findOneAndUpdate(
     { userId: project.designerId },
-    { $inc: { balance: releaseAmount, totalEarned: releaseAmount } },
+    { $inc: { balance: designerAmount, totalEarned: designerAmount } },
     { upsert: true }
   );
   await Wallet.findOneAndUpdate(
@@ -65,15 +71,23 @@ export async function fundEscrow({ projectId, userId, paymentMethod = 'mock', di
   if (amount <= 0) throw new ApiError(400, 'Du an chua co so tien hop le');
   const { discount, discountAmount, finalAmount } = await validateDiscount({ code: discountCode, amount, appliesTo: 'project', role: 'client' });
   const escrowAmount = Math.round(finalAmount);
-  const platformFee = calculatePlatformFee(escrowAmount);
-  const totalDue = escrowAmount + platformFee;
+  const totalDue = escrowAmount;
   if (paymentMethod === 'wallet') {
     const wallet = await Wallet.findOneAndUpdate(
       { userId, balance: { $gte: totalDue } },
       { $inc: { balance: -totalDue, escrowBalance: escrowAmount, totalSpent: totalDue } },
       { new: true }
     );
-    if (!wallet) throw new ApiError(400, 'So du vi khong du de thanh toan du an');
+    if (!wallet) {
+      const currentWallet = await Wallet.findOne({ userId }).select('balance');
+      const availableBalance = Number(currentWallet?.balance || 0);
+      throw new ApiError(402, 'So du vi khong du de thanh toan du an', {
+        action: 'topup',
+        requiredAmount: totalDue,
+        availableBalance,
+        topupAmount: Math.max(totalDue - availableBalance, 0)
+      });
+    }
   } else {
     await Wallet.findOneAndUpdate({ userId }, { $inc: { escrowBalance: escrowAmount, totalSpent: totalDue } }, { upsert: true });
   }
@@ -82,7 +96,7 @@ export async function fundEscrow({ projectId, userId, paymentMethod = 'mock', di
     projectId,
     type: 'deposit',
     amount: totalDue,
-    platformFee,
+    platformFee: 0,
     status: 'success',
     paymentMethod,
     metadata: {
@@ -90,6 +104,8 @@ export async function fundEscrow({ projectId, userId, paymentMethod = 'mock', di
       originalAmount: amount,
       escrowAmount,
       totalDue,
+      feeCollectedAt: 'completion',
+      platformFeeRate: 0.05,
       discountCode: discount?.code,
       discountAmount
     }
@@ -105,14 +121,12 @@ export async function fundEscrow({ projectId, userId, paymentMethod = 'mock', di
 
 export async function approveMilestone({ project, milestoneId, userId }) {
   if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client duoc duyet milestone');
-  if (project.status === 'disputed') throw new ApiError(400, 'Du an dang khieu nai, khong the release tien');
+  if (project.status === 'disputed') throw new ApiError(400, 'Du an dang khieu nai, khong the duyet milestone');
   const milestone = project.milestones.id(milestoneId);
   if (!milestone) throw new ApiError(404, 'Khong tim thay milestone');
   if (milestone.status === 'approved') return project;
   milestone.status = 'approved';
   milestone.approvedAt = new Date();
-  const amount = milestone.amount || 0;
-  await releaseProjectFunds({ project, amount, reason: 'milestone_approved' });
   if (project.milestones.every((m) => m.status === 'approved')) project.status = 'final_submitted';
   await project.save();
   return project;
@@ -130,6 +144,7 @@ export async function requestRevision({ project, userId, content }) {
 
 export async function completeProject({ project, userId, allowMissingFiles = false }) {
   if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client duoc hoan tat du an');
+  if (project.status === 'completed') return project;
   const template = await ChecklistTemplate.findOne({ category: project.category });
   if (template) {
     const finalFiles = project.finalFiles || [];

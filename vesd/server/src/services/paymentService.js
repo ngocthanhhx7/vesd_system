@@ -13,7 +13,7 @@ import { env } from '../config/env.js';
 import { ApiError } from '../utils/apiError.js';
 import { validateDiscount } from './discountService.js';
 import { createPayosPaymentLink, getPayosPaymentRequest, verifyPayosPaymentSignature } from './payosService.js';
-import { WALLET_MIN_TOPUP_AMOUNT, normalizeWalletAmount } from './walletService.js';
+import { WALLET_MIN_TOPUP_AMOUNT, calculatePlatformFee, normalizeWalletAmount } from './walletService.js';
 
 const frontendBaseUrl = () => env.clientUrl;
 const premiumAccountTypeForRole = (role) => (role === 'designer' ? 'designer_premium' : 'business_premium');
@@ -68,8 +68,8 @@ export async function createPayosEscrowPayment({ projectId, user, discountCode, 
     role: 'client'
   });
   const escrowAmount = Math.round(finalAmount);
-  const platformFee = Math.round(escrowAmount * 0.08);
-  const amount = escrowAmount + platformFee;
+  const expectedPlatformFee = calculatePlatformFee(escrowAmount);
+  const amount = escrowAmount;
   const orderCode = generateOrderCode();
   const urls = buildCheckoutUrls('/client/escrow', orderCode, returnUrl, cancelUrl);
 
@@ -78,7 +78,7 @@ export async function createPayosEscrowPayment({ projectId, user, discountCode, 
     projectId,
     type: 'deposit',
     amount,
-    platformFee,
+    platformFee: 0,
     status: 'pending',
     paymentMethod: 'payos',
     metadata: {
@@ -86,6 +86,8 @@ export async function createPayosEscrowPayment({ projectId, user, discountCode, 
       originalAmount,
       escrowAmount,
       totalDue: amount,
+      feeCollectedAt: 'completion',
+      expectedPlatformFee,
       discountId: discount?._id,
       discountCode: discount?.code,
       discountAmount,
@@ -102,8 +104,7 @@ export async function createPayosEscrowPayment({ projectId, user, discountCode, 
       buyerName: user.name,
       buyerEmail: user.email,
       items: [
-        { name: project.title, quantity: 1, price: escrowAmount },
-        { name: 'Phi san VESD', quantity: 1, price: platformFee }
+        { name: project.title, quantity: 1, price: escrowAmount }
       ],
       returnUrl: urls.returnUrl,
       cancelUrl: urls.cancelUrl
@@ -349,7 +350,7 @@ async function finalizePayosTransaction(transaction, payosData) {
 
   if (transaction.type === 'deposit' && transaction.metadata?.purpose === 'escrow') {
     const escrowAmount = Number(transaction.metadata?.escrowAmount ?? transaction.amount);
-    const totalSpent = Number(transaction.metadata?.totalDue ?? (transaction.amount + transaction.platformFee));
+    const totalSpent = Number(transaction.metadata?.totalDue ?? transaction.amount);
     await Wallet.findOneAndUpdate(
       { userId: transaction.userId },
       { $inc: { escrowBalance: escrowAmount, totalSpent } },

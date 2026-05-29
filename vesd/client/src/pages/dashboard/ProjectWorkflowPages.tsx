@@ -304,9 +304,11 @@ export function AgreementPage() {
 export function EscrowPage() {
   const queryClient = useQueryClient();
   const [message, setMessage] = useState('');
+  const [topupSuggestion, setTopupSuggestion] = useState<any>(null);
   const [projectId, setProjectId] = useState('');
   const [discountCode, setDiscountCode] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('wallet');
+  const { data: wallet } = useQuery({ queryKey: ['wallet'], queryFn: endpoints.wallet });
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const orderCode = params.get('orderCode');
@@ -329,23 +331,28 @@ export function EscrowPage() {
         window.location.href = result.checkoutUrl;
         return;
       }
-      setMessage('Đã thanh toán escrow bằng ví. Phí sàn được thu tại thời điểm funding.');
+      setTopupSuggestion(null);
+      setMessage('Đã khóa tiền thuê trong escrow. Phí sàn 5% sẽ trừ khi giải ngân cho designer.');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['wallet'] }),
         queryClient.invalidateQueries({ queryKey: ['tx'] }),
         queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
       ]);
     },
-    onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể thanh toán escrow')
+    onError: (error) => {
+      const details = (error as Error & { details?: any })?.details;
+      setTopupSuggestion(details?.action === 'topup' ? details : null);
+      setMessage(error instanceof Error ? error.message : 'Không thể thanh toán escrow');
+    }
   });
   return (
     <Dashboard title="Thanh toán escrow">
       <Card>
         <div className="grid gap-4 md:grid-cols-4">
-          <Metric label="Số tiền thanh toán" value="2.500.000đ" icon={CreditCard} />
-          <Metric label="Phí nền tảng" value="200.000đ" icon={BarChart3} />
-          <Metric label="Tổng cộng" value="2.700.000đ" icon={CheckCircle2} />
-          <Metric label="Trạng thái" value="Đang chờ" icon={Clock} />
+          <Metric label="Số dư ví" value={formatVnd(wallet?.balance || 0)} icon={CreditCard} />
+          <Metric label="Tiền khóa escrow" value="Theo giá dự án" icon={CheckCircle2} />
+          <Metric label="Phí nền tảng" value="5% khi hoàn tất" icon={BarChart3} />
+          <Metric label="Trạng thái" value="Chờ thanh toán" icon={Clock} />
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_220px_auto]">
           <Input placeholder="ID dự án" value={projectId} onChange={(event) => setProjectId(event.target.value)} />
@@ -359,6 +366,12 @@ export function EscrowPage() {
           </Button>
         </div>
         {message && <p className="mt-3 text-sm text-muted">{message}</p>}
+        {topupSuggestion && (
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            <span>Cần nạp thêm tối thiểu {formatVnd(topupSuggestion.topupAmount)} để đủ tiền khóa escrow.</span>
+            <Link className="focus-ring rounded-lg bg-brand px-4 py-2 text-white" to="/client/wallet/topup">Nạp ví</Link>
+          </div>
+        )}
       </Card>
     </Dashboard>
   );
@@ -424,12 +437,16 @@ function feedbackStepStatus(project: any) {
   return 'pending';
 }
 
-function displayMilestone(project: any, milestone: any) {
-  const title = String(milestone.title || '').toLowerCase();
-  if (title.includes('bàn giao cuối') || title.includes('ban giao cuoi')) {
+function normalizeMilestoneTitle(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function displayMilestone(project: any, milestone: any, index: number, total: number) {
+  const title = normalizeMilestoneTitle(String(milestone.title || ''));
+  if (index === total - 1 || title.includes('ban giao cuoi') || title.includes('final')) {
     return { ...milestone, status: finalStepStatus(project) };
   }
-  if (title.includes('phản hồi') || title.includes('phan hoi')) {
+  if (index === total - 2 || title.includes('phan hoi') || title.includes('feedback')) {
     return { ...milestone, status: feedbackStepStatus(project) };
   }
   return milestone;
@@ -461,8 +478,9 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   const comments = data?.comments || [];
   const budget = project?.agreement?.price || project?.budget?.agreed || project?.budget?.max || project?.budget?.min;
   const milestones = project?.milestones?.length
-    ? project.milestones.map((milestone: any) => displayMilestone(project, milestone))
+    ? project.milestones.map((milestone: any, index: number, list: any[]) => displayMilestone(project, milestone, index, list.length))
     : workspaceSteps.map((step, index) => ({ _id: `fallback-${index}`, title: step, status: index < 2 ? 'approved' : 'pending', submittedFiles: [] }));
+  const projectCompleted = project?.status === 'completed';
 
   async function refreshProject() {
     await Promise.all([
@@ -615,7 +633,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
           <div className="mt-6 rounded-lg border border-line bg-soft/70 p-4">
             <h3 className="font-bold">Bàn giao file cuối</h3>
             <p className="mt-1 text-sm text-muted">Designer cần gửi nhiều file gồm ảnh PNG/JPG và file gốc AI, PDF, SVG, font chữ hoặc package ZIP.</p>
-            {!!project?.finalFiles?.length && <FileList projectId={id as string} files={project.finalFiles} allowDownload={!designer && project.status === 'completed'} />}
+            {!!project?.finalFiles?.length && (!projectCompleted || designer) && <FileList projectId={id as string} files={project.finalFiles} allowDownload={!designer && projectCompleted} />}
             {finalError && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                 {finalError}
@@ -645,15 +663,17 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
                 )}
                 {uploadProgress && <p className="rounded-lg bg-white px-4 py-3 text-sm font-semibold text-brand">{uploadProgress}</p>}
               </div>
-            ) : (
+            ) : !projectCompleted ? (
               <div className="mt-4 flex flex-wrap gap-3">
                 <Button disabled={completeProject.isPending || project?.status !== 'final_submitted'} onClick={() => completeProject.mutate(canApproveWithMissingFiles && allowMissingFinalFiles)}>
                   {completeProject.isPending ? 'Đang duyệt...' : canApproveWithMissingFiles && allowMissingFinalFiles ? 'Duyệt dù thiếu file' : 'Duyệt bàn giao cuối'}
                 </Button>
                 <Button variant="secondary" disabled={!revisionText.trim() || requestRevision.isPending} onClick={() => requestRevision.mutate()}>Yêu cầu chỉnh sửa</Button>
               </div>
+            ) : (
+              <p className="mt-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-brand">Bàn giao cuối đã được duyệt và escrow đã giải ngân.</p>
             )}
-            {!designer && project?.status === 'completed' && !!project?.finalFiles?.length && (
+            {!designer && projectCompleted && !!project?.finalFiles?.length && (
               <div className="mt-4 rounded-lg bg-white p-4">
                 <h4 className="font-bold">Tải file bàn giao đã duyệt</h4>
                 <p className="mt-1 text-sm text-muted">Các file cuối đã được duyệt và có thể tải về tại đây.</p>

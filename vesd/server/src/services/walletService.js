@@ -2,7 +2,7 @@ import { Project, Transaction, Wallet } from '../models/index.js';
 import { ApiError } from '../utils/apiError.js';
 
 export const WALLET_MIN_TOPUP_AMOUNT = 10000;
-export const PROJECT_PLATFORM_FEE_RATE = 0.08;
+export const PROJECT_PLATFORM_FEE_RATE = 0.05;
 
 export function normalizeWalletAmount(amount, { min = 1 } = {}) {
   const value = Number(amount);

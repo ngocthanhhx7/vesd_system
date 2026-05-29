@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseClientUrls } from '../config/env.js';
+import { calculatePlatformFee } from '../services/walletService.js';
 
 test('role guard rule: admin can access admin area', () => {
   const user = { roles: ['admin'] };
@@ -12,11 +13,11 @@ test('project revision cannot exceed limit', () => {
   assert.equal(project.revisionUsed >= project.revisionLimit, true);
 });
 
-test('escrow release computes platform fee at 8 percent', () => {
+test('escrow release computes platform fee at 5 percent', () => {
   const amount = 1000000;
-  const fee = Math.round(amount * 0.08);
-  assert.equal(fee, 80000);
-  assert.equal(amount - fee, 920000);
+  const fee = calculatePlatformFee(amount);
+  assert.equal(fee, 50000);
+  assert.equal(amount - fee, 950000);
 });
 
 test('auth password minimum length policy', () => {
