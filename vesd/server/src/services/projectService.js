@@ -63,6 +63,27 @@ async function releaseProjectFunds({ project, amount, reason }) {
   return transaction;
 }
 
+function markCompletedMilestones(project) {
+  if (project.status !== 'completed' || !project.milestones?.length) return false;
+  let changed = false;
+  project.milestones.forEach((milestone) => {
+    if (milestone.status !== 'approved') {
+      milestone.status = 'approved';
+      milestone.approvedAt = milestone.approvedAt || new Date();
+      changed = true;
+    }
+  });
+  return changed;
+}
+
+export async function syncCompletedProjectState(project) {
+  if (!project || project.status !== 'completed') return project;
+  const milestoneChanged = markCompletedMilestones(project);
+  await releaseProjectFunds({ project, amount: (await getProjectEscrowStats(project._id)).remaining, reason: 'project_completed_sync' });
+  if (milestoneChanged) await project.save();
+  return project;
+}
+
 export async function fundEscrow({ projectId, userId, paymentMethod = 'mock', discountCode }) {
   const project = await Project.findById(projectId);
   if (!project) throw new ApiError(404, 'Khong tim thay du an');
@@ -145,8 +166,7 @@ export async function requestRevision({ project, userId, content }) {
 export async function completeProject({ project, userId, allowMissingFiles = false }) {
   if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client duoc hoan tat du an');
   if (project.status === 'completed') {
-    await releaseProjectFunds({ project, amount: (await getProjectEscrowStats(project._id)).remaining, reason: 'project_completed' });
-    return project;
+    return syncCompletedProjectState(project);
   }
   const template = await ChecklistTemplate.findOne({ category: project.category });
   if (template) {
@@ -163,6 +183,7 @@ export async function completeProject({ project, userId, allowMissingFiles = fal
   }
   await releaseProjectFunds({ project, amount: (await getProjectEscrowStats(project._id)).remaining, reason: 'project_completed' });
   project.status = 'completed';
+  markCompletedMilestones(project);
   await project.save();
   return project;
 }

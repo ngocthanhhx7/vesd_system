@@ -26,7 +26,7 @@ import {
   Wallet,
   Withdrawal
 } from '../models/index.js';
-import { approveMilestone, completeProject, fundEscrow, getOwnedProject, refundProject, requestRevision } from '../services/projectService.js';
+import { approveMilestone, completeProject, fundEscrow, getOwnedProject, refundProject, requestRevision, syncCompletedProjectState } from '../services/projectService.js';
 import { validateDiscount } from '../services/discountService.js';
 import { createPayosEscrowPayment, createPayosPremiumPayment, createPayosWalletTopup, handlePayosPaymentWebhook, payPremiumWithWallet, syncPayosPayment } from '../services/paymentService.js';
 import { handleCassoWithdrawalWebhook, requestCassoWithdrawal, requestPayosWithdrawal, syncPayosWithdrawal } from '../services/withdrawalService.js';
@@ -124,11 +124,12 @@ mainRoutes.get('/dashboard/summary', requireAuth, asyncHandler(async (req, res) 
   }
 
   const projectQuery = req.user.roles.includes('designer') ? { designerId: req.user._id } : { clientId: req.user._id };
-  const [projects, wallet, designerProfile] = await Promise.all([
-    Project.find(projectQuery).select('status budget agreement'),
-    Wallet.findOne({ userId: req.user._id }),
+  const [projects, designerProfile] = await Promise.all([
+    Project.find(projectQuery).select('status budget agreement milestones clientId designerId'),
     DesignerProfile.findOne({ userId: req.user._id })
   ]);
+  await Promise.all(projects.filter((project) => project.status === 'completed').map((project) => syncCompletedProjectState(project)));
+  const wallet = await Wallet.findOne({ userId: req.user._id });
   res.json({
     activeProjects: projects.filter((project) => !['completed', 'cancelled'].includes(project.status)).length,
     pendingApprovals: projects.filter((project) => project.status === 'submitted').length,
@@ -342,6 +343,7 @@ mainRoutes.get('/projects/my', requireAuth, asyncHandler(async (req, res) => {
 }));
 mainRoutes.get('/projects/:id', requireAuth, asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
+  await syncCompletedProjectState(project);
   await project.populate('clientId designerId', 'name avatar email');
   const comments = await ProjectComment.find({ projectId: project._id }).populate('senderId', 'name avatar').sort({ createdAt: 1 });
   res.json({ project, comments });
@@ -449,7 +451,11 @@ mainRoutes.post('/payments/payos/:orderCode/sync', requireAuth, asyncHandler(asy
 mainRoutes.post('/payments/release', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await approveMilestone({ project: await Project.findById(req.body.projectId), milestoneId: req.body.milestoneId, userId: req.body.clientId }))));
 mainRoutes.post('/payments/refund', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await refundProject({ projectId: req.body.projectId, adminId: req.user._id, amount: req.body.amount }))));
 mainRoutes.get('/transactions/my', requireAuth, asyncHandler(async (req, res) => res.json(await Transaction.find({ userId: req.user._id }).sort({ createdAt: -1 }))));
-mainRoutes.get('/wallet/my', requireAuth, asyncHandler(async (req, res) => res.json(await Wallet.findOne({ userId: req.user._id }))));
+mainRoutes.get('/wallet/my', requireAuth, asyncHandler(async (req, res) => {
+  const completedProjects = await Project.find({ $or: [{ clientId: req.user._id }, { designerId: req.user._id }], status: 'completed' }).select('status milestones clientId designerId');
+  await Promise.all(completedProjects.map((project) => syncCompletedProjectState(project)));
+  res.json(await Wallet.findOne({ userId: req.user._id }));
+}));
 mainRoutes.post('/wallet/topup', requireAuth, asyncHandler(async (req, res) => res.status(201).json(await createPayosWalletTopup({ user: req.user, amount: req.body.amount, returnUrl: req.body.returnUrl, cancelUrl: req.body.cancelUrl }))));
 mainRoutes.post('/wallet/transfers/designer', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.status(201).json(await transferWalletToDesigner({ sender: req.user, designerId: req.body.designerId, projectId: req.body.projectId, amount: req.body.amount, note: req.body.note }))));
 mainRoutes.get('/bank-accounts/my', requireAuth, asyncHandler(async (req, res) => res.json(await SavedBankAccount.find({ userId: req.user._id }).sort({ isDefault: -1, createdAt: -1 }))));
