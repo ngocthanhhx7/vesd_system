@@ -842,6 +842,20 @@ mainRoutes.post('/uploads/file', requireAuth, upload.single('file'), asyncHandle
   res.status(201).json(result);
 }));
 
+mainRoutes.get('/uploads/file-object', requireAuth, asyncHandler(async (req, res) => {
+  const key = String(req.query.key || '');
+  const projectId = String(req.query.projectId || '');
+  const disposition = req.query.disposition === 'attachment' ? 'attachment' : 'inline';
+  if (!key.startsWith('files/') || !objectIdPattern.test(projectId)) throw new ApiError(400, 'File khong hop le');
+  const project = await getOwnedProject(req.user, projectId);
+  if (!projectHasFileKey(project, key)) throw new ApiError(404, 'Khong tim thay file trong du an');
+  const object = await getFromS3(key);
+  const fileName = key.split('/').pop() || 'download';
+  res.setHeader('Content-Type', object.ContentType || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `${disposition}; filename*=UTF-8''${encodeURIComponent(fileName)}`);
+  object.Body.pipe(res);
+}));
+
 mainRoutes.get('/admin/users', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await User.find(req.query.role ? { roles: req.query.role } : {}).select('-passwordHash').sort({ createdAt: -1 }))));
 mainRoutes.patch('/admin/users/:id/status', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await User.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true }).select('-passwordHash'))));
 mainRoutes.get('/admin/designers/pending', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await DesignerProfile.find({ verificationStatus: 'pending' }).populate('userId', 'name email avatar'))));

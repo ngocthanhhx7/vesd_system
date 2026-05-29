@@ -382,6 +382,21 @@ function fileKind(file: any) {
   return 'Tài liệu';
 }
 
+function fileKey(file: any) {
+  if (file?.key) return file.key;
+  try {
+    return new URL(file?.url || '').pathname.replace(/^\/+/, '');
+  } catch {
+    return '';
+  }
+}
+
+function canPreviewFile(file: any) {
+  const name = String(file?.name || '').toLowerCase();
+  const type = String(file?.type || '').toLowerCase();
+  return type.startsWith('image/') || type.includes('pdf') || name.match(/\.(png|jpg|jpeg|svg|pdf)$/);
+}
+
 export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   const { id } = useParams<{ id: string }>();
   const queryClient = useQueryClient();
@@ -418,6 +433,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
         url: result.url,
         name: result.name || file.name,
         type: result.type || file.type || fileKind(file),
+        key: result.key,
         size: result.size || file.size,
         checklistItem: fileChecklistItem(file)
       };
@@ -452,6 +468,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   });
   const completeProject = useMutation({
     mutationFn: () => endpoints.completeProject(id as string),
+    onMutate: () => setMessage('Đang duyệt bàn giao cuối...'),
     onSuccess: async () => { setMessage('Đã hoàn tất dự án và giải ngân escrow.'); await refreshProject(); },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể hoàn tất dự án')
   });
@@ -502,7 +519,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
                   <div><p className="font-semibold">{milestone.title}</p><p className="text-base text-muted">{milestoneStatusText(milestone.status)}</p></div>
                   <StatusBadge status={milestone.status} />
                 </div>
-                {!!milestone.submittedFiles?.length && <FileList files={milestone.submittedFiles} />}
+                {!!milestone.submittedFiles?.length && <FileList projectId={id as string} files={milestone.submittedFiles} />}
                 {designer && !String(milestone._id || '').startsWith('fallback') && (
                   <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
                     <Input type="file" multiple accept="image/png,image/jpeg,.pdf,.svg,.ai" onChange={(event) => setMilestoneFiles((current) => ({ ...current, [milestone._id]: Array.from(event.currentTarget.files || []) }))} />
@@ -519,7 +536,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
           <div className="mt-6 rounded-lg border border-line bg-soft/70 p-4">
             <h3 className="font-bold">Bàn giao file cuối</h3>
             <p className="mt-1 text-sm text-muted">Designer cần gửi nhiều file gồm ảnh PNG/JPG và file gốc AI, PDF, SVG, font chữ hoặc package ZIP.</p>
-            {!!project?.finalFiles?.length && <FileList files={project.finalFiles} />}
+            {!!project?.finalFiles?.length && <FileList projectId={id as string} files={project.finalFiles} allowDownload={!designer && project.status === 'completed'} />}
             {designer ? (
               <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
                 <Input type="file" multiple accept={handoffAccept} onChange={(event) => setFinalFiles(Array.from(event.currentTarget.files || []))} />
@@ -527,8 +544,15 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
               </div>
             ) : (
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button disabled={completeProject.isPending || project?.status !== 'final_submitted'} onClick={() => completeProject.mutate()}>Duyệt bàn giao cuối</Button>
+                <Button disabled={completeProject.isPending || project?.status !== 'final_submitted'} onClick={() => completeProject.mutate()}>{completeProject.isPending ? 'Đang duyệt...' : 'Duyệt bàn giao cuối'}</Button>
                 <Button variant="secondary" disabled={!revisionText.trim() || requestRevision.isPending} onClick={() => requestRevision.mutate()}>Yêu cầu chỉnh sửa</Button>
+              </div>
+            )}
+            {!designer && project?.status === 'completed' && !!project?.finalFiles?.length && (
+              <div className="mt-4 rounded-lg bg-white p-4">
+                <h4 className="font-bold">Tải file bàn giao đã duyệt</h4>
+                <p className="mt-1 text-sm text-muted">Các file cuối đã được duyệt và có thể tải về tại đây.</p>
+                <FileList projectId={id as string} files={project.finalFiles} allowDownload />
               </div>
             )}
           </div>
@@ -547,14 +571,35 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   );
 }
 
-function FileList({ files }: { files: any[] }) {
+function FileList({ projectId, files, allowDownload = false }: { projectId: string; files: any[]; allowDownload?: boolean }) {
+  async function openFile(file: any, disposition: 'inline' | 'attachment') {
+    const key = fileKey(file);
+    if (!key) return;
+    const blob = await endpoints.projectFileBlob(projectId, key, disposition);
+    const url = URL.createObjectURL(blob);
+    if (disposition === 'attachment') {
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = file.name || 'vesd-file';
+      anchor.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      return;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
   return (
     <div className="mt-3 grid gap-2">
       {files.map((file, index) => (
-        <a key={`${file.url || file.name}-${index}`} href={file.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-brand hover:underline">
-          <span className="min-w-0 truncate">{file.name}</span>
+        <div key={`${file.url || file.name}-${index}`} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-3 py-2 text-sm font-semibold">
+          <span className="min-w-0 truncate text-brand">{file.name}</span>
           <span className="shrink-0 text-muted">{file.checklistItem || fileKind(file)}</span>
-        </a>
+          <div className="ml-auto flex gap-2">
+            {canPreviewFile(file) && <Button variant="secondary" onClick={() => openFile(file, 'inline')}>Xem</Button>}
+            {(allowDownload || !canPreviewFile(file)) && <Button variant="secondary" onClick={() => openFile(file, 'attachment')}>Tải về</Button>}
+          </div>
+        </div>
       ))}
     </div>
   );

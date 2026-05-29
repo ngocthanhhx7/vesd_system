@@ -43,6 +43,18 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   return data as T;
 }
 
+export async function apiBlob(path: string, options: RequestInit = {}): Promise<Blob> {
+  const headers = new Headers(options.headers);
+  const token = getToken();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.message || 'Loi ket noi API');
+  }
+  return response.blob();
+}
+
 export const endpoints = {
   designers: (query = '') => api<any>(`/designers${query}`),
   designer: (id: string) => api<any>(`/designers/${id}`),
@@ -117,6 +129,7 @@ export const endpoints = {
     form.append('file', file);
     return api<any>('/uploads/file', { method: 'POST', body: form });
   },
+  projectFileBlob: (projectId: string, key: string, disposition: 'inline' | 'attachment' = 'inline') => apiBlob(`/uploads/file-object?projectId=${encodeURIComponent(projectId)}&key=${encodeURIComponent(key)}&disposition=${disposition}`),
   // Search
   search: (q: string, limit = 5) => api<any>(`/search?q=${encodeURIComponent(q)}&limit=${limit}`),
   // Notifications
