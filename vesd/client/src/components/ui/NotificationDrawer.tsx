@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Bell, CheckCheck, FolderKanban, Wallet, AlertTriangle, ShieldCheck, Crown, Megaphone, X } from 'lucide-react';
 import { endpoints, getToken } from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
@@ -45,10 +46,12 @@ function groupByDate(notifications: any[]) {
 
 // ── Badge: used in header ──
 export function NotificationBell({ onClick }: { onClick: () => void }) {
+  const { user } = useAuth();
   const { data } = useQuery({
-    queryKey: ['notification-unread-count'],
+    queryKey: ['notification-unread-count', user?._id],
     queryFn: endpoints.notificationUnreadCount,
-    refetchInterval: 30000
+    refetchInterval: 30000,
+    enabled: !!user
   });
 
   const count = data?.unreadCount || 0;
@@ -84,30 +87,31 @@ function useNotificationSSE() {
 
 // ── Drawer ──
 export function NotificationDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [page, setPage] = useState(1);
   const listRef = useRef<HTMLDivElement>(null);
 
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications', page],
+    queryKey: ['notifications', user?._id, page],
     queryFn: () => endpoints.notifications(page),
-    enabled: open
+    enabled: open && !!user
   });
 
   const markRead = useMutation({
     mutationFn: (id: string) => endpoints.markNotificationRead(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?._id] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count', user?._id] });
     }
   });
 
   const markAllRead = useMutation({
     mutationFn: () => endpoints.markAllNotificationsRead(),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notification-unread-count'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', user?._id] });
+      queryClient.invalidateQueries({ queryKey: ['notification-unread-count', user?._id] });
     }
   });
 
