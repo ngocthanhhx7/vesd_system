@@ -172,9 +172,9 @@ export function HomePage() {
         <div className="flex h-full w-full">
           <div className="hero-main relative h-full overflow-hidden">
             <img className="absolute inset-0 h-full w-full object-cover object-left" src="/assets/banner-main.png" alt="" loading="eager" />
-            <div className="relative z-10 flex h-full flex-col justify-center pl-[8.25vw] pt-[42px]">
-              <p className="font-['Plus_Jakarta_Sans'] text-sm font-medium leading-5 tracking-[.02em] sm:text-[20px] sm:leading-6">&mdash; N&#417;i T&#224;i N&#259;ng Vi&#7879;t K&#7871;t N&#7889;i D&#7921; &#193;n</p>
-              <p className="mt-3 max-w-[640px] font-['Plus_Jakarta_Sans'] text-[30px] font-semibold leading-[38px] tracking-[.01em] sm:mt-[18px] sm:text-[48px] sm:leading-[60px]">Minh b&#7841;ch &ndash; An to&#224;n &ndash; Chuy&#234;n nghi&#7879;p</p>
+            <div className="relative z-10 flex h-full max-w-full flex-col justify-center px-6 pt-[42px] sm:pl-[8.25vw] sm:pr-8">
+              <p className="max-w-[320px] font-['Plus_Jakarta_Sans'] text-sm font-medium leading-5 tracking-[.02em] sm:max-w-none sm:text-[20px] sm:leading-6">&mdash; N&#417;i T&#224;i N&#259;ng Vi&#7879;t K&#7871;t N&#7889;i D&#7921; &#193;n</p>
+              <p className="mt-3 max-w-[330px] text-wrap font-['Plus_Jakarta_Sans'] text-[28px] font-semibold leading-[35px] tracking-[.01em] sm:mt-[18px] sm:max-w-[640px] sm:text-[48px] sm:leading-[60px]">Minh b&#7841;ch &ndash; An to&#224;n &ndash; Chuy&#234;n nghi&#7879;p</p>
               <Link className="mt-5 flex h-11 w-[168px] items-center justify-center rounded-[28px] bg-white font-['Plus_Jakarta_Sans'] text-base font-semibold text-brand transition hover:scale-[1.03] sm:mt-[33px] sm:h-[56px] sm:w-[225px] sm:text-[20px]" to="/designers">Kh&#225;m Ph&#225;</Link>
             </div>
           </div>
@@ -197,7 +197,7 @@ export function HomePage() {
       <section className="home-orb-bg min-h-[661px] overflow-hidden py-5 text-white">
         <div className="container-page">
           <h2 className="text-center text-[32px] font-bold leading-[38px]">Danh mục</h2>
-          <div className="mt-7 grid grid-cols-2 gap-3 sm:mt-[46px] sm:gap-x-[22px] sm:gap-y-6 md:grid-cols-4">
+          <div className="mt-7 grid grid-cols-1 gap-3 sm:mt-[46px] sm:grid-cols-2 sm:gap-x-[22px] sm:gap-y-6 md:grid-cols-4">
             {categoryCards.map(([title, description], index) => (
               <Link
                 key={`${title}-${description}-${index}`}
@@ -215,14 +215,14 @@ export function HomePage() {
       <section className="bg-white pb-10 pt-12 md:pb-[178px] md:pt-[77px]">
         <div className="home-milestone-bg relative overflow-visible pb-5 text-white md:h-[540px] md:pb-0">
           <div className="container-page">
-            <h2 className="pt-8 text-center text-2xl font-bold leading-8 md:pt-[51px] md:text-[32px] md:leading-[30px]">Một số Milestones của VESD</h2>
-            <div className="mx-auto mt-10 grid max-w-[1070px] grid-cols-2 gap-y-8 text-center md:mt-[104px] md:grid-cols-4 md:gap-x-[33px] md:gap-y-10">
+            <h2 className="mx-auto max-w-[320px] pt-8 text-center text-2xl font-bold leading-8 md:max-w-none md:pt-[51px] md:text-[32px] md:leading-[30px]">Một số Milestones của VESD</h2>
+            <div className="mx-auto mt-10 grid max-w-[1070px] grid-cols-2 gap-x-3 gap-y-8 text-center md:mt-[104px] md:grid-cols-4 md:gap-x-[33px] md:gap-y-10">
               {milestoneItems.map(({ icon: Icon, value, label }) => (
-                <div key={label} className="flex flex-col items-center gap-3">
+                <div key={label} className="flex min-w-0 flex-col items-center gap-3">
                   <Icon className="h-11 w-11 stroke-[1.8] md:h-[69px] md:w-[69px]" />
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-2xl font-semibold leading-8 tracking-wide md:text-[34px] md:leading-[41px]"><CountUpNumber value={value} /></p>
-                    <p className="mt-2 text-sm font-medium leading-5 md:mt-[14px] md:text-[17px]">{label}</p>
+                    <p className="mt-2 text-wrap text-sm font-medium leading-5 md:mt-[14px] md:text-[17px]">{label}</p>
                   </div>
                 </div>
               ))}
@@ -371,12 +371,12 @@ export function DesignersPage() {
   return (
     <main className="bg-white">
       <Seo title={'Tìm designer Việt Nam | VESD'} description={'Tìm designer freelance và sinh viên thiết kế theo danh mục, phong cách, đánh giá, ngân sách và thời gian bàn giao.'} />
-      <section className="vesd-pattern flex h-[204px] items-center justify-center text-white">
-        <p className="text-2xl tracking-wide">"Thiết kế tốt bắt đầu từ sự cộng tác đúng người"</p>
+      <section className="vesd-pattern flex min-h-[172px] items-center justify-center px-5 py-10 text-center text-white md:h-[204px]">
+        <p className="max-w-3xl text-2xl leading-9 tracking-wide md:text-2xl">"Thiết kế tốt bắt đầu từ sự cộng tác đúng người"</p>
       </section>
-      <div className="container-page grid gap-8 py-14 lg:grid-cols-[320px_1fr]">
-        <aside className="self-start rounded-[20px] border border-[#CED8F4] bg-white px-6 py-7">
-          <div className="flex items-center justify-between gap-4"><h1 className="text-2xl font-bold">Tìm kiếm</h1><Button className="h-[42px] rounded-lg px-8" onClick={applyFilters}>Lọc</Button></div>
+      <div className="container-page grid min-w-0 gap-8 py-8 md:py-14 lg:grid-cols-[320px_1fr]">
+        <aside className="min-w-0 self-start rounded-[20px] border border-[#CED8F4] bg-white px-4 py-5 md:px-6 md:py-7">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><h1 className="text-2xl font-bold">Tìm kiếm</h1><Button className="h-[42px] w-full rounded-lg px-6 sm:w-auto md:px-8" onClick={applyFilters}>Lọc</Button></div>
           <div className="relative mt-7"><Search className="absolute left-4 top-3.5 text-brand" size={21} /><Input className="rounded-xl border-[#CED8F4] py-3 pl-12 text-base" placeholder="Tìm kiếm thông tin" value={keyword} onChange={(event) => setKeyword(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') applyFilters(); }} /></div>
           <DesignerFilterSection title="Khoảng giá"><input className="mt-5 h-1.5 w-full accent-brand" type="range" min={30000} max={1500000} step={10000} value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} /><p className="mt-4 text-lg font-bold">Giá: 30K - {Number(maxPrice).toLocaleString('vi-VN')}</p></DesignerFilterSection>
           <DesignerFilterSection title="Danh mục">{categoryFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} count={data?.facets?.categories?.[item.value] || 0} checked={selectedCategories.has(item.value)} onChange={(checked) => toggleListParam('category', item.value, checked)} />)}</DesignerFilterSection>
@@ -384,7 +384,7 @@ export function DesignersPage() {
           <DesignerFilterSection title="Ngày đăng">{dateFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} count={item.value === 'all' ? total : undefined} checked={(params.get('dateRange') || 'all') === item.value} onChange={() => replaceParams({ dateRange: item.value === 'all' ? null : item.value, page: '1' })} />)}</DesignerFilterSection>
           <DesignerFilterSection title="Trình độ kinh nghiệm">{experienceFilters.map((item) => <DesignerCheckRow key={item.value} label={item.label} checked={selectedExperience.has(item.value)} onChange={(checked) => toggleListParam('experience', item.value, checked)} />)}</DesignerFilterSection>
           <DesignerFilterSection title="Tag liên quan"><div className="flex flex-wrap gap-3">{tagFilters.map((tag) => <button key={tag.value} className={`rounded-full px-4 py-1.5 text-brand ${selectedTags.has(tag.value) ? 'bg-brand text-white' : 'bg-blue-50'}`} onClick={() => toggleListParam('tags', tag.value, !selectedTags.has(tag.value))}>{tag.label}</button>)}</div></DesignerFilterSection>
-          <Link className="relative mt-16 block min-h-[260px] overflow-hidden rounded-2xl text-white" to="/pricing">
+          <Link className="relative mt-8 block min-h-[220px] overflow-hidden rounded-2xl text-white md:mt-16 md:min-h-[260px]" to="/pricing">
             <img className="absolute inset-0 h-full w-full object-cover" src="/assets/Frame 675679874.png" alt="" />
             <span className="relative z-10 block p-7 text-xl font-bold">Mua Premium ngay</span>
             <span className="relative z-10 mx-auto mt-10 block w-36 text-center text-3xl font-black leading-tight">{discountLabel}</span>
@@ -392,10 +392,10 @@ export function DesignersPage() {
             <ArrowRight className="relative z-10 mx-auto mt-10" size={38} />
           </Link>
         </aside>
-        <section>
-          <div className="mb-7 flex items-center justify-between">
-            <h1 className="text-4xl font-bold">Kết quả ({total})</h1>
-            <Select className="w-auto border-0 text-brand" value={sort} onChange={(e) => replaceParams({ sort: e.target.value, page: '1' })}><option value="rating">Đánh giá cao tới thấp</option><option value="price">Giá thấp</option><option value="popularity">Phổ biến</option><option value="newest">Mới nhất</option></Select>
+        <section className="min-w-0">
+          <div className="mb-7 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-3xl font-bold md:text-4xl">Kết quả ({total})</h1>
+            <Select className="w-full border-0 text-brand sm:w-auto" value={sort} onChange={(e) => replaceParams({ sort: e.target.value, page: '1' })}><option value="rating">Đánh giá cao tới thấp</option><option value="price">Giá thấp</option><option value="popularity">Phổ biến</option><option value="newest">Mới nhất</option></Select>
           </div>
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">{isLoading ? Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="h-80" />) : designers.length ? designers.map((p: any) => <DesignerCard key={p._id} profile={p} />) : <div className="md:col-span-2 xl:col-span-3"><EmptyState title="Không tìm thấy designer phù hợp" description="Thử giảm điều kiện lọc hoặc đổi từ khóa tìm kiếm." /></div>}</div>
           <DesignerPagination page={page} pages={pages} onPageChange={goToPage} />
@@ -437,7 +437,7 @@ const tagFilters = [
 ];
 
 function DesignerFilterSection({ title, children }: { title: string; children: React.ReactNode }) {
-  return <div className="mt-8"><div className="flex items-center justify-between"><h2 className="text-2xl font-bold">{title}</h2><ChevronIcon /></div><div className="mt-5 space-y-4">{children}</div></div>;
+  return <div className="mt-8 min-w-0"><div className="flex items-center justify-between gap-3"><h2 className="text-xl font-bold md:text-2xl">{title}</h2><ChevronIcon /></div><div className="mt-5 min-w-0 space-y-4">{children}</div></div>;
 }
 
 function ChevronIcon() {
@@ -445,12 +445,12 @@ function ChevronIcon() {
 }
 
 function DesignerCheckRow({ label, count, checked, onChange }: { label: string; count?: number; checked: boolean; onChange: (checked: boolean) => void }) {
-  return <label className="flex cursor-pointer items-center justify-between text-base"><span className="flex items-center gap-3"><input className="h-5 w-5 rounded border-slate-400 accent-brand" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />{label}</span>{typeof count === 'number' && <span className="text-slate-500">{count}</span>}</label>;
+  return <label className="flex cursor-pointer items-center justify-between gap-3 text-base"><span className="flex min-w-0 items-center gap-3"><input className="h-5 w-5 flex-none rounded border-slate-400 accent-brand" type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} /><span className="break-words">{label}</span></span>{typeof count === 'number' && <span className="flex-none text-slate-500">{count}</span>}</label>;
 }
 
 function DesignerPagination({ page, pages, onPageChange }: { page: number; pages: number; onPageChange: (page: number) => void }) {
   const pageItems = Array.from(new Set([1, page - 1, page, page + 1, pages].filter((item) => item >= 1 && item <= pages)));
-  return <div className="mt-14 flex items-center justify-center gap-5 text-2xl text-brand">{pageItems.map((item, index) => <span key={item} className="flex items-center gap-5">{index > 0 && item - pageItems[index - 1] > 1 && <span>...</span>}<button className={item === page ? 'font-bold' : 'font-normal'} onClick={() => onPageChange(item)}>{item}</button></span>)}{page < pages && <button className="ml-4 inline-flex items-center gap-2 font-medium" onClick={() => onPageChange(page + 1)}>Trang kế <ArrowRight /></button>}</div>;
+  return <div className="mt-10 flex flex-wrap items-center justify-center gap-3 text-lg text-brand md:mt-14 md:gap-5 md:text-2xl">{pageItems.map((item, index) => <span key={item} className="flex items-center gap-3 md:gap-5">{index > 0 && item - pageItems[index - 1] > 1 && <span>...</span>}<button className={item === page ? 'font-bold' : 'font-normal'} onClick={() => onPageChange(item)}>{item}</button></span>)}{page < pages && <button className="inline-flex items-center gap-2 font-medium md:ml-4" onClick={() => onPageChange(page + 1)}>Trang kế <ArrowRight size={20} /></button>}</div>;
 }
 
 const profileCategoryLabels: Record<string, string> = {
@@ -531,13 +531,13 @@ export function DesignerProfilePage() {
       </section>
 
       <section className="container-page relative z-10 -mt-16">
-        <div className="rounded-[18px] border border-line bg-white p-5 shadow-[0_18px_48px_rgba(36,83,214,0.16)] md:p-6">
+        <div className="min-w-0 rounded-[18px] border border-line bg-white p-5 shadow-[0_18px_48px_rgba(36,83,214,0.16)] md:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
               <Avatar className="h-28 w-28 border-4 border-white text-2xl shadow-soft" src={avatar} name={user.name} />
-              <div>
+              <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-3xl font-black text-ink">{user.name}</h2>
+                  <h2 className="min-w-0 break-words text-3xl font-black text-ink">{user.name}</h2>
                   {profile.verificationStatus === 'verified' && <Badge tone="success">Đã xác minh</Badge>}
                   {profile.premiumStatus === 'premium' && <Badge tone="premium">Premium</Badge>}
                 </div>
@@ -546,19 +546,19 @@ export function DesignerProfilePage() {
                   <span className="inline-flex items-center gap-1.5"><Clock3 size={16} /> {profile.availability === 'available' ? 'Sẵn sàng nhận dự án' : 'Trao đổi lịch làm việc'}</span>
                   <span className="inline-flex items-center gap-1.5"><Award size={16} /> {profile.experience || 'Kinh nghiệm dự án thực tế'}</span>
                 </div>
-                <div className="mt-3 flex items-center gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   <RatingStars value={profile.ratingAverage} />
                   <span className="text-sm font-semibold text-ink">{profile.ratingAverage ? profile.ratingAverage.toFixed(1) : 'Chưa có đánh giá'}</span>
                   <span className="text-sm text-muted">({profile.ratingCount || reviews.length} đánh giá)</span>
                 </div>
               </div>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Button className="rounded-full px-6" onClick={handleStartConversation} disabled={startConversation.isPending}>
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+              <Button className="w-[calc(100%-2px)] rounded-full px-6 sm:w-auto" onClick={handleStartConversation} disabled={startConversation.isPending}>
                 <MessageCircle size={18} /> {startConversation.isPending ? 'Đang mở...' : 'Nhắn tin'}
               </Button>
-              <Link to="/client/create-project">
-                <Button variant="secondary" className="w-full rounded-full px-6"><BriefcaseBusiness size={18} /> Thuê designer</Button>
+              <Link className="w-full sm:w-auto" to="/client/create-project">
+                <Button variant="secondary" className="w-[calc(100%-2px)] rounded-full px-6 sm:w-full"><BriefcaseBusiness size={18} /> Thuê designer</Button>
               </Link>
             </div>
           </div>
@@ -576,27 +576,27 @@ export function DesignerProfilePage() {
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
           <div className="space-y-8">
-            <section className="rounded-[18px] border border-line bg-white p-6">
+            <section className="min-w-0 rounded-[18px] border border-line bg-white p-5 md:p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h2 className="text-2xl font-black">Giới thiệu</h2>
                 <div className="flex flex-wrap gap-2">{categoryNames.map((item: string) => <Badge key={item} tone="info">{item}</Badge>)}</div>
               </div>
-              <p className="mt-5 text-base leading-8 text-slate-700">{profile.bio || 'Designer Việt Nam có kinh nghiệm thực chiến với startup, SME và thương hiệu địa phương. Mạnh về brief rõ ràng, file bàn giao đúng chuẩn và phản hồi nhanh.'}</p>
+              <p className="mt-5 break-words text-base leading-8 text-slate-700">{profile.bio || 'Designer Việt Nam có kinh nghiệm thực chiến với startup, SME và thương hiệu địa phương. Mạnh về brief rõ ràng, file bàn giao đúng chuẩn và phản hồi nhanh.'}</p>
               <div className="mt-6 flex flex-wrap gap-2">{skills.map((skill: string) => <Badge key={skill}>{skill}</Badge>)}</div>
             </section>
 
             <section>
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex items-start justify-between gap-4">
                 <h2 className="text-2xl font-black">Hồ sơ năng lực</h2>
-                <span className="text-sm font-semibold text-muted">{portfolioItems.length} dự án nổi bật</span>
+                <span className="shrink-0 text-sm font-semibold text-muted">{portfolioItems.length} dự án nổi bật</span>
               </div>
               <div className="mt-4 grid gap-5 md:grid-cols-3">
                 {portfolioItems.map((item: any, index: number) => (
                   <article key={item._id || item.title} className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_8px_24px_rgba(36,83,214,0.07)]">
                     <img className="aspect-[4/3] w-full object-cover" src={item.images?.[0]?.url || ['/assets/figma-blue-board.png', '/assets/figma-mobile-board.png', '/assets/figma-business-card.png'][index % 3]} alt={item.title} loading="lazy" />
                     <div className="p-4">
-                      <h3 className="text-base font-bold text-ink">{item.title}</h3>
-                      <p className="mt-2 min-h-[48px] text-sm leading-6 text-muted">{item.description || 'Thiết kế theo brief, có guideline và file bàn giao rõ ràng.'}</p>
+                      <h3 className="break-words text-base font-bold text-ink">{item.title}</h3>
+                      <p className="mt-2 min-h-[48px] break-words text-sm leading-6 text-muted">{item.description || 'Thiết kế theo brief, có guideline và file bàn giao rõ ràng.'}</p>
                       <div className="mt-4 flex flex-wrap gap-2">{(item.tags || item.tools || []).slice(0, 3).map((tag: string) => <span key={tag} className="rounded-full bg-soft px-2.5 py-1 text-xs font-semibold text-brand">{tag}</span>)}</div>
                     </div>
                   </article>
@@ -653,8 +653,8 @@ export function DesignerProfilePage() {
                 value={draft}
                 onChange={(event) => setDraft(event.target.value)}
               />
-              <Button className="mt-4 w-full rounded-full" onClick={handleStartConversation} disabled={startConversation.isPending}><MessageCircle size={18} /> Nhắn tin cho designer</Button>
-              <Link to="/client/create-project"><Button variant="secondary" className="mt-3 w-full rounded-full"><CalendarDays size={18} /> Tạo brief dự án</Button></Link>
+              <Button className="mt-4 w-[calc(100%-2px)] rounded-full" onClick={handleStartConversation} disabled={startConversation.isPending}><MessageCircle size={18} /> Nhắn tin cho designer</Button>
+              <Link to="/client/create-project"><Button variant="secondary" className="mt-3 w-[calc(100%-2px)] rounded-full"><CalendarDays size={18} /> Tạo brief dự án</Button></Link>
               {contactMessage && <p className="mt-3 text-sm text-muted">{contactMessage}</p>}
             </div>
             <div className="rounded-[18px] border border-line bg-soft p-6">
@@ -687,11 +687,11 @@ export function PricingPage() {
     if (plan.roleTarget === 'designer' || user.roles.includes('designer')) return navigate('/designer/premium');
     return navigate('/client/premium');
   };
-  return <main className="container-page py-10"><Seo title="Bảng giá VESD" description="Các gói miễn phí, Business Premium và Designer Premium trên VESD." /><h1 className="text-4xl font-black">Bảng giá</h1><div className="mt-6 grid gap-4 md:grid-cols-3">{(data || []).map((plan: any) => <Card key={plan._id}><Badge tone="premium">{plan.roleTarget === 'client' ? 'Doanh nghiệp' : plan.roleTarget === 'designer' ? 'Designer' : 'Tất cả'}</Badge><h2 className="mt-3 text-2xl font-black">{plan.name}</h2><p className="mt-2 text-3xl font-black">{plan.price?.toLocaleString('vi-VN')}đ</p>{plan.benefits?.map((b: string) => <p key={b} className="mt-3 flex gap-2 text-sm"><CheckCircle2 className="text-brand" size={17} />{b}</p>)}<Button className="mt-5 w-full" onClick={() => openUpgrade(plan)}>Nâng cấp Premium</Button></Card>)}</div></main>;
+  return <main className="container-page min-w-0 py-10"><Seo title="Bảng giá VESD" description="Các gói miễn phí, Business Premium và Designer Premium trên VESD." /><h1 className="text-4xl font-black">Bảng giá</h1><div className="mt-6 grid min-w-0 gap-4 md:grid-cols-3">{(data || []).map((plan: any) => <Card key={plan._id} className="min-w-0 max-sm:w-[calc(100vw-28px)]"><Badge tone="premium">{plan.roleTarget === 'client' ? 'Doanh nghiệp' : plan.roleTarget === 'designer' ? 'Designer' : 'Tất cả'}</Badge><h2 className="mt-3 break-words text-2xl font-black">{plan.name}</h2><p className="mt-2 break-words text-3xl font-black">{plan.price?.toLocaleString('vi-VN')}đ</p>{plan.benefits?.map((b: string) => <p key={b} className="mt-3 flex min-w-0 gap-2 break-words text-sm"><CheckCircle2 className="mt-0.5 flex-none text-brand" size={17} /><span className="min-w-0">{b}</span></p>)}<Button className="mt-5 w-[calc(100%-2px)]" onClick={() => openUpgrade(plan)}>Nâng cấp Premium</Button></Card>)}</div></main>;
 }
 
 export function HelpPage() {
   const topics = ['Hướng dẫn escrow', 'Hướng dẫn milestone dự án', 'Checklist bàn giao file', 'Chính sách khiếu nại', 'Câu hỏi thường gặp'];
-  return <main className="container-page py-10"><Seo title="Trung tâm trợ giúp VESD" description="Hướng dẫn escrow, milestone, checklist bàn giao và chính sách khiếu nại." /><h1 className="text-4xl font-black">Trung tâm trợ giúp</h1><div className="mt-6 grid gap-4 md:grid-cols-2">{topics.map((t) => <Card key={t}><h2 className="font-bold">{t}</h2><p className="mt-2 text-sm text-muted">Quy trình minh bạch để khách hàng và designer làm việc an toàn trên VESD.</p></Card>)}</div></main>;
+  return <main className="container-page min-w-0 py-10"><Seo title="Trung tâm trợ giúp VESD" description="Hướng dẫn escrow, milestone, checklist bàn giao và chính sách khiếu nại." /><h1 className="break-words text-4xl font-black">Trung tâm trợ giúp</h1><div className="mt-6 grid min-w-0 gap-4 md:grid-cols-2">{topics.map((t) => <Card key={t} className="min-w-0"><h2 className="break-words font-bold">{t}</h2><p className="mt-2 break-words text-sm text-muted">Quy trình minh bạch để khách hàng và designer làm việc an toàn trên VESD.</p></Card>)}</div></main>;
 }
 

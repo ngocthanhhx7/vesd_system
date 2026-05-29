@@ -35,10 +35,10 @@ export function DashboardHeader({ role }: { role: DashboardRole }) {
   return (
     <>
       <header className="sticky top-0 z-10 border-b border-line bg-white">
-        <div className="flex h-16 items-center justify-between px-4 lg:px-8">
+        <div className="flex h-16 min-w-0 items-center justify-between gap-2 px-4 lg:px-8">
           {/* Search trigger */}
           <button
-            className="header-search-trigger"
+            className="header-search-trigger min-w-0 flex-1 sm:flex-none"
             onClick={() => setSearchOpen(true)}
           >
             <Search size={16} />
@@ -48,7 +48,7 @@ export function DashboardHeader({ role }: { role: DashboardRole }) {
           </button>
 
           {/* Right side */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-none items-center gap-1 sm:gap-2">
             <NotificationBell onClick={() => setNotifOpen(true)} />
             <div className="hidden text-right text-sm sm:block">
               <div className="font-semibold text-ink">{user?.name}</div>

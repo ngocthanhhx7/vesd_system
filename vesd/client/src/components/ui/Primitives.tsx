@@ -3,7 +3,7 @@ import { ReactNode } from 'react';
 import { Star } from 'lucide-react';
 
 export function Card({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={clsx('rounded-lg border border-line bg-white p-5 shadow-sm', className)}>{children}</div>;
+  return <div className={clsx('min-w-0 overflow-hidden rounded-lg border border-line bg-white p-5 shadow-sm', className)}>{children}</div>;
 }
 
 export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'success' | 'warning' | 'danger' | 'premium' | 'info' }) {

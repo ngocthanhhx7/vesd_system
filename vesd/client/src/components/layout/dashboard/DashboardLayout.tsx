@@ -7,9 +7,9 @@ export function DashboardLayout({ role }: { role: DashboardRole }) {
   return (
     <div className="min-h-screen bg-soft">
       <DashboardSidebar role={role} />
-      <main className="lg:pl-64">
+      <main className="min-w-0 lg:pl-64">
         <DashboardHeader role={role} />
-        <div className="p-4 lg:p-8"><Outlet /></div>
+        <div className="min-w-0 p-4 lg:p-8"><Outlet /></div>
       </main>
     </div>
   );

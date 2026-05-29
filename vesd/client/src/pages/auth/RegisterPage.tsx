@@ -37,7 +37,7 @@ export function RegisterPage() {
 
   return (
     <AuthShell title="Tạo tài khoản VESD">
-      <h1 className="mb-8 text-center text-[28px] font-bold">Tạo tài khoản VESD</h1>
+      <h1 className="mb-6 text-center text-[26px] font-bold sm:mb-8 sm:text-[28px]">Tạo tài khoản VESD</h1>
       <form onSubmit={submit} className="space-y-5">
         <div className="space-y-1.5">
           <label className="text-sm font-semibold">Họ tên</label>
@@ -82,7 +82,7 @@ export function RegisterPage() {
         </Button>
       </form>
 
-      <div className="mt-4 mb-6">
+      <div className="mb-6 mt-4 overflow-hidden">
         {googleClientId ? (
           <GoogleAuthButton
             onSuccess={handleGoogleSuccess}

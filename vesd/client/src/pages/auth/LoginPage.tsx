@@ -76,7 +76,7 @@ export function LoginPage() {
 
   return (
     <AuthShell title="Đăng nhập">
-      <h1 className="mb-8 text-center text-[28px] font-bold">Chào mừng bạn !</h1>
+      <h1 className="mb-6 text-center text-[26px] font-bold sm:mb-8 sm:text-[28px]">Chào mừng bạn !</h1>
       <form onSubmit={submit} className="space-y-5">
         <div className="space-y-1.5">
           <label className="text-sm font-semibold">Tài khoản</label>
@@ -108,12 +108,12 @@ export function LoginPage() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
           <label className="flex items-center gap-2 cursor-pointer">
             <input name="rememberMe" type="checkbox" defaultChecked={Boolean(rememberedLogin)} className="h-4 w-4 rounded border-gray-300 text-[#3a5bcf] focus:ring-[#3a5bcf]" />
             <span className="text-gray-600">Ghi nhớ tôi</span>
           </label>
-          <Link className="text-[#3a5bcf] hover:underline" to="/forgot-password">Quên mật khẩu?</Link>
+          <Link className="w-full text-right text-[#3a5bcf] hover:underline sm:w-auto" to="/forgot-password">Quên mật khẩu?</Link>
         </div>
 
         {error && <p className="text-sm text-red-500">{error}</p>}
@@ -122,7 +122,7 @@ export function LoginPage() {
         </Button>
       </form>
 
-      <div className="mt-4 mb-6">
+      <div className="mb-6 mt-4 overflow-hidden">
         {googleClientId ? (
           <GoogleAuthButton
             onSuccess={handleGoogleSuccess}
