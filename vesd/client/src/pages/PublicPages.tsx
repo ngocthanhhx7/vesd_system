@@ -12,6 +12,28 @@ import { useAuth } from '../hooks/useAuth';
 
 export { DesignerCard };
 
+export type HomeDesignerPageItem = number | 'ellipsis';
+
+export function getHomeDesignerPageItems(page: number, pages: number): HomeDesignerPageItem[] {
+  const safePages = Math.max(Math.floor(pages || 1), 1);
+  const safePage = Math.min(Math.max(Math.floor(page || 1), 1), safePages);
+  const items = new Set<number>([1, safePage - 1, safePage, safePage + 1, safePages]);
+
+  if (safePage <= 2) items.add(3);
+  if (safePages <= 5) {
+    return Array.from({ length: safePages }, (_value, index) => index + 1);
+  }
+
+  const sorted = Array.from(items)
+    .filter((item) => item >= 1 && item <= safePages)
+    .sort((a, b) => a - b);
+
+  return sorted.flatMap((item, index): HomeDesignerPageItem[] => {
+    if (index === 0) return [item];
+    return item - sorted[index - 1] > 1 ? ['ellipsis', item] : [item];
+  });
+}
+
 function parseMilestoneValue(value: string) {
   return /^\d{1,3}(\.\d{3})+$/.test(value) ? Number(value.replace(/\./g, '')) : Number(value);
 }
@@ -116,7 +138,8 @@ const categories = [
 
 export function HomePage() {
   const { user } = useAuth();
-  const { data } = useQuery({ queryKey: ['featured-designers'], queryFn: () => endpoints.designers('?limit=4&sort=popularity') });
+  const [homeDesignerPage, setHomeDesignerPage] = useState(1);
+  const { data } = useQuery({ queryKey: ['featured-designers', homeDesignerPage], queryFn: () => endpoints.designers(`?limit=3&page=${homeDesignerPage}&sort=popularity`) });
   const { data: stats } = useQuery({ queryKey: ['public-stats'], queryFn: endpoints.publicStats });
   const { data: homeDiscounts = [] } = useQuery({ queryKey: ['home-discount'], queryFn: () => endpoints.activeDiscounts('?appliesTo=premium&role=both&home=true') });
   const homeDiscount = homeDiscounts[0];
@@ -131,6 +154,8 @@ export function HomePage() {
     completedProjects: 127,
     userId: { name: 'Vũ Tuấn Khang', avatar: `https://api.dicebear.com/8.x/initials/svg?seed=vesd-${index}` }
   }));
+  const topDesignerPages = Math.max(data?.pages || 7, 1);
+  const topDesignerPageItems = getHomeDesignerPageItems(homeDesignerPage, topDesignerPages);
 
   const categoryCards = [
     ['Thiết kế đồ họa', 'Danh mục nổi bật nhất với hơn 12.000 người xem'],
@@ -273,8 +298,24 @@ export function HomePage() {
             {featured.slice(0, 3).map((profile: any, index: number) => <div key={profile._id} className={index === 1 ? 'md:-mt-[46px]' : ''}><DesignerCard profile={profile} /></div>)}
           </div>
           <div className="mt-[6px] flex flex-col items-center gap-3 text-base font-medium text-[#5871B3]">
-            <div className="flex items-center gap-2"><span className="font-semibold text-brand">1</span><span>2</span><span>3</span><span>...</span><span>7</span></div>
-            <Link className="flex items-center gap-1 text-brand" to="/designers">Xem thêm <ArrowRight size={18} /></Link>
+            <nav className="flex items-center gap-2" aria-label="Top designer pages">
+              {topDesignerPageItems.map((item, index) =>
+                item === 'ellipsis' ? (
+                  <span key={`ellipsis-${index}`} aria-hidden="true">...</span>
+                ) : (
+                  <button
+                    key={item}
+                    className={item === homeDesignerPage ? 'font-semibold text-brand' : 'text-[#5871B3] transition hover:text-brand'}
+                    type="button"
+                    aria-current={item === homeDesignerPage ? 'page' : undefined}
+                    onClick={() => setHomeDesignerPage(item)}
+                  >
+                    {item}
+                  </button>
+                )
+              )}
+            </nav>
+            <Link className="flex items-center gap-1 text-brand" to={`/designers?sort=popularity&page=${homeDesignerPage}`}>Xem thêm <ArrowRight size={18} /></Link>
           </div>
         </div>
       </section>
