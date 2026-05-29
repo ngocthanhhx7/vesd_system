@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BarChart3, BriefcaseBusiness, CalendarDays, CheckCircle2, CircleDollarSign, Clock, CreditCard, Filter, Hash, Search, Sparkles, UserRound } from 'lucide-react';
@@ -9,28 +9,28 @@ import { Dashboard } from './shared/Dashboard';
 import { Metric } from './shared/Metric';
 import { ProjectCard } from './shared/ProjectCard';
 
-const agreementFields = ['Phạm vi công việc', 'Chi phí', 'Mốc thanh toán', 'Hạn bàn giao', 'Số lần chỉnh sửa', 'File bàn giao', 'Quyền sở hữu', 'Điều kiện hoàn tiền/khiếu nại'];
-const workspaceSteps = ['Brief đã xác nhận', 'Đã gửi concept', 'Phản hồi', 'Bàn giao cuối'];
-const checklistItems = ['File nguồn AI/PSD', 'PNG nền trong suốt', 'PDF vector', 'SVG', 'JPG xem trước', 'Tên font', 'Mã màu'];
+const agreementFields = ['Pháº¡m vi cÃ´ng viá»‡c', 'Chi phÃ­', 'Má»‘c thanh toÃ¡n', 'Háº¡n bÃ n giao', 'Sá»‘ láº§n chá»‰nh sá»­a', 'File bÃ n giao', 'Quyá»n sá»Ÿ há»¯u', 'Äiá»u kiá»‡n hoÃ n tiá»n/khiáº¿u náº¡i'];
+const workspaceSteps = ['Brief Ä‘Ã£ xÃ¡c nháº­n', 'ÄÃ£ gá»­i concept', 'Pháº£n há»“i', 'BÃ n giao cuá»‘i'];
+const checklistItems = ['File nguá»“n AI/PSD', 'PNG ná»n trong suá»‘t', 'PDF vector', 'SVG', 'JPG xem trÆ°á»›c', 'TÃªn font', 'MÃ£ mÃ u'];
 const categories = [
-  ['logo-design', 'Thiết kế logo'],
-  ['brand-identity', 'Nhận diện thương hiệu'],
-  ['social-media-design', 'Thiết kế mạng xã hội'],
-  ['packaging-design', 'Bao bì'],
+  ['logo-design', 'Thiáº¿t káº¿ logo'],
+  ['brand-identity', 'Nháº­n diá»‡n thÆ°Æ¡ng hiá»‡u'],
+  ['social-media-design', 'Thiáº¿t káº¿ máº¡ng xÃ£ há»™i'],
+  ['packaging-design', 'Bao bÃ¬'],
   ['ui-ux-design', 'UI/UX']
 ];
 const statuses = [
-  ['all', 'Tất cả trạng thái'],
-  ['pending_designer', 'Chờ designer'],
-  ['agreement_pending', 'Chờ thỏa thuận'],
-  ['payment_pending', 'Chờ escrow'],
-  ['escrow_funded', 'Đã escrow'],
-  ['in_progress', 'Đang làm'],
-  ['submitted', 'Chờ duyệt'],
-  ['revision_requested', 'Cần chỉnh sửa'],
-  ['final_submitted', 'Đã bàn giao'],
-  ['completed', 'Hoàn thành'],
-  ['cancelled', 'Đã hủy']
+  ['all', 'Táº¥t cáº£ tráº¡ng thÃ¡i'],
+  ['pending_designer', 'Chá» designer'],
+  ['agreement_pending', 'Chá» thá»a thuáº­n'],
+  ['payment_pending', 'Chá» escrow'],
+  ['escrow_funded', 'ÄÃ£ escrow'],
+  ['in_progress', 'Äang lÃ m'],
+  ['submitted', 'Chá» duyá»‡t'],
+  ['revision_requested', 'Cáº§n chá»‰nh sá»­a'],
+  ['final_submitted', 'ÄÃ£ bÃ n giao'],
+  ['completed', 'HoÃ n thÃ nh'],
+  ['cancelled', 'ÄÃ£ há»§y']
 ];
 
 function listFromText(value: FormDataEntryValue | null) {
@@ -41,11 +41,11 @@ function listFromText(value: FormDataEntryValue | null) {
 }
 
 function formatVnd(value?: number) {
-  return value ? `${value.toLocaleString('vi-VN')}đ` : 'Trao đổi';
+  return value ? `${value.toLocaleString('vi-VN')}Ä‘` : 'Trao Ä‘á»•i';
 }
 
 function formatDate(value?: string | Date) {
-  if (!value) return 'Chưa đặt';
+  if (!value) return 'ChÆ°a Ä‘áº·t';
   return new Date(value).toLocaleDateString('vi-VN');
 }
 
@@ -59,15 +59,15 @@ function userName(value: any, fallback: string) {
 
 function milestoneStatusText(status?: string) {
   const labels: Record<string, string> = {
-    approved: 'Hoàn thành',
-    completed: 'Đã duyệt bàn giao cuối',
-    final_submitted: 'Chờ khách duyệt bàn giao cuối',
-    in_progress: 'Đang thực hiện',
-    pending: 'Đang chờ xử lý',
-    revision_requested: 'Cần chỉnh sửa',
-    submitted: 'Chờ duyệt'
+    approved: 'HoÃ n thÃ nh',
+    completed: 'ÄÃ£ duyá»‡t bÃ n giao cuá»‘i',
+    final_submitted: 'Chá» khÃ¡ch duyá»‡t bÃ n giao cuá»‘i',
+    in_progress: 'Äang thá»±c hiá»‡n',
+    pending: 'Äang chá» xá»­ lÃ½',
+    revision_requested: 'Cáº§n chá»‰nh sá»­a',
+    submitted: 'Chá» duyá»‡t'
   };
-  return labels[status || ''] || 'Đang chờ xử lý';
+  return labels[status || ''] || 'Äang chá» xá»­ lÃ½';
 }
 
 export function CreateProjectPage() {
@@ -83,7 +83,7 @@ export function CreateProjectPage() {
       ]);
       navigate('/client/projects');
     },
-    onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể đăng dự án')
+    onError: (error) => setMessage(error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ Ä‘Äƒng dá»± Ã¡n')
   });
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
@@ -110,29 +110,29 @@ export function CreateProjectPage() {
   }
 
   return (
-    <Dashboard title="Tạo brief dự án">
+    <Dashboard title="Táº¡o brief dá»± Ã¡n">
       <Card className="border-line">
         <div className="mb-5 rounded-lg bg-brand p-5 text-white">
-          <h2 className="text-2xl font-black">Đăng brief rõ ràng để ghép designer nhanh hơn</h2>
-          <p className="text-base text-soft">Phạm vi, file bàn giao, số lần chỉnh sửa và deadline sẽ được đưa vào thỏa thuận và escrow.</p>
+          <h2 className="text-2xl font-black">ÄÄƒng brief rÃµ rÃ ng Ä‘á»ƒ ghÃ©p designer nhanh hÆ¡n</h2>
+          <p className="text-base text-soft">Pháº¡m vi, file bÃ n giao, sá»‘ láº§n chá»‰nh sá»­a vÃ  deadline sáº½ Ä‘Æ°á»£c Ä‘Æ°a vÃ o thá»a thuáº­n vÃ  escrow.</p>
         </div>
         <form className="grid gap-4 md:grid-cols-2" onSubmit={submit}>
-          <Input name="title" placeholder="Tên dự án" required />
+          <Input name="title" placeholder="TÃªn dá»± Ã¡n" required />
           <Select name="category" required>
             {categories.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </Select>
-          <Textarea name="description" className="md:col-span-2" placeholder="Mô tả dự án" required />
-          <Input name="targetAudience" placeholder="Đối tượng khách hàng" />
-          <Input name="stylePreferences" placeholder="Phong cách mong muốn, cách nhau bằng dấu phẩy" />
-          <Input name="budgetMin" type="number" min={0} placeholder="Ngân sách tối thiểu" />
-          <Input name="budgetMax" type="number" min={0} placeholder="Ngân sách tối đa" required />
+          <Textarea name="description" className="md:col-span-2" placeholder="MÃ´ táº£ dá»± Ã¡n" required />
+          <Input name="targetAudience" placeholder="Äá»‘i tÆ°á»£ng khÃ¡ch hÃ ng" />
+          <Input name="stylePreferences" placeholder="Phong cÃ¡ch mong muá»‘n, cÃ¡ch nhau báº±ng dáº¥u pháº©y" />
+          <Input name="budgetMin" type="number" min={0} placeholder="NgÃ¢n sÃ¡ch tá»‘i thiá»ƒu" />
+          <Input name="budgetMax" type="number" min={0} placeholder="NgÃ¢n sÃ¡ch tá»‘i Ä‘a" required />
           <Input name="deadline" type="date" />
-          <Input name="deliverables" placeholder="File cần bàn giao, cách nhau bằng dấu phẩy" />
-          <Select name="revisionLimit"><option value="2">2 lần chỉnh sửa</option><option value="3">3 lần chỉnh sửa</option><option value="5">5 lần chỉnh sửa</option></Select>
-          <Select name="preferredDesignerLevel"><option value="junior">Mới bắt đầu</option><option value="mid-level">Trung cấp</option><option value="senior">Chuyên gia</option></Select>
-          <label className="flex items-center gap-2 text-base"><input name="urgent" type="checkbox" /> Cần bàn giao gấp</label>
-          <label className="flex items-center gap-2 text-base"><input name="printingSupport" type="checkbox" /> Cần hỗ trợ in ấn</label>
-          <Button className="md:col-span-2" disabled={createProject.isPending}>{createProject.isPending ? 'Đang đăng...' : 'Đăng dự án'}</Button>
+          <Input name="deliverables" placeholder="File cáº§n bÃ n giao, cÃ¡ch nhau báº±ng dáº¥u pháº©y" />
+          <Select name="revisionLimit"><option value="2">2 láº§n chá»‰nh sá»­a</option><option value="3">3 láº§n chá»‰nh sá»­a</option><option value="5">5 láº§n chá»‰nh sá»­a</option></Select>
+          <Select name="preferredDesignerLevel"><option value="junior">Má»›i báº¯t Ä‘áº§u</option><option value="mid-level">Trung cáº¥p</option><option value="senior">ChuyÃªn gia</option></Select>
+          <label className="flex items-center gap-2 text-base"><input name="urgent" type="checkbox" /> Cáº§n bÃ n giao gáº¥p</label>
+          <label className="flex items-center gap-2 text-base"><input name="printingSupport" type="checkbox" /> Cáº§n há»— trá»£ in áº¥n</label>
+          <Button className="md:col-span-2" disabled={createProject.isPending}>{createProject.isPending ? 'Äang Ä‘Äƒng...' : 'ÄÄƒng dá»± Ã¡n'}</Button>
         </form>
         {message && <p className="mt-3 text-sm text-red-500">{message}</p>}
       </Card>
@@ -153,27 +153,27 @@ export function ProjectsPage({ role }: { role: 'client' | 'designer' }) {
   });
 
   return (
-    <Dashboard title="Dự án">
+    <Dashboard title="Dá»± Ã¡n">
       <Card>
         <div className="grid gap-3 md:grid-cols-[1fr_220px_220px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên, mô tả, danh mục" />
+            <Input className="pl-9" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="TÃ¬m theo tÃªn, mÃ´ táº£, danh má»¥c" />
           </div>
           <Select value={status} onChange={(event) => setStatus(event.target.value)}>
             {statuses.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </Select>
           <Select value={category} onChange={(event) => setCategory(event.target.value)}>
-            <option value="all">Tất cả danh mục</option>
+            <option value="all">Táº¥t cáº£ danh má»¥c</option>
             {categories.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </Select>
-          {role === 'client' ? <Link to="/client/create-project"><Button><BriefcaseBusiness size={18} /> Đăng dự án</Button></Link> : <Link to="/designer/jobs"><Button><Sparkles size={18} /> Tìm việc</Button></Link>}
+          {role === 'client' ? <Link to="/client/create-project"><Button><BriefcaseBusiness size={18} /> ÄÄƒng dá»± Ã¡n</Button></Link> : <Link to="/designer/jobs"><Button><Sparkles size={18} /> TÃ¬m viá»‡c</Button></Link>}
         </div>
       </Card>
       <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {isLoading ? Array.from({ length: 6 }).map((_, index) => <Card key={index} className="h-44 animate-pulse bg-white"><span className="sr-only">Đang tải</span></Card>)
+        {isLoading ? Array.from({ length: 6 }).map((_, index) => <Card key={index} className="h-44 animate-pulse bg-white"><span className="sr-only">Äang táº£i</span></Card>)
           : filtered.length ? filtered.map((project: any) => <ProjectCard key={project._id} project={project} />)
-            : <Card className="md:col-span-2 xl:col-span-3"><p className="font-semibold">Không có dự án phù hợp bộ lọc.</p><p className="mt-1 text-base text-muted">Thử đổi trạng thái, danh mục hoặc từ khóa tìm kiếm.</p></Card>}
+            : <Card className="md:col-span-2 xl:col-span-3"><p className="font-semibold">KhÃ´ng cÃ³ dá»± Ã¡n phÃ¹ há»£p bá»™ lá»c.</p><p className="mt-1 text-base text-muted">Thá»­ Ä‘á»•i tráº¡ng thÃ¡i, danh má»¥c hoáº·c tá»« khÃ³a tÃ¬m kiáº¿m.</p></Card>}
       </div>
     </Dashboard>
   );
@@ -188,7 +188,7 @@ export function FindJobsPage() {
   const claimProject = useMutation({
     mutationFn: (id: string) => endpoints.claimProject(id),
     onSuccess: async () => {
-      setMessage('Đã nhận dự án. Dự án đã được chuyển vào danh sách dự án của bạn.');
+      setMessage('ÄÃ£ nháº­n dá»± Ã¡n. Dá»± Ã¡n Ä‘Ã£ Ä‘Æ°á»£c chuyá»ƒn vÃ o danh sÃ¡ch dá»± Ã¡n cá»§a báº¡n.');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['open-projects'] }),
         queryClient.invalidateQueries({ queryKey: ['my-projects'] }),
@@ -196,7 +196,7 @@ export function FindJobsPage() {
         queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
       ]);
     },
-    onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể nhận dự án')
+    onError: (error) => setMessage(error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ nháº­n dá»± Ã¡n')
   });
   const items = data?.items || [];
 
@@ -205,61 +205,61 @@ export function FindJobsPage() {
   }
 
   return (
-    <Dashboard title="Tìm việc">
+    <Dashboard title="TÃ¬m viá»‡c">
       <Card>
         <div className="grid gap-3 lg:grid-cols-[1fr_190px_170px_150px_150px]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <Input className="pl-9" value={filters.q} onChange={(event) => setFilter('q', event.target.value)} placeholder="Tìm dự án theo brief, phong cách, file bàn giao" />
+            <Input className="pl-9" value={filters.q} onChange={(event) => setFilter('q', event.target.value)} placeholder="TÃ¬m dá»± Ã¡n theo brief, phong cÃ¡ch, file bÃ n giao" />
           </div>
           <Select value={filters.category} onChange={(event) => setFilter('category', event.target.value)}>
-            <option value="">Danh mục phù hợp</option>
+            <option value="">Danh má»¥c phÃ¹ há»£p</option>
             {categories.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </Select>
-          <Input type="number" min={0} value={filters.budget} onChange={(event) => setFilter('budget', event.target.value)} placeholder="Ngân sách tối đa" />
+          <Input type="number" min={0} value={filters.budget} onChange={(event) => setFilter('budget', event.target.value)} placeholder="NgÃ¢n sÃ¡ch tá»‘i Ä‘a" />
           <Select value={filters.urgent} onChange={(event) => setFilter('urgent', event.target.value)}>
-            <option value="">Tất cả deadline</option>
-            <option value="true">Việc gấp</option>
+            <option value="">Táº¥t cáº£ deadline</option>
+            <option value="true">Viá»‡c gáº¥p</option>
           </Select>
           <Select value={filters.sort} onChange={(event) => setFilter('sort', event.target.value)}>
-            <option value="match">Phù hợp nhất</option>
-            <option value="budget">Ngân sách cao</option>
-            <option value="deadline">Deadline gần</option>
+            <option value="match">PhÃ¹ há»£p nháº¥t</option>
+            <option value="budget">NgÃ¢n sÃ¡ch cao</option>
+            <option value="deadline">Deadline gáº§n</option>
           </Select>
         </div>
-        <p className="mt-3 flex items-center gap-2 text-sm text-muted"><Filter size={16} /> Mức phù hợp được tính từ danh mục, kỹ năng và phong cách trong hồ sơ designer.</p>
+        <p className="mt-3 flex items-center gap-2 text-sm text-muted"><Filter size={16} /> Má»©c phÃ¹ há»£p Ä‘Æ°á»£c tÃ­nh tá»« danh má»¥c, ká»¹ nÄƒng vÃ  phong cÃ¡ch trong há»“ sÆ¡ designer.</p>
       </Card>
       {message && <p className="mt-4 rounded-lg bg-white px-4 py-3 text-sm text-muted">{message}</p>}
       <div className="mt-5 grid gap-4 xl:grid-cols-2">
-        {isLoading ? Array.from({ length: 4 }).map((_, index) => <Card key={index} className="h-64 animate-pulse bg-white"><span className="sr-only">Đang tải</span></Card>)
+        {isLoading ? Array.from({ length: 4 }).map((_, index) => <Card key={index} className="h-64 animate-pulse bg-white"><span className="sr-only">Äang táº£i</span></Card>)
           : items.length ? items.map((project: any) => (
             <Card key={project._id}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <Badge tone={project.matchScore >= 80 ? 'success' : 'info'}>{project.matchScore}% phù hợp</Badge>
+                  <Badge tone={project.matchScore >= 80 ? 'success' : 'info'}>{project.matchScore}% phÃ¹ há»£p</Badge>
                   <h2 className="mt-3 text-xl font-black">{project.title}</h2>
-                  <p className="mt-1 text-base text-muted">{project.clientId?.name || 'Khách hàng VESD'} · {project.category}</p>
+                  <p className="mt-1 text-base text-muted">{project.clientId?.name || 'KhÃ¡ch hÃ ng VESD'} Â· {project.category}</p>
                 </div>
                 <div className="flex flex-wrap justify-end gap-2">
                   {project.priorityLevel === 'premium' && <Badge tone="premium">Premium</Badge>}
-                  {project.urgent && <Badge tone="warning">Gấp</Badge>}
+                  {project.urgent && <Badge tone="warning">Gáº¥p</Badge>}
                   <StatusBadge status={project.status} />
                 </div>
               </div>
               <p className="mt-4 line-clamp-3 text-base text-muted">{project.description}</p>
               <div className="mt-4 grid gap-3 rounded-lg bg-soft p-4 text-base md:grid-cols-3">
-                <div><p className="text-sm text-muted">Ngân sách</p><p className="font-bold text-brand">{formatVnd(project.budget?.max)}</p></div>
-                <div><p className="text-sm text-muted">Deadline</p><p className="font-bold">{project.deadline ? new Date(project.deadline).toLocaleDateString('vi-VN') : 'Trao đổi'}</p></div>
-                <div><p className="text-sm text-muted">Chỉnh sửa</p><p className="font-bold">{project.revisionLimit || 2} lần</p></div>
+                <div><p className="text-sm text-muted">NgÃ¢n sÃ¡ch</p><p className="font-bold text-brand">{formatVnd(project.budget?.max)}</p></div>
+                <div><p className="text-sm text-muted">Deadline</p><p className="font-bold">{project.deadline ? new Date(project.deadline).toLocaleDateString('vi-VN') : 'Trao Ä‘á»•i'}</p></div>
+                <div><p className="text-sm text-muted">Chá»‰nh sá»­a</p><p className="font-bold">{project.revisionLimit || 2} láº§n</p></div>
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 {(project.matchedTerms?.length ? project.matchedTerms : project.stylePreferences || []).slice(0, 5).map((term: string) => <Badge key={term}>{term}</Badge>)}
               </div>
               <Button className="mt-5 w-full" disabled={claimProject.isPending} onClick={() => claimProject.mutate(project._id)}>
-                {claimProject.isPending ? 'Đang nhận...' : 'Nhận dự án'}
+                {claimProject.isPending ? 'Äang nháº­n...' : 'Nháº­n dá»± Ã¡n'}
               </Button>
             </Card>
-          )) : <Card><p className="font-semibold">Chưa có dự án mở phù hợp.</p><p className="mt-1 text-base text-muted">Cập nhật hồ sơ năng lực hoặc thử giảm điều kiện lọc để xem thêm dự án.</p></Card>}
+          )) : <Card><p className="font-semibold">ChÆ°a cÃ³ dá»± Ã¡n má»Ÿ phÃ¹ há»£p.</p><p className="mt-1 text-base text-muted">Cáº­p nháº­t há»“ sÆ¡ nÄƒng lá»±c hoáº·c thá»­ giáº£m Ä‘iá»u kiá»‡n lá»c Ä‘á»ƒ xem thÃªm dá»± Ã¡n.</p></Card>}
       </div>
     </Dashboard>
   );
@@ -268,14 +268,14 @@ export function FindJobsPage() {
 export function MatchingPage() {
   const { data } = useQuery({ queryKey: ['match'], queryFn: () => endpoints.designers('?limit=6&sort=popularity') });
   return (
-    <Dashboard title="Kết quả ghép designer">
+    <Dashboard title="Káº¿t quáº£ ghÃ©p designer">
       <div className="grid gap-4 md:grid-cols-3">
         {data?.items?.map((d: any, i: number) => (
           <Card key={d._id}>
-            <Badge tone="success">{92 - i * 4}% phù hợp</Badge>
+            <Badge tone="success">{92 - i * 4}% phÃ¹ há»£p</Badge>
             <h3 className="mt-3 font-bold">{d.userId?.name}</h3>
-            <p className="text-base text-muted">Phù hợp danh mục, phong cách và ngân sách trong brief.</p>
-            <Button className="mt-4 w-full">Mời designer</Button>
+            <p className="text-base text-muted">PhÃ¹ há»£p danh má»¥c, phong cÃ¡ch vÃ  ngÃ¢n sÃ¡ch trong brief.</p>
+            <Button className="mt-4 w-full">Má»i designer</Button>
           </Card>
         ))}
       </div>
@@ -285,17 +285,17 @@ export function MatchingPage() {
 
 export function AgreementPage() {
   return (
-    <Dashboard title="Thỏa thuận dự án">
+    <Dashboard title="Thá»a thuáº­n dá»± Ã¡n">
       <Card>
         <div className="grid gap-4 md:grid-cols-2">
           {agreementFields.map((field) => (
             <div key={field}>
               <p className="text-base text-muted">{field}</p>
-              <p className="font-semibold">Thông tin thỏa thuận mẫu cho dự án.</p>
+              <p className="font-semibold">ThÃ´ng tin thá»a thuáº­n máº«u cho dá»± Ã¡n.</p>
             </div>
           ))}
         </div>
-        <Button className="mt-6">Xác nhận thỏa thuận</Button>
+        <Button className="mt-6">XÃ¡c nháº­n thá»a thuáº­n</Button>
       </Card>
     </Dashboard>
   );
@@ -313,14 +313,14 @@ export function EscrowPage() {
     if (params.get('payos') !== 'success' || !orderCode) return;
     endpoints.syncPayosPayment(orderCode)
       .then(async () => {
-        setMessage('payOS đã xác nhận thanh toán escrow thành công.');
+        setMessage('payOS Ä‘Ã£ xÃ¡c nháº­n thanh toÃ¡n escrow thÃ nh cÃ´ng.');
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ['wallet'] }),
           queryClient.invalidateQueries({ queryKey: ['tx'] }),
           queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
         ]);
       })
-      .catch((error) => setMessage(error instanceof Error ? error.message : 'Chưa thể xác nhận thanh toán payOS'));
+      .catch((error) => setMessage(error instanceof Error ? error.message : 'ChÆ°a thá»ƒ xÃ¡c nháº­n thanh toÃ¡n payOS'));
   }, [queryClient]);
   const payEscrow = useMutation({
     mutationFn: () => endpoints.payEscrow({ projectId, discountCode: discountCode || undefined, paymentMethod }),
@@ -329,33 +329,33 @@ export function EscrowPage() {
         window.location.href = result.checkoutUrl;
         return;
       }
-      setMessage('Đã thanh toán escrow bằng ví. Phí sàn được thu tại thời điểm funding.');
+      setMessage('ÄÃ£ thanh toÃ¡n escrow báº±ng vÃ­. PhÃ­ sÃ n Ä‘Æ°á»£c thu táº¡i thá»i Ä‘iá»ƒm funding.');
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['wallet'] }),
         queryClient.invalidateQueries({ queryKey: ['tx'] }),
         queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
       ]);
     },
-    onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể thanh toán escrow')
+    onError: (error) => setMessage(error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ thanh toÃ¡n escrow')
   });
   return (
-    <Dashboard title="Thanh toán escrow">
+    <Dashboard title="Thanh toÃ¡n escrow">
       <Card>
         <div className="grid gap-4 md:grid-cols-4">
-          <Metric label="Số tiền thanh toán" value="2.500.000đ" icon={CreditCard} />
-          <Metric label="Phí nền tảng" value="200.000đ" icon={BarChart3} />
-          <Metric label="Tổng cộng" value="2.700.000đ" icon={CheckCircle2} />
-          <Metric label="Trạng thái" value="Đang chờ" icon={Clock} />
+          <Metric label="Sá»‘ tiá»n thanh toÃ¡n" value="2.500.000Ä‘" icon={CreditCard} />
+          <Metric label="PhÃ­ ná»n táº£ng" value="200.000Ä‘" icon={BarChart3} />
+          <Metric label="Tá»•ng cá»™ng" value="2.700.000Ä‘" icon={CheckCircle2} />
+          <Metric label="Tráº¡ng thÃ¡i" value="Äang chá»" icon={Clock} />
         </div>
         <div className="mt-5 grid gap-3 md:grid-cols-[1fr_1fr_220px_auto]">
-          <Input placeholder="ID dự án" value={projectId} onChange={(event) => setProjectId(event.target.value)} />
-          <Input placeholder="Mã giảm giá nếu có" value={discountCode} onChange={(event) => setDiscountCode(event.target.value)} />
+          <Input placeholder="ID dá»± Ã¡n" value={projectId} onChange={(event) => setProjectId(event.target.value)} />
+          <Input placeholder="MÃ£ giáº£m giÃ¡ náº¿u cÃ³" value={discountCode} onChange={(event) => setDiscountCode(event.target.value)} />
           <Select value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value)}>
-            <option value="wallet">Ví VESD</option>
+            <option value="wallet">VÃ­ VESD</option>
             <option value="payos">payOS</option>
           </Select>
           <Button disabled={payEscrow.isPending || !projectId} onClick={() => payEscrow.mutate()}>
-            {payEscrow.isPending ? 'Đang xử lý...' : 'Thanh toán'}
+            {payEscrow.isPending ? 'Äang xá»­ lÃ½...' : 'Thanh toÃ¡n'}
           </Button>
         </div>
         {message && <p className="mt-3 text-sm text-muted">{message}</p>}
@@ -375,25 +375,25 @@ function formatFileSize(size = 0) {
 
 function validateProjectFiles(files: File[]) {
   const oversized = files.find((file) => file.size > maxProjectFileSize);
-  if (oversized) throw new Error(`File ${oversized.name} vượt quá 100MB. Hãy nén file hoặc tách package nhỏ hơn.`);
+  if (oversized) throw new Error(`File ${oversized.name} vÆ°á»£t quÃ¡ 100MB. HÃ£y nÃ©n file hoáº·c tÃ¡ch package nhá» hÆ¡n.`);
 }
 
 function fileChecklistItem(file: File) {
   const name = file.name.toLowerCase();
-  if (name.endsWith('.png')) return 'PNG nền trong suốt';
-  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'JPG xem trước';
-  if (name.endsWith('.ai')) return 'File nguồn AI/PSD';
+  if (name.endsWith('.png')) return 'PNG ná»n trong suá»‘t';
+  if (name.endsWith('.jpg') || name.endsWith('.jpeg')) return 'JPG xem trÆ°á»›c';
+  if (name.endsWith('.ai')) return 'File nguá»“n AI/PSD';
   if (name.endsWith('.pdf')) return 'PDF vector';
   if (name.endsWith('.svg')) return 'SVG';
-  if (name.endsWith('.ttf') || name.endsWith('.otf') || name.endsWith('.woff') || name.endsWith('.woff2')) return 'Tên font';
-  return 'File bàn giao';
+  if (name.endsWith('.ttf') || name.endsWith('.otf') || name.endsWith('.woff') || name.endsWith('.woff2')) return 'TÃªn font';
+  return 'File bÃ n giao';
 }
 
 function fileKind(file: any) {
   const name = String(file?.name || '').toLowerCase();
-  if (name.match(/\.(png|jpg|jpeg)$/)) return 'File ảnh';
-  if (name.match(/\.(ai|pdf|svg|ttf|otf|woff|woff2|zip)$/)) return 'File gốc';
-  return 'Tài liệu';
+  if (name.match(/\.(png|jpg|jpeg)$/)) return 'File áº£nh';
+  if (name.match(/\.(ai|pdf|svg|ttf|otf|woff|woff2|zip)$/)) return 'File gá»‘c';
+  return 'TÃ i liá»‡u';
 }
 
 function fileKey(file: any) {
@@ -426,10 +426,10 @@ function feedbackStepStatus(project: any) {
 
 function displayMilestone(project: any, milestone: any) {
   const title = String(milestone.title || '').toLowerCase();
-  if (title.includes('bàn giao cuối') || title.includes('ban giao cuoi')) {
+  if (title.includes('bÃ n giao cuá»‘i') || title.includes('ban giao cuoi')) {
     return { ...milestone, status: finalStepStatus(project) };
   }
-  if (title.includes('phản hồi') || title.includes('phan hoi')) {
+  if (title.includes('pháº£n há»“i') || title.includes('phan hoi')) {
     return { ...milestone, status: feedbackStepStatus(project) };
   }
   return milestone;
@@ -471,53 +471,72 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
     ]);
   }
 
-  async function uploadFiles(files: File[]) {
-    const uploaded = await Promise.all(files.map(async (file) => {
+  async function uploadFiles(files: File[], progressPrefix = 'Äang táº£i file') {
+    validateProjectFiles(files);
+    const uploaded = [];
+    for (let index = 0; index < files.length; index += 1) {
+      const file = files[index];
+      setUploadProgress(`${progressPrefix} ${index + 1}/${files.length}: ${file.name} (${formatFileSize(file.size)})`);
       const result = await endpoints.uploadFile(file);
-      return {
+      uploaded.push({
         url: result.url,
         name: result.name || file.name,
         type: result.type || file.type || fileKind(file),
         key: result.key,
         size: result.size || file.size,
         checklistItem: fileChecklistItem(file)
-      };
-    }));
+      });
+    }
     return uploaded;
   }
 
   const startProject = useMutation({
-    mutationFn: () => endpoints.startProject(id as string, { content: 'Designer bắt đầu thực hiện dự án' }),
-    onSuccess: async () => { setMessage('Đã chuyển dự án sang trạng thái đang làm.'); await refreshProject(); },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể bắt đầu dự án')
+    mutationFn: () => endpoints.startProject(id as string, { content: 'Designer báº¯t Ä‘áº§u thá»±c hiá»‡n dá»± Ã¡n' }),
+    onSuccess: async () => { setMessage('ÄÃ£ chuyá»ƒn dá»± Ã¡n sang tráº¡ng thÃ¡i Ä‘ang lÃ m.'); await refreshProject(); },
+    onError: (err) => setMessage(err instanceof Error ? err.message : 'KhÃ´ng thá»ƒ báº¯t Ä‘áº§u dá»± Ã¡n')
   });
   const submitMilestone = useMutation({
-    mutationFn: async (milestoneId: string) => endpoints.submitMilestone(id as string, milestoneId, await uploadFiles(milestoneFiles[milestoneId] || [])),
+    mutationFn: async (milestoneId: string) => {
+      const uploaded = await uploadFiles(milestoneFiles[milestoneId] || [], 'Đang tải milestone');
+      setUploadProgress('Đang gửi milestone cho khách hàng...');
+      return endpoints.submitMilestone(id as string, milestoneId, uploaded);
+    },
     onSuccess: async () => { setMessage('Đã gửi milestone cho khách hàng duyệt.'); setMilestoneFiles({}); await refreshProject(); },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể gửi milestone')
+    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể gửi milestone'),
+    onSettled: () => setUploadProgress('')
   });
   const approveMilestone = useMutation({
     mutationFn: (milestoneId: string) => endpoints.approveMilestone(id as string, milestoneId),
-    onSuccess: async () => { setMessage('Đã duyệt milestone.'); await refreshProject(); },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể duyệt milestone')
+    onSuccess: async () => { setMessage('ÄÃ£ duyá»‡t milestone.'); await refreshProject(); },
+    onError: (err) => setMessage(err instanceof Error ? err.message : 'KhÃ´ng thá»ƒ duyá»‡t milestone')
   });
   const requestRevision = useMutation({
     mutationFn: () => endpoints.requestRevision(id as string, revisionText.trim()),
-    onSuccess: async () => { setMessage('Đã gửi yêu cầu chỉnh sửa.'); setRevisionText(''); await refreshProject(); },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể gửi yêu cầu chỉnh sửa')
+    onSuccess: async () => { setMessage('ÄÃ£ gá»­i yÃªu cáº§u chá»‰nh sá»­a.'); setRevisionText(''); await refreshProject(); },
+    onError: (err) => setMessage(err instanceof Error ? err.message : 'KhÃ´ng thá»ƒ gá»­i yÃªu cáº§u chá»‰nh sá»­a')
   });
   const submitFinal = useMutation({
-    mutationFn: async () => endpoints.submitFinalFiles(id as string, await uploadFiles(finalFiles), 'Designer bàn giao file cuối'),
+    mutationFn: async () => {
+      setFinalError('');
+      const uploaded = await uploadFiles(finalFiles, 'Đang tải file bàn giao');
+      setUploadProgress('Đang gửi bàn giao cho khách hàng...');
+      return endpoints.submitFinalFiles(id as string, uploaded, 'Designer bàn giao file cuối');
+    },
     onSuccess: async () => { setFinalError(''); setMessage('Đã bàn giao file cuối cho khách hàng.'); setFinalFiles([]); await refreshProject(); },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể bàn giao file cuối')
+    onError: (err) => {
+      const nextMessage = err instanceof Error ? err.message : 'Không thể bàn giao file cuối';
+      setFinalError(nextMessage);
+      setMessage(nextMessage);
+    },
+    onSettled: () => setUploadProgress('')
   });
   const completeProject = useMutation({
     mutationFn: () => endpoints.completeProject(id as string),
-    onMutate: () => { setFinalError(''); setMessage('Đang duyệt bàn giao cuối...'); },
-    onSuccess: async () => { setFinalError(''); setMessage('Đã hoàn tất dự án và giải ngân escrow.'); await refreshProject(); },
+    onMutate: () => { setFinalError(''); setMessage('Äang duyá»‡t bÃ n giao cuá»‘i...'); },
+    onSuccess: async () => { setFinalError(''); setMessage('ÄÃ£ hoÃ n táº¥t dá»± Ã¡n vÃ  giáº£i ngÃ¢n escrow.'); await refreshProject(); },
     onError: (err) => {
       const missing = errorDetails(err);
-      const base = err instanceof Error ? err.message : 'Không thể hoàn tất dự án';
+      const base = err instanceof Error ? err.message : 'KhÃ´ng thá»ƒ hoÃ n táº¥t dá»± Ã¡n';
       const nextMessage = missing.length ? `${base}: ${missing.join(', ')}` : base;
       setFinalError(nextMessage);
       setMessage(nextMessage);
@@ -526,33 +545,33 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   const sendComment = useMutation({
     mutationFn: () => endpoints.addProjectComment(id as string, { content: commentText.trim(), type: 'message' }),
     onSuccess: async () => { setCommentText(''); await refreshProject(); },
-    onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể gửi phản hồi')
+    onError: (err) => setMessage(err instanceof Error ? err.message : 'KhÃ´ng thá»ƒ gá»­i pháº£n há»“i')
   });
 
   return (
-    <Dashboard title={project?.title ? `Không gian: ${project.title}` : designer ? 'Không gian dự án của designer' : 'Không gian dự án của khách hàng'}>
+    <Dashboard title={project?.title ? `KhÃ´ng gian: ${project.title}` : designer ? 'KhÃ´ng gian dá»± Ã¡n cá»§a designer' : 'KhÃ´ng gian dá»± Ã¡n cá»§a khÃ¡ch hÃ ng'}>
       {isLoading && (
         <Card className="mb-4 border-line">
           <Skeleton className="h-7 w-2/5" />
           <div className="mt-4 grid gap-3 md:grid-cols-4"><Skeleton className="h-16" /><Skeleton className="h-16" /><Skeleton className="h-16" /><Skeleton className="h-16" /></div>
         </Card>
       )}
-      {error && <Card className="mb-4 border-line"><p className="font-semibold text-red-500">{error instanceof Error ? error.message : 'Không thể tải thông tin dự án'}</p></Card>}
+      {error && <Card className="mb-4 border-line"><p className="font-semibold text-red-500">{error instanceof Error ? error.message : 'KhÃ´ng thá»ƒ táº£i thÃ´ng tin dá»± Ã¡n'}</p></Card>}
       {project && (
         <Card className="mb-4 border-line">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <div className="flex flex-wrap items-center gap-2"><Badge tone={project.priorityLevel === 'premium' ? 'premium' : 'info'}>{project.category || 'Dự án thiết kế'}</Badge><StatusBadge status={project.status} /></div>
+              <div className="flex flex-wrap items-center gap-2"><Badge tone={project.priorityLevel === 'premium' ? 'premium' : 'info'}>{project.category || 'Dá»± Ã¡n thiáº¿t káº¿'}</Badge><StatusBadge status={project.status} /></div>
               <h2 className="mt-3 text-2xl font-black">{project.title}</h2>
               {project.description && <p className="mt-1 max-w-4xl text-base text-muted">{project.description}</p>}
             </div>
-            <div className="rounded-lg bg-soft px-3 py-2 text-right"><p className="text-sm font-semibold text-muted">Mã dự án</p><p className="font-black text-brand">{shortProjectCode(project._id)}</p></div>
+            <div className="rounded-lg bg-soft px-3 py-2 text-right"><p className="text-sm font-semibold text-muted">MÃ£ dá»± Ã¡n</p><p className="font-black text-brand">{shortProjectCode(project._id)}</p></div>
           </div>
           <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="flex items-center gap-3 rounded-lg bg-soft p-3"><UserRound className="h-5 w-5 text-brand" /><div><p className="text-sm text-muted">{designer ? 'Khách hàng' : 'Designer'}</p><p className="font-bold">{designer ? userName(project.clientId, 'Khách hàng VESD') : userName(project.designerId, 'Chưa có designer')}</p></div></div>
-            <div className="flex items-center gap-3 rounded-lg bg-soft p-3"><CircleDollarSign className="h-5 w-5 text-brand" /><div><p className="text-sm text-muted">Ngân sách</p><p className="font-bold">{formatVnd(budget)}</p></div></div>
+            <div className="flex items-center gap-3 rounded-lg bg-soft p-3"><UserRound className="h-5 w-5 text-brand" /><div><p className="text-sm text-muted">{designer ? 'KhÃ¡ch hÃ ng' : 'Designer'}</p><p className="font-bold">{designer ? userName(project.clientId, 'KhÃ¡ch hÃ ng VESD') : userName(project.designerId, 'ChÆ°a cÃ³ designer')}</p></div></div>
+            <div className="flex items-center gap-3 rounded-lg bg-soft p-3"><CircleDollarSign className="h-5 w-5 text-brand" /><div><p className="text-sm text-muted">NgÃ¢n sÃ¡ch</p><p className="font-bold">{formatVnd(budget)}</p></div></div>
             <div className="flex items-center gap-3 rounded-lg bg-soft p-3"><CalendarDays className="h-5 w-5 text-brand" /><div><p className="text-sm text-muted">Deadline</p><p className="font-bold">{formatDate(project.agreement?.deadline || project.deadline)}</p></div></div>
-            <div className="flex items-center gap-3 rounded-lg bg-soft p-3"><Hash className="h-5 w-5 text-brand" /><div><p className="text-sm text-muted">Lần chỉnh sửa</p><p className="font-bold">{project.revisionUsed || 0}/{project.revisionLimit || project.agreement?.revisionLimit || 2}</p></div></div>
+            <div className="flex items-center gap-3 rounded-lg bg-soft p-3"><Hash className="h-5 w-5 text-brand" /><div><p className="text-sm text-muted">Láº§n chá»‰nh sá»­a</p><p className="font-bold">{project.revisionUsed || 0}/{project.revisionLimit || project.agreement?.revisionLimit || 2}</p></div></div>
           </div>
         </Card>
       )}
@@ -560,8 +579,8 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <Card>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-bold">Tiến độ milestone</h2>
-            {designer && project?.status === 'escrow_funded' && <Button disabled={startProject.isPending} onClick={() => startProject.mutate()}>Bắt đầu dự án</Button>}
+            <h2 className="font-bold">Tiáº¿n Ä‘á»™ milestone</h2>
+            {designer && project?.status === 'escrow_funded' && <Button disabled={startProject.isPending} onClick={() => startProject.mutate()}>Báº¯t Ä‘áº§u dá»± Ã¡n</Button>}
           </div>
           <div className="mt-4 space-y-4">
             {milestones.map((milestone: any) => (
@@ -574,19 +593,19 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
                 {designer && !String(milestone._id || '').startsWith('fallback') && (
                   <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
                     <Input type="file" multiple accept="image/png,image/jpeg,.pdf,.svg,.ai" onChange={(event) => setMilestoneFiles((current) => ({ ...current, [milestone._id]: Array.from(event.currentTarget.files || []) }))} />
-                    <Button disabled={submitMilestone.isPending || !(milestoneFiles[milestone._id]?.length)} onClick={() => submitMilestone.mutate(milestone._id)}>Gửi milestone</Button>
+                    <Button disabled={submitMilestone.isPending || !(milestoneFiles[milestone._id]?.length)} onClick={() => submitMilestone.mutate(milestone._id)}>Gá»­i milestone</Button>
                   </div>
                 )}
                 {!designer && milestone.status === 'submitted' && !String(milestone._id || '').startsWith('fallback') && (
-                  <Button className="mt-4" disabled={approveMilestone.isPending} onClick={() => approveMilestone.mutate(milestone._id)}>Duyệt milestone</Button>
+                  <Button className="mt-4" disabled={approveMilestone.isPending} onClick={() => approveMilestone.mutate(milestone._id)}>Duyá»‡t milestone</Button>
                 )}
               </div>
             ))}
           </div>
 
           <div className="mt-6 rounded-lg border border-line bg-soft/70 p-4">
-            <h3 className="font-bold">Bàn giao file cuối</h3>
-            <p className="mt-1 text-sm text-muted">Designer cần gửi nhiều file gồm ảnh PNG/JPG và file gốc AI, PDF, SVG, font chữ hoặc package ZIP.</p>
+            <h3 className="font-bold">BÃ n giao file cuá»‘i</h3>
+            <p className="mt-1 text-sm text-muted">Designer cáº§n gá»­i nhiá»u file gá»“m áº£nh PNG/JPG vÃ  file gá»‘c AI, PDF, SVG, font chá»¯ hoáº·c package ZIP.</p>
             {!!project?.finalFiles?.length && <FileList projectId={id as string} files={project.finalFiles} allowDownload={!designer && project.status === 'completed'} />}
             {finalError && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -596,28 +615,28 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
             {designer ? (
               <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
                 <Input type="file" multiple accept={handoffAccept} onChange={(event) => setFinalFiles(Array.from(event.currentTarget.files || []))} />
-                <Button disabled={submitFinal.isPending || !finalFiles.length} onClick={() => submitFinal.mutate()}>Bàn giao file cuối</Button>
+                <Button disabled={submitFinal.isPending || !finalFiles.length} onClick={() => submitFinal.mutate()}>BÃ n giao file cuá»‘i</Button>
               </div>
             ) : (
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button disabled={completeProject.isPending || project?.status !== 'final_submitted'} onClick={() => completeProject.mutate()}>{completeProject.isPending ? 'Đang duyệt...' : 'Duyệt bàn giao cuối'}</Button>
-                <Button variant="secondary" disabled={!revisionText.trim() || requestRevision.isPending} onClick={() => requestRevision.mutate()}>Yêu cầu chỉnh sửa</Button>
+                <Button disabled={completeProject.isPending || project?.status !== 'final_submitted'} onClick={() => completeProject.mutate()}>{completeProject.isPending ? 'Äang duyá»‡t...' : 'Duyá»‡t bÃ n giao cuá»‘i'}</Button>
+                <Button variant="secondary" disabled={!revisionText.trim() || requestRevision.isPending} onClick={() => requestRevision.mutate()}>YÃªu cáº§u chá»‰nh sá»­a</Button>
               </div>
             )}
             {!designer && project?.status === 'completed' && !!project?.finalFiles?.length && (
               <div className="mt-4 rounded-lg bg-white p-4">
-                <h4 className="font-bold">Tải file bàn giao đã duyệt</h4>
-                <p className="mt-1 text-sm text-muted">Các file cuối đã được duyệt và có thể tải về tại đây.</p>
+                <h4 className="font-bold">Táº£i file bÃ n giao Ä‘Ã£ duyá»‡t</h4>
+                <p className="mt-1 text-sm text-muted">CÃ¡c file cuá»‘i Ä‘Ã£ Ä‘Æ°á»£c duyá»‡t vÃ  cÃ³ thá»ƒ táº£i vá» táº¡i Ä‘Ã¢y.</p>
                 <FileList projectId={id as string} files={project.finalFiles} allowDownload />
               </div>
             )}
           </div>
         </Card>
         <Card>
-          <h2 className="font-bold">Trao đổi và phản hồi</h2>
-          {!designer && <Textarea className="mt-4" value={revisionText} onChange={(event) => setRevisionText(event.target.value)} placeholder="Nội dung yêu cầu chỉnh sửa" />}
-          <Textarea className="mt-4" value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Nhập phản hồi tập trung tại đây" />
-          <Button className="mt-3 w-full" disabled={!commentText.trim() || sendComment.isPending} onClick={() => sendComment.mutate()}>Gửi</Button>
+          <h2 className="font-bold">Trao Ä‘á»•i vÃ  pháº£n há»“i</h2>
+          {!designer && <Textarea className="mt-4" value={revisionText} onChange={(event) => setRevisionText(event.target.value)} placeholder="Ná»™i dung yÃªu cáº§u chá»‰nh sá»­a" />}
+          <Textarea className="mt-4" value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Nháº­p pháº£n há»“i táº­p trung táº¡i Ä‘Ã¢y" />
+          <Button className="mt-3 w-full" disabled={!commentText.trim() || sendComment.isPending} onClick={() => sendComment.mutate()}>Gá»­i</Button>
           <div className="mt-5 space-y-3">
             {comments.slice(-5).map((comment: any) => <div key={comment._id} className="rounded-lg bg-soft p-3"><p className="text-sm font-bold">{comment.senderId?.name || 'VESD'}</p><p className="mt-1 text-sm text-muted">{comment.content}</p></div>)}
           </div>
@@ -653,7 +672,7 @@ function FileList({ projectId, files, allowDownload = false }: { projectId: stri
           <span className="shrink-0 text-muted">{file.checklistItem || fileKind(file)}</span>
           <div className="ml-auto flex gap-2">
             {canPreviewFile(file) && <Button variant="secondary" onClick={() => openFile(file, 'inline')}>Xem</Button>}
-            {(allowDownload || !canPreviewFile(file)) && <Button variant="secondary" onClick={() => openFile(file, 'attachment')}>Tải về</Button>}
+            {(allowDownload || !canPreviewFile(file)) && <Button variant="secondary" onClick={() => openFile(file, 'attachment')}>Táº£i vá»</Button>}
           </div>
         </div>
       ))}
@@ -662,7 +681,7 @@ function FileList({ projectId, files, allowDownload = false }: { projectId: stri
 }
 export function ChecklistPage() {
   return (
-    <Dashboard title="Checklist bàn giao file">
+    <Dashboard title="Checklist bÃ n giao file">
       <Card>
         {checklistItems.map((item, index) => (
           <div key={item} className="flex items-center justify-between border-b border-line py-3 last:border-0">
@@ -670,7 +689,7 @@ export function ChecklistPage() {
             <StatusBadge status={index < 4 ? 'approved' : 'pending'} />
           </div>
         ))}
-        <Button className="mt-5">Duyệt bàn giao cuối</Button>
+        <Button className="mt-5">Duyá»‡t bÃ n giao cuá»‘i</Button>
       </Card>
     </Dashboard>
   );
