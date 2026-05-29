@@ -426,7 +426,11 @@ mainRoutes.post('/projects/:id/final-files', requireAuth, requireRole('designer'
 }));
 mainRoutes.post('/projects/:id/milestones/:milestoneId/approve', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await approveMilestone({ project: await getOwnedProject(req.user, req.params.id), milestoneId: req.params.milestoneId, userId: req.user._id }))));
 mainRoutes.post('/projects/:id/revision', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await requestRevision({ project: await getOwnedProject(req.user, req.params.id), userId: req.user._id, content: req.body.content }))));
-mainRoutes.post('/projects/:id/complete', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await completeProject({ project: await getOwnedProject(req.user, req.params.id), userId: req.user._id }))));
+mainRoutes.post('/projects/:id/complete', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await completeProject({
+  project: await getOwnedProject(req.user, req.params.id),
+  userId: req.user._id,
+  allowMissingFiles: req.body.allowMissingFiles === true
+}))));
 
 mainRoutes.post('/payments/escrow', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
   if (req.body.paymentMethod === 'payos') {

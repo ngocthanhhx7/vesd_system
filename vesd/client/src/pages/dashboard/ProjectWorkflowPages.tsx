@@ -447,6 +447,8 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   const [milestoneFiles, setMilestoneFiles] = useState<Record<string, File[]>>({});
   const [finalFiles, setFinalFiles] = useState<File[]>([]);
   const [finalError, setFinalError] = useState('');
+  const [allowMissingFinalFiles, setAllowMissingFinalFiles] = useState(false);
+  const [canApproveWithMissingFiles, setCanApproveWithMissingFiles] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
   const [revisionText, setRevisionText] = useState('');
   const [commentText, setCommentText] = useState('');
@@ -531,13 +533,20 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
     onSettled: () => setUploadProgress('')
   });
   const completeProject = useMutation({
-    mutationFn: () => endpoints.completeProject(id as string),
+    mutationFn: (allowMissingFiles: boolean = false) => endpoints.completeProject(id as string, allowMissingFiles),
     onMutate: () => { setFinalError(''); setMessage('Đang duyệt bàn giao cuối...'); },
-    onSuccess: async () => { setFinalError(''); setMessage('Đã hoàn tất dự án và giải ngân escrow.'); await refreshProject(); },
+    onSuccess: async () => {
+      setFinalError('');
+      setAllowMissingFinalFiles(false);
+      setCanApproveWithMissingFiles(false);
+      setMessage('Đã hoàn tất dự án và giải ngân escrow.');
+      await refreshProject();
+    },
     onError: (err) => {
       const missing = errorDetails(err);
       const base = err instanceof Error ? err.message : 'Không thể hoàn tất dự án';
       const nextMessage = missing.length ? `${base}: ${missing.join(', ')}` : base;
+      setCanApproveWithMissingFiles(missing.length > 0);
       setFinalError(nextMessage);
       setMessage(nextMessage);
     }
@@ -610,6 +619,12 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
             {finalError && (
               <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                 {finalError}
+                {canApproveWithMissingFiles && (
+                  <label className="mt-3 flex items-start gap-2 text-sm font-semibold text-red-800">
+                    <input className="mt-1 h-4 w-4 accent-brand" type="checkbox" checked={allowMissingFinalFiles} onChange={(event) => setAllowMissingFinalFiles(event.target.checked)} />
+                    <span>Tôi đã kiểm tra file hiện có và vẫn chấp nhận duyệt bàn giao dù còn thiếu file bắt buộc.</span>
+                  </label>
+                )}
               </div>
             )}
             {designer ? (
@@ -632,7 +647,9 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
               </div>
             ) : (
               <div className="mt-4 flex flex-wrap gap-3">
-                <Button disabled={completeProject.isPending || project?.status !== 'final_submitted'} onClick={() => completeProject.mutate()}>{completeProject.isPending ? 'Đang duyệt...' : 'Duyệt bàn giao cuối'}</Button>
+                <Button disabled={completeProject.isPending || project?.status !== 'final_submitted'} onClick={() => completeProject.mutate(canApproveWithMissingFiles && allowMissingFinalFiles)}>
+                  {completeProject.isPending ? 'Đang duyệt...' : canApproveWithMissingFiles && allowMissingFinalFiles ? 'Duyệt dù thiếu file' : 'Duyệt bàn giao cuối'}
+                </Button>
                 <Button variant="secondary" disabled={!revisionText.trim() || requestRevision.isPending} onClick={() => requestRevision.mutate()}>Yêu cầu chỉnh sửa</Button>
               </div>
             )}

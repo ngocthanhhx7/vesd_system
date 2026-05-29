@@ -128,7 +128,7 @@ export async function requestRevision({ project, userId, content }) {
   return project;
 }
 
-export async function completeProject({ project, userId }) {
+export async function completeProject({ project, userId, allowMissingFiles = false }) {
   if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client duoc hoan tat du an');
   const template = await ChecklistTemplate.findOne({ category: project.category });
   if (template) {
@@ -141,7 +141,7 @@ export async function completeProject({ project, userId }) {
       const formatMatched = (item.acceptedFormats || []).some((format) => uploadedExtensions.has(String(format).toLowerCase()));
       return !labelMatched && !formatMatched;
     });
-    if (missing.length) throw new ApiError(400, 'Thiếu file bàn giao bắt buộc', missing.map((item) => item.label));
+    if (missing.length && !allowMissingFiles) throw new ApiError(400, 'Thiếu file bàn giao bắt buộc', missing.map((item) => item.label));
   }
   await releaseProjectFunds({ project, amount: (await getProjectEscrowStats(project._id)).remaining, reason: 'project_completed' });
   project.status = 'completed';

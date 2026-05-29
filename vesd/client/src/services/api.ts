@@ -85,7 +85,7 @@ export const endpoints = {
   approveMilestone: (projectId: string, milestoneId: string) => api<any>(`/projects/${projectId}/milestones/${milestoneId}/approve`, { method: 'POST' }),
   requestRevision: (projectId: string, content: string) => api<any>(`/projects/${projectId}/revision`, { method: 'POST', body: JSON.stringify({ content }) }),
   submitFinalFiles: (projectId: string, files: unknown[], note?: string) => api<any>(`/projects/${projectId}/final-files`, { method: 'POST', body: JSON.stringify({ files, note }) }),
-  completeProject: (projectId: string) => api<any>(`/projects/${projectId}/complete`, { method: 'POST' }),
+  completeProject: (projectId: string, allowMissingFiles = false) => api<any>(`/projects/${projectId}/complete`, { method: 'POST', body: JSON.stringify({ allowMissingFiles }) }),
   payEscrow: (body: unknown) => api<any>('/payments/escrow', { method: 'POST', body: JSON.stringify(body) }),
   syncPayosPayment: (orderCode: string | number) => api<any>(`/payments/payos/${orderCode}/sync`, { method: 'POST' }),
   wallet: () => api<any>('/wallet/my'),
