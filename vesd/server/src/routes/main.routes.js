@@ -35,7 +35,8 @@ import { transferWalletToDesigner } from '../services/walletService.js';
 import { addSSEClient } from '../services/notificationService.js';
 
 export const mainRoutes = Router();
-const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const projectFileSizeLimit = 100 * 1024 * 1024;
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: projectFileSizeLimit } });
 
 const pageParams = (req) => ({ page: Math.max(Number(req.query.page || 1), 1), limit: Math.min(Number(req.query.limit || 12), 50) });
 const premiumAccountTypeForRole = (role) => (role === 'designer' ? 'designer_premium' : 'business_premium');

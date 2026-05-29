@@ -365,6 +365,18 @@ export function EscrowPage() {
 }
 
 const handoffAccept = '.png,.jpg,.jpeg,.ai,.pdf,.svg,.ttf,.otf,.woff,.woff2,.zip';
+const maxProjectFileSize = 100 * 1024 * 1024;
+
+function formatFileSize(size = 0) {
+  if (size >= 1024 * 1024) return `${(size / 1024 / 1024).toFixed(1)} MB`;
+  if (size >= 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${size} B`;
+}
+
+function validateProjectFiles(files: File[]) {
+  const oversized = files.find((file) => file.size > maxProjectFileSize);
+  if (oversized) throw new Error(`File ${oversized.name} vượt quá 100MB. Hãy nén file hoặc tách package nhỏ hơn.`);
+}
 
 function fileChecklistItem(file: File) {
   const name = file.name.toLowerCase();
@@ -435,6 +447,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   const [milestoneFiles, setMilestoneFiles] = useState<Record<string, File[]>>({});
   const [finalFiles, setFinalFiles] = useState<File[]>([]);
   const [finalError, setFinalError] = useState('');
+  const [uploadProgress, setUploadProgress] = useState('');
   const [revisionText, setRevisionText] = useState('');
   const [commentText, setCommentText] = useState('');
   const { data, isLoading, error } = useQuery({
