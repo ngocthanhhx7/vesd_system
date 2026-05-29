@@ -10,3 +10,4 @@ export function Protected({ role }: { role?: string }) {
 
   return <Outlet />;
 }
+

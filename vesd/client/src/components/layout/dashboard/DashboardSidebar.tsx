@@ -76,3 +76,4 @@ export function DashboardSidebar({ role }: { role: DashboardRole }) {
     </aside>
   );
 }
+

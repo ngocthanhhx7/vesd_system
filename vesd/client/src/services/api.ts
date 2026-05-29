@@ -59,9 +59,17 @@ export const endpoints = {
   openProjects: (query = '') => api<any>(`/projects/open${query}`),
   createProject: (body: unknown) => api<any>('/projects', { method: 'POST', body: JSON.stringify(body) }),
   project: (id: string) => api<any>(`/projects/${id}`),
+  updateProject: (id: string, body: unknown) => api<any>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   acceptProject: (id: string) => api<any>(`/projects/${id}/accept`, { method: 'POST' }),
   rejectProject: (id: string) => api<any>(`/projects/${id}/reject`, { method: 'POST' }),
   claimProject: (id: string) => api<any>(`/projects/${id}/claim`, { method: 'POST' }),
+  startProject: (id: string, body: unknown = {}) => api<any>(`/projects/${id}/start`, { method: 'POST', body: JSON.stringify(body) }),
+  addProjectComment: (id: string, body: unknown) => api<any>(`/projects/${id}/comments`, { method: 'POST', body: JSON.stringify(body) }),
+  submitMilestone: (projectId: string, milestoneId: string, files: unknown[]) => api<any>(`/projects/${projectId}/milestones/${milestoneId}/submit`, { method: 'POST', body: JSON.stringify({ files }) }),
+  approveMilestone: (projectId: string, milestoneId: string) => api<any>(`/projects/${projectId}/milestones/${milestoneId}/approve`, { method: 'POST' }),
+  requestRevision: (projectId: string, content: string) => api<any>(`/projects/${projectId}/revision`, { method: 'POST', body: JSON.stringify({ content }) }),
+  submitFinalFiles: (projectId: string, files: unknown[], note?: string) => api<any>(`/projects/${projectId}/final-files`, { method: 'POST', body: JSON.stringify({ files, note }) }),
+  completeProject: (projectId: string) => api<any>(`/projects/${projectId}/complete`, { method: 'POST' }),
   payEscrow: (body: unknown) => api<any>('/payments/escrow', { method: 'POST', body: JSON.stringify(body) }),
   syncPayosPayment: (orderCode: string | number) => api<any>(`/payments/payos/${orderCode}/sync`, { method: 'POST' }),
   wallet: () => api<any>('/wallet/my'),
@@ -88,6 +96,7 @@ export const endpoints = {
   adminUsers: () => api<any[]>('/admin/users'),
   adminProjects: () => api<any[]>('/admin/projects'),
   adminDisputes: () => api<any[]>('/admin/disputes'),
+  adminUpdateUserStatus: (id: string, status: string) => api<any>(`/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   adminWithdrawals: () => api<any[]>('/admin/withdrawals'),
   adminSyncWithdrawal: (id: string) => api<any>(`/admin/withdrawals/${id}/sync`, { method: 'POST' }),
   adminDiscounts: () => api<any[]>('/admin/discounts'),
@@ -102,6 +111,11 @@ export const endpoints = {
     const form = new FormData();
     form.append('file', file);
     return api<any>('/uploads/avatar', { method: 'POST', body: form });
+  },
+  uploadFile: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api<any>('/uploads/file', { method: 'POST', body: form });
   },
   // Search
   search: (q: string, limit = 5) => api<any>(`/search?q=${encodeURIComponent(q)}&limit=${limit}`),

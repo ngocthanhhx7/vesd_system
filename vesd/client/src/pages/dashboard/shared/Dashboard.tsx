@@ -1,6 +1,6 @@
-export function Dashboard({ title, children }: { title: string; children: React.ReactNode }) {
+﻿export function Dashboard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="dashboard-neu min-h-full">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-base font-bold uppercase tracking-wide text-brand">Không gian VESD</p>
@@ -20,3 +20,4 @@ export function Section({ title, children, columns = 'auto' }: { title: string; 
     </section>
   );
 }
+

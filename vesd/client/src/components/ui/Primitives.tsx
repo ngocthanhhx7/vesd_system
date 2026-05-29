@@ -121,3 +121,4 @@ export function FileUpload({ accept, fileName, savedUrl, savedLabel, onChange }:
 export function Divider({ className }: { className?: string }) {
   return <hr className={clsx('border-t border-line', className)} />;
 }
+

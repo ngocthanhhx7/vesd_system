@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+﻿import { Link } from 'react-router-dom';
 import { Facebook, Instagram, Linkedin, Youtube } from 'lucide-react';
 import { footerColumns } from './publicNavigation';
 
@@ -35,3 +35,4 @@ function FooterColumn({ title, items }: { title: string; items: string[] }) {
     </div>
   );
 }
+

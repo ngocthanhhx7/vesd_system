@@ -33,3 +33,4 @@ export function DesignerCard({ profile }: { profile: any }) {
     </Card>
   );
 }
+

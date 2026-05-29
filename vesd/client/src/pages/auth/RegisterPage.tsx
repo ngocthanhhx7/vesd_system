@@ -19,7 +19,7 @@ export function RegisterPage() {
     const fd = new FormData(e.currentTarget);
     try {
       await register({ name: String(fd.get('name')), email: String(fd.get('email')), password: String(fd.get('password')), role: String(fd.get('role')) });
-      navigate('/role-selection');
+      navigate('/');
     } catch (err: any) {
       setError(err.message);
     }
@@ -29,7 +29,7 @@ export function RegisterPage() {
     try {
       setError('');
       await loginWithGoogle(credentialResponse.credential);
-      navigate('/role-selection');
+      navigate('/');
     } catch (err: any) {
       setError(err.message);
     }
@@ -107,3 +107,4 @@ export function RegisterPage() {
     </AuthShell>
   );
 }
+

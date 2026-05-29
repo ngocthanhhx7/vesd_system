@@ -1,4 +1,4 @@
-@font-face {
+﻿@font-face {
   font-family: 'SF Pro Text';
   src: url('/fonts/sf-pro-text/SF-Pro-Text-Ultralight.otf') format('opentype');
   font-weight: 100;
@@ -196,6 +196,45 @@ img {
 
 .focus-ring {
   @apply focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2;
+}
+
+.dashboard-neu {
+  color: #172033;
+}
+
+.dashboard-neu .rounded-lg.bg-white,
+.dashboard-neu .shadow-sm {
+  background: #f7f9ff;
+  border-color: rgba(206, 216, 244, .86);
+  box-shadow:
+    10px 10px 24px rgba(125, 143, 181, .16),
+    -10px -10px 24px rgba(255, 255, 255, .88);
+}
+
+.dashboard-neu input,
+.dashboard-neu select,
+.dashboard-neu textarea {
+  background: #f8faff;
+  border-color: rgba(206, 216, 244, .92);
+  box-shadow:
+    inset 3px 3px 8px rgba(125, 143, 181, .14),
+    inset -3px -3px 8px rgba(255, 255, 255, .92);
+}
+
+.dashboard-neu .bg-soft {
+  background-color: #edf2ff;
+}
+
+.dashboard-metric {
+  min-height: 156px;
+}
+
+.dashboard-panel-inset {
+  border: 1px solid rgba(206, 216, 244, .78);
+  background: #eef3ff;
+  box-shadow:
+    inset 4px 4px 10px rgba(125, 143, 181, .13),
+    inset -4px -4px 10px rgba(255, 255, 255, .86);
 }
 
 .blue-grid {
@@ -1234,3 +1273,4 @@ img {
 .avatar-upload-wrapper:hover .avatar-upload-overlay {
   opacity: 1;
 }
+

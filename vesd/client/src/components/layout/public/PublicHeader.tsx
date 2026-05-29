@@ -11,7 +11,13 @@ export function PublicHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const dashboardPath = user?.roles.includes('admin') ? '/admin' : user?.roles.includes('designer') ? '/designer' : '/client';
   const jobsPath = user?.roles.includes('designer') ? '/designer/jobs' : user ? dashboardPath : '/register';
-  const projectsPath = user?.roles.includes('designer') ? '/designer/projects' : user?.roles.includes('client') ? '/client/projects' : '/client/create-project';
+  const projectsPath = !user
+    ? '/register'
+    : user.roles.includes('designer')
+      ? '/designer/projects'
+      : user.roles.includes('client')
+        ? '/client/projects'
+        : '/client/create-project';
   const messagesPath = user?.roles.includes('designer') ? '/designer/messages' : user?.roles.includes('client') ? '/client/messages' : dashboardPath;
   const accountPath = user?.roles.includes('admin') ? '/admin/settings' : user?.roles.includes('designer') ? '/designer/settings' : '/client/settings';
   const passwordPath = user?.roles.includes('admin') ? '/admin/password' : user?.roles.includes('designer') ? '/designer/password' : '/client/password';
@@ -108,3 +114,4 @@ export function PublicHeader() {
     </header>
   );
 }
+

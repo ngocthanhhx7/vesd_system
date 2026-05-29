@@ -146,3 +146,4 @@ export const dashboardLinks: Record<DashboardRole, string[][]> = Object.fromEntr
     groups.flatMap(g => g.items.map(i => [i.href, i.label]))
   ])
 ) as Record<DashboardRole, string[][]>;
+

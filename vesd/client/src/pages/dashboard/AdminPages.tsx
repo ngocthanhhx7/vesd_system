@@ -1,6 +1,6 @@
 import { FormEvent, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CreditCard, FolderKanban, ShieldAlert, Users } from 'lucide-react';
+import { CreditCard, FolderKanban, Search, ShieldAlert, Users } from 'lucide-react';
 import { Card, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
 import { endpoints } from '../../services/api';
@@ -35,6 +35,24 @@ export function AdminDashboard() {
         <Metric label="Doanh thu" value={(data?.revenue || 0).toLocaleString('vi-VN')} icon={CreditCard} />
         <Metric label="Khiếu nại" value={data?.disputes ?? 0} icon={ShieldAlert} />
       </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_360px]">
+        <Card>
+          <h2 className="text-xl font-black">Vận hành hôm nay</h2>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="dashboard-panel-inset rounded-lg p-4"><p className="text-sm text-muted">Tài khoản cần rà soát</p><p className="text-2xl font-black">{data?.pendingUsers ?? 0}</p></div>
+            <div className="dashboard-panel-inset rounded-lg p-4"><p className="text-sm text-muted">Dự án cần can thiệp</p><p className="text-2xl font-black">{data?.projectsNeedingAttention ?? 0}</p></div>
+            <div className="dashboard-panel-inset rounded-lg p-4"><p className="text-sm text-muted">Khiếu nại mở</p><p className="text-2xl font-black">{data?.disputes ?? 0}</p></div>
+          </div>
+        </Card>
+        <Card>
+          <h2 className="text-xl font-black">Lối tắt quản trị</h2>
+          <div className="mt-4 grid gap-2">
+            <Button variant="secondary">Duyệt người dùng</Button>
+            <Button variant="secondary">Theo dõi dự án</Button>
+            <Button variant="secondary">Xử lý khiếu nại</Button>
+          </div>
+        </Card>
+      </div>
     </Dashboard>
   );
 }
@@ -42,6 +60,127 @@ export function AdminDashboard() {
 export function AdminListPage({ type }: { type: string }) {
   const query = type === 'users' ? endpoints.adminUsers : type === 'projects' ? endpoints.adminProjects : type === 'disputes' ? endpoints.adminDisputes : endpoints.adminUsers;
   const { data = [] } = useQuery({ queryKey: ['admin', type], queryFn: query });
+  const queryClient = useQueryClient();
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState('all');
+  const updateUser = useMutation({
+    mutationFn: ({ id, nextStatus }: { id: string; nextStatus: string }) => endpoints.adminUpdateUserStatus(id, nextStatus),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', type] })
+  });
+  const updateProject = useMutation({
+    mutationFn: ({ id, patch }: { id: string; patch: unknown }) => endpoints.updateProject(id, patch),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', type] })
+  });
+  const filtered = data.filter((item: any) => {
+    const haystack = `${item.name || ''} ${item.email || ''} ${item.title || ''} ${item.reason || ''} ${item.category || ''} ${item.clientId?.name || ''} ${item.designerId?.name || ''}`.toLowerCase();
+    const currentStatus = item.status || item.verificationStatus || 'active';
+    return (!search || haystack.includes(search.toLowerCase())) && (status === 'all' || currentStatus === status);
+  });
+
+  if (type === 'users') {
+    return (
+      <Dashboard title="Quản lý người dùng">
+        <Card className="mb-4">
+          <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tên, email, vai trò" />
+            </div>
+            <Select value={status} onChange={(event) => setStatus(event.target.value)}>
+              <option value="all">Tất cả trạng thái</option>
+              <option value="active">Đang hoạt động</option>
+              <option value="pending">Đang chờ</option>
+              <option value="banned">Đã khóa</option>
+            </Select>
+          </div>
+        </Card>
+        <Card>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-base">
+              <thead><tr className="border-b border-line"><th className="py-2">Người dùng</th><th>Vai trò</th><th>Xác minh</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+              <tbody>
+                {filtered.map((item: any) => (
+                  <tr key={item._id} className="border-b border-line align-top">
+                    <td className="py-3"><p className="font-bold">{item.name}</p><p className="text-sm text-muted">{item.email}</p></td>
+                    <td>{(item.roles || []).join(', ')}</td>
+                    <td><StatusBadge status={item.emailVerified ? 'verified' : 'pending'} /></td>
+                    <td><StatusBadge status={item.status || 'active'} /></td>
+                    <td>
+                      <Select className="min-w-36" value={item.status || 'active'} disabled={updateUser.isPending} onChange={(event) => updateUser.mutate({ id: item._id, nextStatus: event.target.value })}>
+                        <option value="active">Mở</option>
+                        <option value="pending">Chờ xử lý</option>
+                        <option value="banned">Khóa</option>
+                      </Select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </Dashboard>
+    );
+  }
+
+  if (type === 'projects') {
+    return (
+      <Dashboard title="Quản lý dự án">
+        <Card className="mb-4">
+          <div className="grid gap-3 md:grid-cols-[1fr_240px]">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+              <Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm dự án, khách hàng, designer" />
+            </div>
+            <Select value={status} onChange={(event) => setStatus(event.target.value)}>
+              <option value="all">Tất cả trạng thái</option>
+              <option value="pending_designer">Chờ designer</option>
+              <option value="in_progress">Đang làm</option>
+              <option value="submitted">Chờ duyệt</option>
+              <option value="final_submitted">Đã bàn giao</option>
+              <option value="completed">Hoàn thành</option>
+              <option value="cancelled">Đã hủy</option>
+            </Select>
+          </div>
+        </Card>
+        <div className="grid gap-4 xl:grid-cols-2">
+          {filtered.map((item: any) => (
+            <Card key={item._id}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold uppercase text-muted">{item.category || 'project'}</p>
+                  <h2 className="mt-1 text-xl font-black">{item.title}</h2>
+                </div>
+                <StatusBadge status={item.status} />
+              </div>
+              <div className="mt-4 grid gap-3 rounded-lg bg-soft p-4 text-sm md:grid-cols-3">
+                <div><p className="text-muted">Khách hàng</p><p className="font-bold">{item.clientId?.name || 'N/A'}</p></div>
+                <div><p className="text-muted">Designer</p><p className="font-bold">{item.designerId?.name || 'Chưa có'}</p></div>
+                <div><p className="text-muted">Ngân sách</p><p className="font-bold">{(item.budget?.agreed || item.budget?.max || 0).toLocaleString('vi-VN')}đ</p></div>
+              </div>
+              <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto]">
+                <Select value={item.status || 'pending_designer'} disabled={updateProject.isPending} onChange={(event) => updateProject.mutate({ id: item._id, patch: { status: event.target.value } })}>
+                  <option value="pending_designer">Chờ designer</option>
+                  <option value="agreement_pending">Chờ thỏa thuận</option>
+                  <option value="payment_pending">Chờ thanh toán</option>
+                  <option value="escrow_funded">Đã escrow</option>
+                  <option value="in_progress">Đang làm</option>
+                  <option value="submitted">Chờ duyệt</option>
+                  <option value="revision_requested">Yêu cầu chỉnh sửa</option>
+                  <option value="final_submitted">Đã bàn giao</option>
+                  <option value="completed">Hoàn thành</option>
+                  <option value="cancelled">Đã hủy</option>
+                </Select>
+                <Button variant="secondary" disabled={updateProject.isPending} onClick={() => updateProject.mutate({ id: item._id, patch: { priorityLevel: item.priorityLevel === 'premium' ? 'standard' : 'premium' } })}>
+                  {item.priorityLevel === 'premium' ? 'Hạ ưu tiên' : 'Ưu tiên'}
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </Dashboard>
+    );
+  }
+
   return (
     <Dashboard title={adminTitles[type] || 'Quản trị'}>
       <Card>
@@ -262,3 +401,4 @@ function toDiscountPayload(form: typeof emptyDiscount) {
     isActive: form.isActive
   };
 }
+

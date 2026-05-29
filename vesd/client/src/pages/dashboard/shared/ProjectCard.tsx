@@ -27,3 +27,4 @@ export function ProjectCard({ project }: { project: any }) {
     </Card>
   );
 }
+

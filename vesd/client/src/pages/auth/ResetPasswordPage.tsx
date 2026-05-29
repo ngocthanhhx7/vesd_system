@@ -1,4 +1,4 @@
-import { Button } from '../../components/ui/Button';
+﻿import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Primitives';
 import { AuthShell } from './AuthShell';
 
@@ -13,3 +13,4 @@ export function ResetPasswordPage() {
     </AuthShell>
   );
 }
+

@@ -736,3 +736,4 @@ export function HelpPage() {
   return <main className="container-page min-w-0 py-10"><Seo title="Trung tâm trợ giúp VESD" description="Hướng dẫn escrow, milestone, checklist bàn giao và chính sách khiếu nại." /><h1 className="break-words text-4xl font-black">Trung tâm trợ giúp</h1><div className="mt-6 grid min-w-0 gap-4 md:grid-cols-2">{topics.map((t) => <Card key={t} className="min-w-0"><h2 className="break-words font-bold">{t}</h2><p className="mt-2 break-words text-sm text-muted">Quy trình minh bạch để khách hàng và designer làm việc an toàn trên VESD.</p></Card>)}</div></main>;
 }
 
+

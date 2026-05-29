@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { BarChart3, CheckCircle2, Clock, CreditCard, FolderKanban, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { Badge, Card, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
@@ -11,6 +12,9 @@ import { ProjectCard } from './shared/ProjectCard';
 export function DesignerDashboard() {
   const { data = [] } = useQuery({ queryKey: ['designer-projects'], queryFn: endpoints.myProjects });
   const { data: summary } = useQuery({ queryKey: ['dashboard-summary'], queryFn: endpoints.dashboardSummary });
+  const awaitingClient = data.filter((p: any) => ['submitted', 'final_submitted'].includes(p.status));
+  const needsWork = data.filter((p: any) => ['escrow_funded', 'revision_requested'].includes(p.status));
+  const active = data.filter((p: any) => !['completed', 'cancelled'].includes(p.status));
   return (
     <Dashboard title="Tổng quan designer">
       <div className="grid gap-4 md:grid-cols-5">
@@ -19,6 +23,33 @@ export function DesignerDashboard() {
         <Metric label="Thu nhập" value={(summary?.totalEarned || 0).toLocaleString('vi-VN')} icon={CreditCard} />
         <Metric label="Lượt xem hồ sơ" value={summary?.profileViews ?? 0} icon={BarChart3} />
         <Metric label="Chờ rút tiền" value={(summary?.pendingPayouts || 0).toLocaleString('vi-VN')} icon={WalletIcon} />
+      </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_360px]">
+        <Card>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-black">Bàn giao cần theo dõi</h2>
+            <Link to="/designer/jobs"><Button>Tìm việc</Button></Link>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="dashboard-panel-inset rounded-lg p-4"><p className="text-sm text-muted">Cần bắt đầu/sửa</p><p className="text-2xl font-black">{needsWork.length}</p></div>
+            <div className="dashboard-panel-inset rounded-lg p-4"><p className="text-sm text-muted">Chờ khách duyệt</p><p className="text-2xl font-black">{awaitingClient.length}</p></div>
+            <div className="dashboard-panel-inset rounded-lg p-4"><p className="text-sm text-muted">Đang xử lý</p><p className="text-2xl font-black">{active.length}</p></div>
+          </div>
+        </Card>
+        <Card>
+          <h2 className="text-xl font-black">Workspace gần đây</h2>
+          <div className="mt-4 space-y-3">
+            {active.slice(0, 3).map((project: any) => (
+              <Link key={project._id} to={`/designer/workspace/${project._id}`} className="block rounded-lg bg-soft p-3 transition hover:bg-pale">
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-bold">{project.title}</p>
+                  <StatusBadge status={project.status} />
+                </div>
+              </Link>
+            ))}
+            {!active.length && <p className="text-base text-muted">Chưa có workspace đang chạy.</p>}
+          </div>
+        </Card>
       </div>
       <Section title="Yêu cầu dự án">{data.slice(0, 4).map((p: any) => <ProjectCard key={p._id} project={p} />)}</Section>
     </Dashboard>
@@ -286,3 +317,4 @@ export function PremiumPage({ roleTarget = 'designer' }: PremiumPageProps) {
     </Dashboard>
   );
 }
+

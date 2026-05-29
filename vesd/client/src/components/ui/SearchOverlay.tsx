@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Clock, FolderKanban, UserCircle, Wallet, ArrowDownToLine, Command, CornerDownLeft, ArrowUp, ArrowDown } from 'lucide-react';
@@ -205,3 +205,4 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
     </div>
   );
 }
+

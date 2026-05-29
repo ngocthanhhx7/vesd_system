@@ -737,7 +737,13 @@ function SecurityCard() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    change.mutate({ currentPassword: form.get('currentPassword'), newPassword: form.get('newPassword') });
+    const newPassword = String(form.get('newPassword') || '');
+    const confirmNewPassword = String(form.get('confirmNewPassword') || '');
+    if (newPassword !== confirmNewPassword) {
+      setMessage('Mật khẩu mới nhập lại không khớp');
+      return;
+    }
+    change.mutate({ currentPassword: form.get('currentPassword'), newPassword });
   }
   return (
     <Card>
@@ -745,6 +751,7 @@ function SecurityCard() {
       <form className="grid gap-4 md:max-w-md" onSubmit={submit}>
         <Input name="currentPassword" type="password" placeholder="Mật khẩu hiện tại" />
         <Input name="newPassword" type="password" placeholder="Mật khẩu mới (tối thiểu 8 ký tự)" />
+        <Input name="confirmNewPassword" type="password" placeholder="Nhập lại mật khẩu mới" />
         <Button disabled={change.isPending}>{change.isPending ? 'Đang cập nhật...' : 'Đổi mật khẩu'}</Button>
       </form>
       {message && <p className="mt-3 text-sm text-muted">{message}</p>}
@@ -762,7 +769,14 @@ export function ChangePasswordPage() {
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
-    change.mutate({ currentPassword: form.get('currentPassword'), newPassword: form.get('newPassword') });
+    const newPassword = String(form.get('newPassword') || '');
+    const confirmNewPassword = String(form.get('confirmNewPassword') || '');
+    if (newPassword !== confirmNewPassword) {
+      setMessage('Mật khẩu mới nhập lại không khớp');
+      return;
+    }
+    change.mutate({ currentPassword: form.get('currentPassword'), newPassword });
   }
-  return <Dashboard title="Đổi mật khẩu"><Card><form className="grid gap-4 md:max-w-md" onSubmit={submit}><Input name="currentPassword" type="password" placeholder="Mật khẩu hiện tại" /><Input name="newPassword" type="password" placeholder="Mật khẩu mới" /><Button disabled={change.isPending}>{change.isPending ? 'Đang cập nhật...' : 'Đổi mật khẩu'}</Button></form>{message && <p className="mt-3 text-sm text-muted">{message}</p>}</Card></Dashboard>;
+  return <Dashboard title="Đổi mật khẩu"><Card><form className="grid gap-4 md:max-w-md" onSubmit={submit}><Input name="currentPassword" type="password" placeholder="Mật khẩu hiện tại" /><Input name="newPassword" type="password" placeholder="Mật khẩu mới" /><Input name="confirmNewPassword" type="password" placeholder="Nhập lại mật khẩu mới" /><Button disabled={change.isPending}>{change.isPending ? 'Đang cập nhật...' : 'Đổi mật khẩu'}</Button></form>{message && <p className="mt-3 text-sm text-muted">{message}</p>}</Card></Dashboard>;
 }
+
