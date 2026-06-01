@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { BarChart3, BriefcaseBusiness, CalendarDays, CheckCircle2, CircleDollarSign, Clock, CreditCard, Filter, Hash, Search, Sparkles, UserRound } from 'lucide-react';
+import { AlertTriangle, BarChart3, BriefcaseBusiness, CalendarDays, CheckCircle2, CircleDollarSign, Clock, CreditCard, Filter, Hash, Search, Sparkles, UserRound, ShieldCheck } from 'lucide-react';
 import { Badge, Card, Input, Select, Skeleton, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
 import { endpoints } from '../../services/api';
@@ -469,6 +469,11 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
   const [uploadProgress, setUploadProgress] = useState('');
   const [revisionText, setRevisionText] = useState('');
   const [commentText, setCommentText] = useState('');
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeReason, setDisputeReason] = useState('Không bàn giao sản phẩm');
+  const [disputeDescription, setDisputeDescription] = useState('');
+  const [disputeEvidenceFiles, setDisputeEvidenceFiles] = useState<File[]>([]);
+  const [disputeError, setDisputeError] = useState('');
 
   const [agreedPrice, setAgreedPrice] = useState(0);
   const [agreedDeadline, setAgreedDeadline] = useState('');
@@ -636,6 +641,37 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể gửi phản hồi')
   });
 
+  const submitDisputeMutation = useMutation({
+    mutationFn: async () => {
+      setDisputeError('');
+      let uploaded: any[] = [];
+      if (disputeEvidenceFiles.length) {
+        uploaded = await uploadFiles(disputeEvidenceFiles, 'Tải minh chứng');
+      }
+      return endpoints.createDispute({
+        projectId: id as string,
+        reason: disputeReason,
+        description: disputeDescription,
+        evidenceFiles: uploaded
+      });
+    },
+    onSuccess: async () => {
+      setMessage('Đã gửi khiếu nại thành công. Dự án đã được chuyển sang trạng thái tranh chấp.');
+      setShowDisputeModal(false);
+      setDisputeReason('Không bàn giao sản phẩm');
+      setDisputeDescription('');
+      setDisputeEvidenceFiles([]);
+      await refreshProject();
+    },
+    onError: (err) => {
+      setDisputeError(err instanceof Error ? err.message : 'Không thể gửi khiếu nại');
+    }
+  });
+
+  const disputable = ['escrow_funded', 'in_progress', 'submitted', 'revision_requested', 'final_submitted'].includes(project?.status);
+
+  const activeDispute = data?.dispute;
+
   return (
     <Dashboard title={project?.title ? `Không gian: ${project.title}` : designer ? 'Không gian dự án của designer' : 'Không gian dự án của khách hàng'}>
       {isLoading && (
@@ -663,10 +699,77 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
           </div>
         </Card>
       )}
+      {activeDispute?.status === 'resolved' && (
+        <Card className="mb-4 border-emerald-200 bg-emerald-50/50">
+          <h3 className="text-lg font-black text-emerald-800 flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-emerald-600" />
+            Khiếu nại dự án đã được giải quyết
+          </h3>
+          <p className="mt-1 text-sm text-emerald-700">
+            Dự án này từng xảy ra tranh chấp và đã được Ban quản trị VESD giải quyết thành công.
+          </p>
+          <div className="mt-3 p-3 bg-white rounded-lg border border-emerald-100 text-sm space-y-2">
+            <div><span className="text-muted font-semibold">Quyết định xử lý:</span> <span className="font-bold text-emerald-800">{activeDispute.adminDecision}</span></div>
+            <div className="grid gap-3 md:grid-cols-3 text-xs mt-2 pt-2 border-t border-emerald-50">
+              <div><span className="text-muted">Hình thức:</span> <strong className="uppercase">
+                {activeDispute.resolutionType === 'full_refund' ? 'Hoàn tiền 100%' :
+                 activeDispute.resolutionType === 'release' ? 'Giải ngân 100%' :
+                 activeDispute.resolutionType === 'partial_refund' ? 'Chia tỷ lệ' :
+                 activeDispute.resolutionType === 'redo' ? 'Làm lại' : 'N/A'}
+              </strong></div>
+              {activeDispute.resolutionAmount > 0 && (
+                <div><span className="text-muted">Số tiền giải quyết:</span> <strong>{formatVnd(activeDispute.resolutionAmount)}</strong></div>
+              )}
+              <div><span className="text-muted">Ngày giải quyết:</span> <strong>{new Date(activeDispute.resolvedAt || activeDispute.updatedAt).toLocaleDateString('vi-VN')}</strong></div>
+            </div>
+          </div>
+        </Card>
+      )}
       {message && <p className="mb-4 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-muted">{message}</p>}
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
         <Card>
-          {['agreement_pending', 'payment_pending'].includes(project?.status) ? (
+          {project?.status === 'disputed' && activeDispute ? (
+            <div className="space-y-6">
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-5">
+                <h3 className="text-lg font-black text-amber-800 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                  Dự án đang trong trạng thái khiếu nại
+                </h3>
+                <p className="mt-1 text-sm text-amber-700">
+                  Dự án này đang có tranh chấp mở và các hoạt động thanh toán/bàn giao đã tạm khóa. Ban quản trị VESD đang xem xét và sẽ đưa ra quyết định cuối cùng trong vòng 24-48 giờ.
+                </p>
+              </div>
+
+              <div className="bg-white p-5 rounded-lg border border-line space-y-4">
+                <div className="flex flex-wrap justify-between items-center border-b pb-3 gap-2">
+                  <div>
+                    <span className="text-sm text-muted">Trạng thái khiếu nại:</span>
+                    <span className="ml-2 font-bold text-amber-600 uppercase">Đang xử lý</span>
+                  </div>
+                  <span className="text-xs text-muted">Mở bởi: {activeDispute.openedBy?.name || 'Thành viên'} ({new Date(activeDispute.createdAt).toLocaleDateString('vi-VN')})</span>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <span className="text-sm font-semibold text-muted block mb-1">Lý do khiếu nại</span>
+                    <p className="font-bold text-ink">{activeDispute.reason}</p>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-sm font-semibold text-muted block mb-1">Mô tả tranh chấp</span>
+                  <p className="p-3 bg-soft rounded border border-line text-sm whitespace-pre-line">{activeDispute.description}</p>
+                </div>
+
+                {!!activeDispute.evidenceFiles?.length && (
+                  <div>
+                    <span className="text-sm font-semibold text-muted block mb-1">Minh chứng kèm theo</span>
+                    <FileList projectId={id as string} files={activeDispute.evidenceFiles} allowDownload />
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : ['agreement_pending', 'payment_pending'].includes(project?.status) ? (
             <div className="space-y-6">
               <div className="rounded-lg bg-brand/5 border border-brand/20 p-5">
                 <h3 className="text-lg font-black text-brand flex items-center gap-2">
@@ -937,8 +1040,92 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
           <div className="mt-5 space-y-3">
             {comments.slice(-5).map((comment: any) => <div key={comment._id} className="rounded-lg bg-soft p-3"><p className="text-sm font-bold">{comment.senderId?.name || 'VESD'}</p><p className="mt-1 text-sm text-muted">{comment.content}</p></div>)}
           </div>
+          {disputable && project?.status !== 'disputed' && (
+            <div className="mt-6 border-t border-line pt-4 px-3">
+              <Button 
+                variant="secondary" 
+                className="w-full border-red-200 text-red-600 hover:bg-red-50" 
+                onClick={() => setShowDisputeModal(true)}
+              >
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Khiếu nại dự án
+              </Button>
+            </div>
+          )}
         </Card>
       </div>
+
+      {showDisputeModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <Card className="w-full max-w-lg border-line shadow-xl bg-white">
+            <h3 className="text-xl font-black text-ink flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              Gửi yêu cầu khiếu nại dự án
+            </h3>
+            <p className="text-sm text-muted mb-4">
+              Nếu xảy ra tranh chấp không thể tự hòa giải, bạn có thể gửi yêu cầu khiếu nại. Ban quản trị VESD sẽ kiểm tra thỏa thuận, lịch sử chat và file bàn giao để đưa ra phán quyết cuối cùng.
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-muted block mb-1">Lý do khiếu nại</label>
+                <Select value={disputeReason} onChange={(e) => setDisputeReason(e.target.value)}>
+                  <option value="Không bàn giao sản phẩm">Không bàn giao sản phẩm / Chưa gửi thiết kế</option>
+                  <option value="Trễ hẹn bàn giao">Trễ hẹn bàn giao / Hết hạn thỏa thuận</option>
+                  <option value="Chất lượng không đạt yêu cầu">Chất lượng không đạt yêu cầu / Không đúng brief</option>
+                  <option value="Không phản hồi">Không phản hồi / Mất liên lạc</option>
+                  <option value="Khác">Khác / Lý do khác</option>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-muted block mb-1">Mô tả chi tiết tranh chấp</label>
+                <Textarea
+                  value={disputeDescription}
+                  onChange={(e) => setDisputeDescription(e.target.value)}
+                  placeholder="Mô tả cụ thể vấn đề tranh chấp, các mốc thời gian và lý do bạn khiếu nại..."
+                  rows={4}
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-semibold text-muted block mb-1">Tài liệu/Hình ảnh minh chứng (nếu có)</label>
+                <Input
+                  type="file"
+                  multiple
+                  onChange={(e) => setDisputeEvidenceFiles(Array.from(e.target.files || []))}
+                />
+                {!!disputeEvidenceFiles.length && (
+                  <p className="text-xs text-muted mt-1">Đã chọn {disputeEvidenceFiles.length} file đính kèm</p>
+                )}
+              </div>
+            </div>
+
+            {disputeError && (
+              <p className="text-sm text-red-500 font-semibold mt-3">{disputeError}</p>
+            )}
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="secondary" onClick={() => {
+                setShowDisputeModal(false);
+                setDisputeReason('Không bàn giao sản phẩm');
+                setDisputeDescription('');
+                setDisputeEvidenceFiles([]);
+                setDisputeError('');
+              }}>
+                Hủy
+              </Button>
+              <Button
+                variant="primary"
+                disabled={submitDisputeMutation.isPending || !disputeDescription.trim()}
+                onClick={() => submitDisputeMutation.mutate()}
+              >
+                {submitDisputeMutation.isPending ? 'Đang gửi...' : 'Gửi khiếu nại'}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </Dashboard>
   );
 }

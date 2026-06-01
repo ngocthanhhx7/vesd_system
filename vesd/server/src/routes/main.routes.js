@@ -26,13 +26,14 @@ import {
   Wallet,
   Withdrawal
 } from '../models/index.js';
-import { approveMilestone, completeProject, fundEscrow, getOwnedProject, refundProject, requestRevision, syncCompletedProjectState } from '../services/projectService.js';
+import { approveMilestone, completeProject, fundEscrow, getOwnedProject, refundProject, requestRevision, syncCompletedProjectState, resolveDispute } from '../services/projectService.js';
 import { validateDiscount } from '../services/discountService.js';
 import { createPayosEscrowPayment, createPayosPremiumPayment, createPayosWalletTopup, handlePayosPaymentWebhook, payPremiumWithWallet, syncPayosPayment } from '../services/paymentService.js';
 import { handleCassoWithdrawalWebhook, requestCassoWithdrawal, requestPayosWithdrawal, syncPayosWithdrawal } from '../services/withdrawalService.js';
 import { confirmPayosWebhook, getPayosPayoutBalance } from '../services/payosService.js';
 import { transferWalletToDesigner } from '../services/walletService.js';
 import { addSSEClient } from '../services/notificationService.js';
+import { emitToConversation, emitToUsers } from '../realtime/socket.js';
 
 export const mainRoutes = Router();
 const projectFileSizeLimit = 100 * 1024 * 1024;
@@ -346,7 +347,8 @@ mainRoutes.get('/projects/:id', requireAuth, asyncHandler(async (req, res) => {
   await syncCompletedProjectState(project);
   await project.populate('clientId designerId', 'name avatar email');
   const comments = await ProjectComment.find({ projectId: project._id }).populate('senderId', 'name avatar').sort({ createdAt: 1 });
-  res.json({ project, comments });
+  const dispute = await Dispute.findOne({ projectId: project._id }).populate('resolvedBy openedBy', 'name email').sort({ createdAt: -1 });
+  res.json({ project, comments, dispute });
 }));
 mainRoutes.patch('/projects/:id', requireAuth, asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
@@ -547,6 +549,11 @@ mainRoutes.post('/conversations/direct', requireAuth, requireRole('client'), asy
   }
 
   await conversation.populate('clientId designerId', 'name email avatar roles');
+  if (message) {
+    message = await message.populate('senderId', 'name avatar roles');
+    emitToConversation(conversation._id, 'message:new', { conversationId: String(conversation._id), message });
+  }
+  emitToUsers(conversation.participants, 'conversation:updated', { conversation });
   res.status(message ? 201 : 200).json({ conversation, message });
 }));
 
@@ -588,7 +595,11 @@ mainRoutes.post('/conversations/:id/messages', requireAuth, asyncHandler(async (
     actionUrl: inboxPathFor(recipient, conversation._id)
   })));
 
-  res.status(201).json(await message.populate('senderId', 'name avatar roles'));
+  await conversation.populate('clientId designerId', 'name email avatar roles');
+  const populatedMessage = await message.populate('senderId', 'name avatar roles');
+  emitToConversation(conversation._id, 'message:new', { conversationId: String(conversation._id), message: populatedMessage });
+  emitToUsers(conversation.participants, 'conversation:updated', { conversation });
+  res.status(201).json(populatedMessage);
 }));
 
 mainRoutes.patch('/conversations/:id/read', requireAuth, asyncHandler(async (req, res) => {
@@ -599,6 +610,14 @@ mainRoutes.patch('/conversations/:id/read', requireAuth, asyncHandler(async (req
 
 mainRoutes.post('/disputes', requireAuth, asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.body.projectId);
+  const disputableStatuses = ['escrow_funded', 'in_progress', 'submitted', 'revision_requested', 'final_submitted'];
+  if (!disputableStatuses.includes(project.status)) {
+    throw new ApiError(400, 'Không thể khiếu nại dự án trong trạng thái này');
+  }
+  const existing = await Dispute.findOne({ projectId: project._id, status: { $in: ['open', 'under_review'] } });
+  if (existing) {
+    throw new ApiError(400, 'Dự án đang có khiếu nại chưa được xử lý');
+  }
   project.status = 'disputed';
   await project.save();
   res.status(201).json(await Dispute.create({ ...req.body, openedBy: req.user._id }));
@@ -880,19 +899,14 @@ mainRoutes.post('/admin/payos/confirm-webhook', requireAuth, requireRole('admin'
 mainRoutes.get('/admin/disputes', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Dispute.find().populate('projectId openedBy resolvedBy').sort({ updatedAt: -1 }))));
 mainRoutes.get('/admin/disputes/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Dispute.findById(req.params.id).populate('projectId openedBy resolvedBy'))));
 mainRoutes.patch('/admin/disputes/:id/resolve', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
-  const dispute = await Dispute.findById(req.params.id);
-  if (!dispute) throw new ApiError(404, 'Khong tim thay khieu nai');
-  dispute.status = 'resolved';
-  dispute.adminDecision = req.body.adminDecision;
-  dispute.resolutionType = req.body.resolutionType;
-  dispute.resolutionAmount = req.body.resolutionAmount;
-  dispute.resolvedBy = req.user._id;
-  dispute.resolvedAt = new Date();
-  await dispute.save();
-  if (req.body.resolutionType === 'full_refund' || req.body.resolutionType === 'partial_refund' || req.body.resolutionType === 'redo') {
-    await refundProject({ projectId: dispute.projectId, adminId: req.user._id, amount: req.body.resolutionAmount, resolutionType: req.body.resolutionType });
-  }
-  res.json(dispute);
+  const result = await resolveDispute({
+    disputeId: req.params.id,
+    adminId: req.user._id,
+    adminDecision: req.body.adminDecision,
+    resolutionType: req.body.resolutionType,
+    resolutionAmount: req.body.resolutionAmount
+  });
+  res.json(result);
 }));
 mainRoutes.get('/admin/reviews', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await Review.find({ reported: true }).populate('reviewerId revieweeId projectId'))));
 mainRoutes.patch('/admin/reviews/:id', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await Review.findByIdAndUpdate(req.params.id, req.body, { new: true }))));

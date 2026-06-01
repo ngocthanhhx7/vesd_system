@@ -1,4 +1,4 @@
-import { ChecklistTemplate, Project, ProjectComment, Transaction, Wallet } from '../models/index.js';
+import { ChecklistTemplate, Project, ProjectComment, Transaction, Wallet, Dispute, Notification } from '../models/index.js';
 import { ApiError } from '../utils/apiError.js';
 import { validateDiscount } from './discountService.js';
 import { calculatePlatformFee } from './walletService.js';
@@ -15,16 +15,18 @@ export async function getOwnedProject(user, id) {
 }
 
 async function getProjectEscrowStats(projectId) {
-  const [depositTransactions, releaseTransactions] = await Promise.all([
+  const [depositTransactions, releaseTransactions, refundTransactions] = await Promise.all([
     Transaction.find({ projectId, type: 'deposit', status: 'success' }).select('amount metadata'),
-    Transaction.find({ projectId, type: 'release', status: 'success' }).select('amount platformFee metadata')
+    Transaction.find({ projectId, type: 'release', status: 'success' }).select('amount platformFee metadata'),
+    Transaction.find({ projectId, type: 'refund', status: 'success' }).select('amount')
   ]);
   const escrowPaid = depositTransactions.reduce((sum, transaction) => sum + Number(transaction.metadata?.escrowAmount ?? transaction.amount ?? 0), 0);
   const released = releaseTransactions.reduce((sum, transaction) => {
     const grossAmount = transaction.metadata?.grossAmount;
     return sum + Number(grossAmount ?? (Number(transaction.amount || 0) + Number(transaction.platformFee || 0)));
   }, 0);
-  return { escrowPaid, released, remaining: Math.max(escrowPaid - released, 0) };
+  const refunded = refundTransactions.reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+  return { escrowPaid, released, refunded, remaining: Math.max(escrowPaid - released - refunded, 0) };
 }
 
 async function releaseProjectFunds({ project, amount, reason }) {
@@ -199,4 +201,64 @@ export async function refundProject({ projectId, adminId, amount, resolutionType
   project.status = resolutionType === 'redo' ? 'in_progress' : 'cancelled';
   await project.save();
   return project;
+}
+
+export async function resolveDispute({ disputeId, adminId, adminDecision, resolutionType, resolutionAmount }) {
+  const dispute = await Dispute.findById(disputeId);
+  if (!dispute) throw new ApiError(404, 'Khong tim thay khieu nai');
+  if (dispute.status === 'resolved') throw new ApiError(400, 'Khieu nai da duoc giai quyet');
+
+  const project = await Project.findById(dispute.projectId);
+  if (!project) throw new ApiError(404, 'Khong tim thay du an');
+
+  const { remaining } = await getProjectEscrowStats(project._id);
+
+  dispute.status = 'resolved';
+  dispute.adminDecision = adminDecision;
+  dispute.resolutionType = resolutionType;
+  dispute.resolvedBy = adminId;
+  dispute.resolvedAt = new Date();
+
+  if (resolutionType === 'full_refund') {
+    dispute.resolutionAmount = remaining;
+    await refundProject({ projectId: project._id, adminId, amount: remaining, resolutionType: 'full_refund' });
+  } else if (resolutionType === 'release') {
+    dispute.resolutionAmount = remaining;
+    await releaseProjectFunds({ project, amount: remaining, reason: 'dispute_resolved_release' });
+    project.status = 'completed';
+    await project.save();
+  } else if (resolutionType === 'partial_refund') {
+    const refundAmount = Math.min(Number(resolutionAmount || 0), remaining);
+    dispute.resolutionAmount = refundAmount;
+    await refundProject({ projectId: project._id, adminId, amount: refundAmount, resolutionType: 'partial_refund' });
+    const restAmount = remaining - refundAmount;
+    if (restAmount > 0) {
+      await releaseProjectFunds({ project, amount: restAmount, reason: 'dispute_resolved_partial_release' });
+    }
+    project.status = 'completed';
+    await project.save();
+  } else if (resolutionType === 'redo') {
+    dispute.resolutionAmount = 0;
+    project.status = 'in_progress';
+    await project.save();
+  }
+
+  await dispute.save();
+
+  const userIds = [project.clientId];
+  if (project.designerId) userIds.push(project.designerId);
+
+  await Notification.insertMany(userIds.map((userId) => {
+    const isClient = String(userId) === String(project.clientId);
+    return {
+      userId,
+      type: 'dispute.resolved',
+      category: 'dispute',
+      title: 'Khiếu nại dự án đã được giải quyết',
+      message: `Khiếu nại cho dự án "${project.title}" đã được Admin xử lý với quyết định: ${adminDecision || 'Giải quyết khiếu nại'}.`,
+      actionUrl: isClient ? `/client/workspace/${project._id}` : `/designer/workspace/${project._id}`
+    };
+  }));
+
+  return dispute;
 }

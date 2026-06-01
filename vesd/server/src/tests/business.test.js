@@ -30,3 +30,9 @@ test('client urls config supports comma-separated origins', () => {
     'https://www.vesd.site'
   ]);
 });
+test('disputable project statuses rule', () => {
+  const disputableStatuses = ['escrow_funded', 'in_progress', 'submitted', 'revision_requested', 'final_submitted'];
+  assert.equal(disputableStatuses.includes('in_progress'), true);
+  assert.equal(disputableStatuses.includes('completed'), false);
+  assert.equal(disputableStatuses.includes('cancelled'), false);
+});
