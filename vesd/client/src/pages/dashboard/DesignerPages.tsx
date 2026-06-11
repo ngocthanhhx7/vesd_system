@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { BarChart3, CheckCircle2, Clock, CreditCard, FolderKanban, ShieldCheck, Sparkles, Zap } from 'lucide-react';
-import { Badge, Card, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
+import { Badge, Card, FormGroup, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
 import { endpoints, PremiumPlan } from '../../services/api';
 import { Dashboard, Section } from './shared/Dashboard';
@@ -59,20 +59,306 @@ export function DesignerDashboard() {
 function WalletIcon(props: any) { return <CreditCard {...props} />; }
 
 export function DesignerProfileSetup() {
+  const queryClient = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ['my-account'],
+    queryFn: endpoints.myAccount
+  });
+
+  const [form, setForm] = useState({
+    title: '',
+    startingPrice: '0',
+    bio: '',
+    skills: '',
+    categories: '',
+    styleTags: '',
+    availability: 'available',
+    education: '',
+    experience: '',
+    facebook: '',
+    linkedin: '',
+    twitter: '',
+    tiktok: '',
+    background: ''
+  });
+
+  const [message, setMessage] = useState('');
+  const bgInputRef = useRef<HTMLInputElement>(null);
+  const [bgUploading, setBgUploading] = useState(false);
+
+  const handleBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setMessage('Chỉ chấp nhận file ảnh (JPG, PNG, GIF, WebP)');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage('Ảnh tối đa 5MB');
+      setTimeout(() => setMessage(''), 3000);
+      return;
+    }
+    try {
+      setBgUploading(true);
+      const result = await endpoints.uploadImage(file);
+      const bgUrl = result.url;
+      setField('background', bgUrl);
+      setMessage('Đã tải ảnh nền lên thành công!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Không thể tải ảnh lên');
+      setTimeout(() => setMessage(''), 3000);
+    } finally {
+      setBgUploading(false);
+      if (bgInputRef.current) bgInputRef.current.value = '';
+    }
+  };
+
+  useEffect(() => {
+    if (data?.designerProfile) {
+      const p = data.designerProfile;
+      setForm({
+        title: p.title || '',
+        startingPrice: String(p.startingPrice || 0),
+        bio: p.bio || '',
+        skills: (p.skills || []).join(', '),
+        categories: (p.categories || []).join(', '),
+        styleTags: (p.styleTags || []).join(', '),
+        availability: p.availability || 'available',
+        education: p.education || '',
+        experience: p.experience || '',
+        facebook: p.socialLinks?.facebook || '',
+        linkedin: p.socialLinks?.linkedin || '',
+        twitter: p.socialLinks?.twitter || '',
+        tiktok: p.socialLinks?.tiktok || '',
+        background: p.background || ''
+      });
+    }
+  }, [data]);
+
+  const save = useMutation({
+    mutationFn: (body: any) => endpoints.createDesignerProfile(body),
+    onSuccess: () => {
+      setMessage('Đã cập nhật hồ sơ designer thành công!');
+      queryClient.invalidateQueries({ queryKey: ['my-account'] });
+      setTimeout(() => setMessage(''), 3000);
+    },
+    onError: (error) => {
+      setMessage(error instanceof Error ? error.message : 'Không thể cập nhật hồ sơ');
+    }
+  });
+
+  const setField = (key: keyof typeof form, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const payload = {
+      title: form.title,
+      startingPrice: Number(form.startingPrice) || 0,
+      bio: form.bio,
+      skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
+      categories: form.categories.split(',').map(c => c.trim()).filter(Boolean),
+      styleTags: form.styleTags.split(',').map(t => t.trim()).filter(Boolean),
+      availability: form.availability,
+      education: form.education,
+      experience: form.experience,
+      socialLinks: {
+        facebook: form.facebook,
+        linkedin: form.linkedin,
+        twitter: form.twitter,
+        tiktok: form.tiktok
+      },
+      background: form.background
+    };
+    save.mutate(payload);
+  };
+
+  if (isLoading) {
+    return (
+      <Dashboard title="Thiết lập hồ sơ designer">
+        <Card>
+          <p className="text-muted">Đang tải...</p>
+        </Card>
+      </Dashboard>
+    );
+  }
+
   return (
     <Dashboard title="Thiết lập hồ sơ designer">
       <Card>
-        <form className="grid gap-4 md:grid-cols-2">
-          <Input placeholder="Tiêu đề hồ sơ" />
-          <Input placeholder="Giá khởi điểm" />
-          <Textarea className="md:col-span-2" placeholder="Giới thiệu bản thân" />
-          <Input placeholder="Kỹ năng" />
-          <Input placeholder="Danh mục thiết kế" />
-          <Input placeholder="Tag phong cách" />
-          <Input placeholder="Thời gian nhận việc" />
-          <Input placeholder="Học vấn" />
-          <Input placeholder="Kinh nghiệm" />
-          <Button>Gửi xác minh</Button>
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+          <FormGroup label="Tiêu đề hồ sơ" required>
+            <Input
+              placeholder="Ví dụ: Graphic Designer, UI/UX Designer..."
+              value={form.title}
+              onChange={(e) => setField('title', e.target.value)}
+              required
+            />
+          </FormGroup>
+          <FormGroup label="Giá khởi điểm (VND)" required>
+            <Input
+              type="number"
+              placeholder="Ví dụ: 500000"
+              value={form.startingPrice}
+              onChange={(e) => setField('startingPrice', e.target.value)}
+              required
+            />
+          </FormGroup>
+          <FormGroup label="Giới thiệu bản thân" className="md:col-span-2" required>
+            <Textarea
+              placeholder="Giới thiệu chi tiết kinh nghiệm, phong cách thiết kế của bạn..."
+              value={form.bio}
+              onChange={(e) => setField('bio', e.target.value)}
+              required
+            />
+          </FormGroup>
+          <FormGroup label="Kỹ năng (cách nhau bởi dấu phẩy)" helper="Ví dụ: Figma, Illustrator, Photoshop">
+            <Input
+              placeholder="Figma, Photoshop, Illustrator"
+              value={form.skills}
+              onChange={(e) => setField('skills', e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Danh mục thiết kế (cách nhau bởi dấu phẩy)" helper="Ví dụ: logo-design, brand-identity, ui-ux-design">
+            <Input
+              placeholder="logo-design, brand-identity, ui-ux-design"
+              value={form.categories}
+              onChange={(e) => setField('categories', e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Tag phong cách (cách nhau bởi dấu phẩy)" helper="Ví dụ: minimal, bold, modern, playful">
+            <Input
+              placeholder="minimal, modern, bold"
+              value={form.styleTags}
+              onChange={(e) => setField('styleTags', e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Thời gian nhận việc">
+            <Select
+              value={form.availability}
+              onChange={(e) => setField('availability', e.target.value)}
+            >
+              <option value="available">Sẵn sàng nhận dự án</option>
+              <option value="busy">Bận / Trao đổi lịch làm việc</option>
+            </Select>
+          </FormGroup>
+          <FormGroup label="Học văn">
+            <Input
+              placeholder="Ví dụ: Đại học Mỹ thuật, Arena Multimedia..."
+              value={form.education}
+              onChange={(e) => setField('education', e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Kinh nghiệm">
+            <Input
+              placeholder="Ví dụ: 3 năm, 5 năm..."
+              value={form.experience}
+              onChange={(e) => setField('experience', e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Ảnh nền hồ sơ" helper="Ảnh nền sẽ hiển thị làm bìa hồ sơ của bạn (khuyên dùng tỉ lệ rộng)">
+            <div className="mt-1 flex flex-col gap-3">
+              {form.background ? (
+                <div className="relative rounded-lg overflow-hidden border border-slate-200 bg-slate-50 h-32 w-full flex items-center justify-center">
+                  <img
+                    src={form.background}
+                    alt="Background Preview"
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-3 opacity-0 hover:opacity-100 transition-opacity">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="bg-white hover:bg-slate-100 text-slate-800"
+                      onClick={() => bgInputRef.current?.click()}
+                      disabled={bgUploading}
+                    >
+                      Thay đổi
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="danger"
+                      onClick={() => setField('background', '')}
+                      disabled={bgUploading}
+                    >
+                      Xóa
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  onClick={() => !bgUploading && bgInputRef.current?.click()}
+                  className="border-2 border-dashed border-slate-300 hover:border-brand rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition bg-slate-50"
+                >
+                  {bgUploading ? (
+                    <svg className="h-8 w-8 animate-spin text-brand" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                  <span className="text-sm font-semibold text-slate-600">
+                    {bgUploading ? 'Đang tải lên...' : 'Nhấp để chọn file ảnh nền'}
+                  </span>
+                  <span className="text-xs text-slate-400">JPG, PNG, WebP tối đa 5MB</span>
+                </div>
+              )}
+              <input
+                ref={bgInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleBackgroundUpload}
+              />
+            </div>
+          </FormGroup>
+          
+          <div className="md:col-span-2 mt-4">
+            <h3 className="text-lg font-bold mb-3">Liên kết mạng xã hội</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <FormGroup label="Facebook URL">
+                <Input
+                  placeholder="https://facebook.com/..."
+                  value={form.facebook}
+                  onChange={(e) => setField('facebook', e.target.value)}
+                />
+              </FormGroup>
+              <FormGroup label="LinkedIn URL">
+                <Input
+                  placeholder="https://linkedin.com/in/..."
+                  value={form.linkedin}
+                  onChange={(e) => setField('linkedin', e.target.value)}
+                />
+              </FormGroup>
+              <FormGroup label="Twitter/X URL">
+                <Input
+                  placeholder="https://twitter.com/..."
+                  value={form.twitter}
+                  onChange={(e) => setField('twitter', e.target.value)}
+                />
+              </FormGroup>
+              <FormGroup label="TikTok URL">
+                <Input
+                  placeholder="https://tiktok.com/@..."
+                  value={form.tiktok}
+                  onChange={(e) => setField('tiktok', e.target.value)}
+                />
+              </FormGroup>
+            </div>
+          </div>
+
+          <div className="md:col-span-2 mt-4 flex items-center gap-4">
+            <Button type="submit" disabled={save.isPending}>
+              {save.isPending ? 'Đang lưu...' : 'Lưu hồ sơ'}
+            </Button>
+            {message && <p className="text-sm font-semibold text-brand">{message}</p>}
+          </div>
         </form>
       </Card>
     </Dashboard>

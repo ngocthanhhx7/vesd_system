@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowRight, Award, BriefcaseBusiness, CalendarDays, CheckCircle2, Clock3, Eye, Filter, Folder, Heart, MapPin, MessageCircle, Search, Send, ShieldCheck, Sparkles, Star, Users, WalletCards } from 'lucide-react';
@@ -528,20 +528,8 @@ export function DesignerProfilePage() {
   const reviews = data.reviews || [];
   const categoryNames = (profile.categories?.length ? profile.categories : ['brand-identity']).map((item: string) => profileCategoryLabels[item] || item);
   const skills = profile.skills?.length ? profile.skills : categoryNames;
-  const coverImage = portfolio[0]?.images?.[0]?.url || '/assets/figma-hero-laptop.jpg';
   const avatar = user.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(user.name || profile.title || 'vesd')}`;
   const defaultMessage = `Xin chào ${user.name}, tôi muốn trao đổi về một dự án thiết kế.`;
-  const portfolioItems = portfolio.length ? portfolio : [
-    { _id: 'fallback-1', title: 'Bộ nhận diện thương hiệu', description: 'Logo, guideline màu sắc và key visual cho chiến dịch ra mắt.', images: [{ url: '/assets/figma-blue-board.png' }], tags: ['Branding', 'Guideline'] },
-    { _id: 'fallback-2', title: 'Thiết kế mobile app', description: 'Luồng onboarding, hồ sơ người dùng và màn hình giao dịch.', images: [{ url: '/assets/figma-mobile-mockup.png' }], tags: ['UI/UX', 'Mobile'] },
-    { _id: 'fallback-3', title: 'Ấn phẩm social media', description: 'Template hình ảnh nhất quán cho nội dung quảng cáo đa kênh.', images: [{ url: '/assets/figma-business-card.png' }], tags: ['Social', 'Campaign'] }
-  ];
-  const metrics = [
-    { label: 'Dự án hoàn thành', value: (profile.completedProjects || 0).toLocaleString('vi-VN'), icon: BriefcaseBusiness },
-    { label: 'Đánh giá', value: profile.ratingAverage ? profile.ratingAverage.toFixed(1) : 'Mới', icon: Star },
-    { label: 'Lượt xem hồ sơ', value: (profile.profileViews || 0).toLocaleString('vi-VN'), icon: Eye },
-    { label: 'Giá khởi điểm', value: formatVnd(profile.startingPrice), icon: WalletCards }
-  ];
 
   function handleStartConversation() {
     setContactMessage('');
@@ -557,156 +545,454 @@ export function DesignerProfilePage() {
   }
 
   return (
-    <main className="bg-white pb-16">
+    <main className="bg-white pb-16 font-sans">
       <Seo title={`${user.name} - ${profile.title} | VESD`} description={`${user.name} nhận dự án ${profile.categories?.join(', ')} từ ${profile.startingPrice?.toLocaleString('vi-VN')}đ.`} schema={{ '@context': 'https://schema.org', '@type': 'Person', name: user.name, jobTitle: profile.title }} />
-      <section className="relative h-[300px] overflow-hidden bg-brand text-white">
-        <img className="absolute inset-0 h-full w-full object-cover opacity-70" src={coverImage} alt="" loading="eager" />
-        <div className="absolute inset-0 bg-gradient-to-r from-brand via-brand/70 to-brand/10" />
-        <div className="container-page relative z-10 flex h-full items-end pb-24">
-          <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-[.18em] text-white/80">VESD Designer Profile</p>
-            <h1 className="mt-3 text-[34px] font-black leading-tight md:text-[48px]">{user.name}</h1>
-            <p className="mt-3 max-w-xl text-base font-medium text-white/90 md:text-lg">{profile.title || 'Designer đồ họa'}</p>
+      
+      {/* Cover Banner (Fixed geometric pattern) */}
+      <section 
+        className="relative h-[120px] w-full overflow-hidden flex items-center justify-center bg-cover bg-center border-b border-[#CED8F4]"
+        style={{ backgroundImage: `url('/assets/Rectangle 23785.png')` }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/10" />
+        <p className="relative z-10 text-white/95 font-serif italic text-base md:text-lg font-medium text-center max-w-lg px-4 select-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+          "Great design happens when great minds collaborate"
+        </p>
+      </section>
+
+      {/* Main Header Container with Custom Background & Info */}
+      <section className="container-page mt-6 relative z-10">
+        <div className="rounded-[20px] border border-[#CED8F4] bg-white overflow-hidden shadow-md">
+          {/* Custom Background Image Block */}
+          <div 
+            className="relative h-[250px] w-full bg-cover bg-center bg-slate-50"
+            style={{ 
+              backgroundImage: profile.background ? `url(${profile.background})` : 'none'
+            }}
+          >
+            {!profile.background && (
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-indigo-50 flex items-center justify-center">
+                <span className="text-slate-400 text-sm font-medium">Chưa thiết lập ảnh bìa cá nhân</span>
+              </div>
+            )}
+
+            {/* Overlaid Breadcrumbs */}
+            <div className="absolute top-4 left-6 z-20 text-xs sm:text-sm text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] font-semibold flex items-center gap-1.5 bg-black/30 px-3.5 py-1.5 rounded-full backdrop-blur-[2px]">
+              <Link to="/" className="hover:underline transition-all">Thuê Freelancer</Link>
+              <span>&gt;</span>
+              <span className="font-bold">{user.name}</span>
+            </div>
+          </div>
+
+          {/* Details & Actions Content */}
+          <div className="p-6">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+                {/* Avatar and Social Media */}
+                <div className="flex flex-col items-center gap-3">
+                  <div className="relative -mt-20 sm:-mt-24 z-20">
+                    <img
+                      className="h-28 w-28 sm:h-32 sm:w-32 rounded-full border-4 border-white bg-slate-100 object-cover shadow-md"
+                      src={avatar}
+                      alt={user.name}
+                    />
+                  </div>
+                  {/* Social Icons */}
+                  <div className="flex items-center gap-3 mt-1">
+                    <a href={profile.socialLinks?.facebook || "#"} target="_blank" rel="noreferrer" title="Facebook">
+                      <svg className="w-5 h-5 fill-current text-slate-400 hover:text-blue-600 transition" viewBox="0 0 24 24">
+                        <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.8z"/>
+                      </svg>
+                    </a>
+                    <a href={profile.socialLinks?.linkedin || "#"} target="_blank" rel="noreferrer" title="LinkedIn">
+                      <svg className="w-5 h-5 fill-current text-slate-400 hover:text-blue-700 transition" viewBox="0 0 24 24">
+                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                      </svg>
+                    </a>
+                    <a href={profile.socialLinks?.twitter || "#"} target="_blank" rel="noreferrer" title="Twitter">
+                      <svg className="w-5 h-5 fill-current text-slate-400 hover:text-sky-500 transition" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                      </svg>
+                    </a>
+                    <a href={profile.socialLinks?.tiktok || "#"} target="_blank" rel="noreferrer" title="TikTok">
+                      <svg className="w-5 h-5 fill-current text-slate-400 hover:text-black transition" viewBox="0 0 24 24">
+                        <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.74-3.94-1.72-.8-.72-1.39-1.63-1.75-2.62-.01 1.7-.01 3.4-.01 5.11 0 2.24-.46 4.57-1.8 6.23-1.57 2.01-4.26 2.9-6.74 2.5-2.61-.41-4.83-2.39-5.46-4.97-.73-2.92.51-6.19 3.02-7.53 1.25-.66 2.69-.93 4.09-.8V12c-1.37.07-2.72.76-3.41 1.95-.74 1.25-.63 2.98.26 4.09 1.03 1.3 3.05 1.59 4.38.65 1.05-.72 1.48-2.09 1.48-3.33.01-4.81.01-9.61.01-14.42-.03-.31-.05-.62-.07-.92z"/>
+                      </svg>
+                    </a>
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="flex-1 text-center sm:text-left mt-2 sm:mt-0">
+                  <h1 className="text-3xl font-bold text-slate-800 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    {user.name}
+                    {profile.premiumStatus === 'premium' && (
+                      <span className="inline-flex items-center gap-1 rounded bg-[#2457F5] px-2 py-0.5 text-xs font-bold text-white uppercase tracking-wider">
+                        Premium
+                      </span>
+                    )}
+                  </h1>
+
+                  <div className="mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-sm">
+                    <span className="text-[#FBAD39] text-lg">★★★★★</span>
+                    <span className="font-semibold text-slate-700">{(profile.ratingAverage || 5.0).toFixed(1)}</span>
+                    <span className="text-slate-500">({profile.ratingCount || 102} đánh giá)</span>
+                  </div>
+
+                  {/* Specialization Tags */}
+                  <p className="mt-2 text-sm text-[#2457F5] font-semibold tracking-wide uppercase">
+                    {profile.title || categoryNames.join(' | ') || 'Graphic Designer'}
+                  </p>
+
+                  {/* Status indicators */}
+                  <div className="mt-4 flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-2 text-xs text-slate-500 font-semibold">
+                    <span className="flex items-center gap-1.5 text-[#2457F5]">
+                      <BriefcaseBusiness size={14} /> Nhận việc
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[#2457F5]">
+                      <Sparkles size={14} /> 100% - 225h
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[#2457F5]">
+                      <Clock3 size={14} /> Vừa hoạt động
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[#2457F5]">
+                      <MapPin size={14} /> {profile.experience ? `Kinh nghiệm ${profile.experience}` : 'Đến từ Hà Nội'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-row sm:flex-col lg:flex-row gap-3 w-full sm:w-auto self-center lg:self-start mt-4 sm:mt-0">
+                <Button
+                  variant="secondary"
+                  className="flex-1 sm:flex-none w-full sm:w-36 h-11 rounded-[22px] border-[#2457F5] text-[#2457F5] hover:bg-blue-50 font-semibold"
+                  onClick={handleStartConversation}
+                  disabled={startConversation.isPending}
+                >
+                  Nhắn Tin
+                </Button>
+                <Link className="flex-1 sm:flex-none w-full sm:w-36" to="/client/create-project">
+                  <Button className="w-full h-11 rounded-[22px] bg-[#2457F5] hover:bg-blue-700 font-semibold shadow-md text-white">
+                    Thuê Ngay
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            {contactMessage && <p className="mt-3 text-center sm:text-left text-sm text-red-500 font-semibold">{contactMessage}</p>}
           </div>
         </div>
       </section>
 
-      <section className="container-page relative z-10 -mt-16">
-        <div className="min-w-0 rounded-[18px] border border-line bg-white p-5 shadow-[0_18px_48px_rgba(36,83,214,0.16)] md:p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-center">
-              <Avatar className="h-28 w-28 border-4 border-white text-2xl shadow-soft" src={avatar} name={user.name} />
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="min-w-0 break-words text-3xl font-black text-ink">{user.name}</h2>
-                  {profile.verificationStatus === 'verified' && <Badge tone="success">Đã xác minh</Badge>}
-                  {profile.premiumStatus === 'premium' && <Badge tone="premium">Premium</Badge>}
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
-                  <span className="inline-flex items-center gap-1.5"><MapPin size={16} /> Việt Nam</span>
-                  <span className="inline-flex items-center gap-1.5"><Clock3 size={16} /> {profile.availability === 'available' ? 'Sẵn sàng nhận dự án' : 'Trao đổi lịch làm việc'}</span>
-                  <span className="inline-flex items-center gap-1.5"><Award size={16} /> {profile.experience || 'Kinh nghiệm dự án thực tế'}</span>
-                </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <RatingStars value={profile.ratingAverage} />
-                  <span className="text-sm font-semibold text-ink">{profile.ratingAverage ? profile.ratingAverage.toFixed(1) : 'Chưa có đánh giá'}</span>
-                  <span className="text-sm text-muted">({profile.ratingCount || reviews.length} đánh giá)</span>
-                </div>
-              </div>
+      {/* Main Body Grid */}
+      <section className="container-page mt-8 grid gap-8 lg:grid-cols-[280px_1fr]">
+        
+        {/* Left Column: Sidebar Card "Tỷ lệ nhận việc" */}
+        <aside className="space-y-6">
+          <div className="rounded-[20px] border border-[#CED8F4] bg-white p-5 shadow-sm text-center sm:text-left">
+            <h3 className="text-base font-bold text-slate-800 border-b border-[#CED8F4] pb-3 mb-4">
+              Tỷ lệ nhận việc
+            </h3>
+            
+            {/* Inline SVG Chart */}
+            <div className="my-4 flex justify-center">
+              <svg className="w-full max-w-[240px] h-28" viewBox="0 0 240 100">
+                <defs>
+                  <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#2457F5" stopOpacity="0.2"/>
+                    <stop offset="100%" stopColor="#2457F5" stopOpacity="0.0"/>
+                  </linearGradient>
+                </defs>
+                {/* Grid lines */}
+                <line x1="10" y1="20" x2="230" y2="20" stroke="#F1F5F9" strokeWidth="1" />
+                <line x1="10" y1="50" x2="230" y2="50" stroke="#F1F5F9" strokeWidth="1" />
+                <line x1="10" y1="80" x2="230" y2="80" stroke="#F1F5F9" strokeWidth="1" />
+                
+                {/* Area under the line */}
+                <path d="M 10 75 L 45 60 L 80 70 L 115 45 L 150 55 L 185 25 L 220 40 L 220 90 L 10 90 Z" fill="url(#chart-grad)" />
+                
+                {/* Main line path */}
+                <path d="M 10 75 L 45 60 L 80 70 L 115 45 L 150 55 L 185 25 L 220 40" fill="none" stroke="#2457F5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                
+                {/* Chart dots */}
+                <circle cx="10" cy="75" r="4.5" fill="white" stroke="#2457F5" strokeWidth="2.5" />
+                <circle cx="45" cy="60" r="4.5" fill="white" stroke="#2457F5" strokeWidth="2.5" />
+                <circle cx="80" cy="70" r="4.5" fill="white" stroke="#2457F5" strokeWidth="2.5" />
+                <circle cx="115" cy="45" r="4.5" fill="white" stroke="#2457F5" strokeWidth="2.5" />
+                <circle cx="150" cy="55" r="4.5" fill="white" stroke="#2457F5" strokeWidth="2.5" />
+                <circle cx="185" cy="25" r="4.5" fill="white" stroke="#2457F5" strokeWidth="2.5" />
+                <circle cx="220" cy="40" r="4.5" fill="white" stroke="#2457F5" strokeWidth="2.5" />
+              </svg>
             </div>
-            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-              <Button className="w-[calc(100%-2px)] rounded-full px-6 sm:w-auto" onClick={handleStartConversation} disabled={startConversation.isPending}>
-                <MessageCircle size={18} /> {startConversation.isPending ? 'Đang mở...' : 'Nhắn tin'}
-              </Button>
-              <Link className="w-full sm:w-auto" to="/client/create-project">
-                <Button variant="secondary" className="w-[calc(100%-2px)] rounded-full px-6 sm:w-full"><BriefcaseBusiness size={18} /> Thuê designer</Button>
-              </Link>
+
+            {/* Weekday labels */}
+            <div className="flex justify-between text-[10px] text-slate-400 font-medium px-1 mb-6">
+              <span>T.hai</span>
+              <span>T.ba</span>
+              <span>T.tư</span>
+              <span>T.năm</span>
+              <span>T.sáu</span>
+              <span>T.bảy</span>
+              <span>CN</span>
+            </div>
+
+            {/* Stats details */}
+            <div className="space-y-3.5 text-sm">
+              <div className="flex justify-between border-b border-[#F1F5F9] pb-2">
+                <span className="text-slate-500 font-semibold">Tỷ lệ phản hồi</span>
+                <span className="font-bold text-slate-850">90%</span>
+              </div>
+              <div className="flex justify-between border-b border-[#F1F5F9] pb-2">
+                <span className="text-slate-500 font-semibold">Tỷ lệ hoàn thành</span>
+                <span className="font-bold text-slate-850">100%</span>
+              </div>
+              <div className="flex justify-between border-b border-[#F1F5F9] pb-2">
+                <span className="text-slate-500 font-semibold">Thời gian trả lời</span>
+                <span className="font-bold text-slate-850">15m</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-semibold">Active projects</span>
+                <span className="font-bold text-slate-850">{profile.completedProjects || 4}</span>
+              </div>
             </div>
           </div>
-        </div>
+        </aside>
 
-        <div className="mt-7 grid gap-4 md:grid-cols-4">
-          {metrics.map(({ label, value, icon: Icon }) => (
-            <div key={label} className="rounded-[14px] border border-line bg-white p-5 shadow-[0_8px_24px_rgba(36,83,214,0.07)]">
-              <Icon className="h-5 w-5 text-brand" />
-              <p className="mt-3 text-2xl font-black text-ink">{value}</p>
-              <p className="mt-1 text-sm text-muted">{label}</p>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px]">
-          <div className="space-y-8">
-            <section className="min-w-0 rounded-[18px] border border-line bg-white p-5 md:p-6">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-2xl font-black">Giới thiệu</h2>
-                <div className="flex flex-wrap gap-2">{categoryNames.map((item: string) => <Badge key={item} tone="info">{item}</Badge>)}</div>
-              </div>
-              <p className="mt-5 break-words text-base leading-8 text-slate-700">{profile.bio || 'Designer Việt Nam có kinh nghiệm thực chiến với startup, SME và thương hiệu địa phương. Mạnh về brief rõ ràng, file bàn giao đúng chuẩn và phản hồi nhanh.'}</p>
-              <div className="mt-6 flex flex-wrap gap-2">{skills.map((skill: string) => <Badge key={skill}>{skill}</Badge>)}</div>
-            </section>
-
-            <section>
-              <div className="flex items-start justify-between gap-4">
-                <h2 className="text-2xl font-black">Hồ sơ năng lực</h2>
-                <span className="shrink-0 text-sm font-semibold text-muted">{portfolioItems.length} dự án nổi bật</span>
-              </div>
-              <div className="mt-4 grid gap-5 md:grid-cols-3">
-                {portfolioItems.map((item: any, index: number) => (
-                  <article key={item._id || item.title} className="overflow-hidden rounded-[14px] border border-line bg-white shadow-[0_8px_24px_rgba(36,83,214,0.07)]">
-                    <img className="aspect-[4/3] w-full object-cover" src={item.images?.[0]?.url || ['/assets/figma-blue-board.png', '/assets/figma-mobile-board.png', '/assets/figma-business-card.png'][index % 3]} alt={item.title} loading="lazy" />
-                    <div className="p-4">
-                      <h3 className="break-words text-base font-bold text-ink">{item.title}</h3>
-                      <p className="mt-2 min-h-[48px] break-words text-sm leading-6 text-muted">{item.description || 'Thiết kế theo brief, có guideline và file bàn giao rõ ràng.'}</p>
-                      <div className="mt-4 flex flex-wrap gap-2">{(item.tags || item.tools || []).slice(0, 3).map((tag: string) => <span key={tag} className="rounded-full bg-soft px-2.5 py-1 text-xs font-semibold text-brand">{tag}</span>)}</div>
-                    </div>
-                  </article>
+        {/* Right Column: Giới thiệu, Portfolio, Đánh giá */}
+        <div className="space-y-8 min-w-0">
+          
+          {/* Card Giới thiệu */}
+          <section className="rounded-[20px] border border-[#CED8F4] bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-bold text-[#2457F5] border-b border-[#CED8F4] pb-3 mb-4">
+              Giới thiệu
+            </h2>
+            <div className="text-slate-600 text-sm leading-6 space-y-4">
+              <p className="whitespace-pre-line text-[14.5px] leading-relaxed">
+                {profile.bio || `Khang, tên là Khang — một designer 3D chuyên nghiệp với hơn 10 năm kinh nghiệm trong các mô hình 3D, hình ảnh trực quan và hoạt hình chất lượng cao...`}
+              </p>
+              
+              {/* Skills Bullet List with checkmarks */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 pt-2 font-medium">
+                {skills.map((skill: string, index: number) => (
+                  <div key={`${skill}-${index}`} className="flex items-start gap-2.5">
+                    <svg className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span className="text-slate-700">{skill}</span>
+                  </div>
                 ))}
               </div>
-            </section>
 
-            <section className="grid gap-5 md:grid-cols-2">
-              <div className="rounded-[18px] border border-line bg-white p-6">
-                <div className="flex items-center gap-3"><ShieldCheck className="text-brand" /><h2 className="text-xl font-black">Quy trình làm việc</h2></div>
-                <div className="mt-5 space-y-4 text-sm leading-6 text-slate-700">
-                  <p><span className="font-bold text-ink">1. Nhận brief:</span> xác định mục tiêu, người xem và phạm vi bàn giao.</p>
-                  <p><span className="font-bold text-ink">2. Lên concept:</span> gửi moodboard, hướng hình ảnh và timeline.</p>
-                  <p><span className="font-bold text-ink">3. Bàn giao:</span> đóng gói file nguồn, export và checklist nghiệm thu.</p>
+              {profile.education || profile.experience ? (
+                <div className="pt-4 border-t border-[#F1F5F9]">
+                  <dl className="grid gap-3 text-sm">
+                    {profile.education && (
+                      <div>
+                        <dt className="font-semibold text-slate-500">Học vấn</dt>
+                        <dd className="mt-1 font-bold text-slate-800">{profile.education}</dd>
+                      </div>
+                    )}
+                    {profile.experience && (
+                      <div>
+                        <dt className="font-semibold text-slate-500">Kinh nghiệm</dt>
+                        <dd className="mt-1 font-bold text-slate-800">{profile.experience}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+              ) : null}
+
+              <p className="pt-2">
+                Dù bạn đang tìm kiếm một nhân vật hoạt hình, tài sản cho trò chơi, hay các mô hình chi tiết tinh xảo cho 3D hoặc ứng dụng thời gian thực, tôi mang đến kết quả chính xác, nổi bật về mặt thị giác và phù hợp với nhu cầu của bạn.
+              </p>
+              <p className="font-semibold text-slate-800">
+                Hãy mang ý tưởng của bạn thành thực tế — Cộng tác và tôi sẽ chú ý đến chi tiết.
+              </p>
+            </div>
+          </section>
+
+          {/* Portfolio Grid */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800">Portfolio ({portfolio.length || 31})</h2>
+              <Link to="/designers" className="text-sm font-semibold text-[#2457F5] hover:underline">
+                Xem tất cả &gt;
+              </Link>
+            </div>
+            
+            {/* Masonry-like Grid Layout from Figma Design */}
+            <div className="space-y-3">
+              {/* Top Grid: Column 1, 2, 3, 4 */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {/* Column 1 (spans 2 rows / tall) */}
+                <div className="row-span-2 h-[220px] md:h-[292px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[0]?.images?.[0]?.url || "/assets/figma-blue-board.png"} alt="" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3 text-white">
+                    <span className="text-xs font-bold truncate">{portfolio[0]?.title || "Case study 1"}</span>
+                  </div>
+                </div>
+
+                {/* Column 2 Row 1 */}
+                <div className="h-[104px] md:h-[140px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[1]?.images?.[0]?.url || "/assets/figma-mobile-mockup.png"} alt="" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                    <span className="text-xs font-bold truncate">{portfolio[1]?.title || "Case study 2"}</span>
+                  </div>
+                </div>
+
+                {/* Column 3 Row 1 */}
+                <div className="h-[104px] md:h-[140px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[2]?.images?.[0]?.url || "/assets/figma-business-card.png"} alt="" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                    <span className="text-xs font-bold truncate">{portfolio[2]?.title || "Case study 3"}</span>
+                  </div>
+                </div>
+
+                {/* Column 4 (spans 2 rows / tall) */}
+                <div className="row-span-2 h-[220px] md:h-[292px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[3]?.images?.[0]?.url || "/assets/figma-blue-board.png"} alt="" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3 text-white">
+                    <span className="text-xs font-bold truncate">{portfolio[3]?.title || "Case study 4"}</span>
+                  </div>
+                </div>
+
+                {/* Column 2 Row 2 (renders under Column 2 Row 1) */}
+                <div className="h-[104px] md:h-[140px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[4]?.images?.[0]?.url || "/assets/figma-mobile-mockup.png"} alt="" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                    <span className="text-xs font-bold truncate">{portfolio[4]?.title || "Case study 5"}</span>
+                  </div>
+                </div>
+
+                {/* Column 3 Row 2 (renders under Column 3 Row 1) */}
+                <div className="h-[104px] md:h-[140px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[5]?.images?.[0]?.url || "/assets/figma-business-card.png"} alt="" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                    <span className="text-xs font-bold truncate">{portfolio[5]?.title || "Case study 6"}</span>
+                  </div>
                 </div>
               </div>
-              <div className="rounded-[18px] border border-line bg-white p-6">
-                <div className="flex items-center gap-3"><Sparkles className="text-brand" /><h2 className="text-xl font-black">Thông tin chuyên môn</h2></div>
-                <dl className="mt-5 grid gap-4 text-sm">
-                  <div><dt className="font-semibold text-muted">Học vấn</dt><dd className="mt-1 font-bold text-ink">{profile.education || 'Thiết kế đồ họa / truyền thông thị giác'}</dd></div>
-                  <div><dt className="font-semibold text-muted">Kinh nghiệm</dt><dd className="mt-1 font-bold text-ink">{profile.experience || '3-5 năm kinh nghiệm'}</dd></div>
-                  <div><dt className="font-semibold text-muted">Danh mục mạnh</dt><dd className="mt-1 font-bold text-ink">{categoryNames.join(', ')}</dd></div>
-                </dl>
-              </div>
-            </section>
 
-            <section>
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-2xl font-black">Đánh giá</h2>
-                <span className="text-sm font-semibold text-muted">{reviews.length || profile.ratingCount || 0} phản hồi</span>
-              </div>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {reviews.length ? reviews.map((review: any) => (
-                  <article key={review._id} className="rounded-[14px] border border-line bg-white p-5">
-                    <div className="flex items-center justify-between gap-3">
-                      <RatingStars value={review.rating} />
-                      <span className="text-xs font-semibold text-muted">{new Date(review.createdAt).toLocaleDateString('vi-VN')}</span>
+              {/* Bottom Grid: 5 equal columns */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {[6, 7, 8, 9, 10].map((num) => (
+                  <div key={num} className="h-[76px] md:h-[100px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                    <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[num]?.images?.[0]?.url || `/assets/figma-${num % 2 === 0 ? 'mobile-mockup' : 'business-card'}.png`} alt="" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                      <span className="text-[10px] font-bold truncate">{portfolio[num]?.title || `Project ${num}`}</span>
                     </div>
-                    <p className="mt-3 text-sm leading-6 text-slate-700">{review.content}</p>
-                  </article>
-                )) : <div className="md:col-span-2"><EmptyState title="Chưa có đánh giá công khai" description="Khách hàng có thể bắt đầu trao đổi để đánh giá mức độ phù hợp trước khi thuê." /></div>}
+                  </div>
+                ))}
               </div>
-            </section>
-          </div>
+            </div>
+          </section>
 
-          <aside className="space-y-5 lg:sticky lg:top-24 lg:self-start">
-            <div className="rounded-[18px] border border-line bg-white p-6 shadow-[0_10px_30px_rgba(36,83,214,0.10)]">
-              <p className="text-sm font-semibold text-muted">Gói dịch vụ bắt đầu từ</p>
-              <p className="mt-2 text-3xl font-black text-ink">{formatVnd(profile.startingPrice)}</p>
-              <p className="mt-2 text-sm leading-6 text-muted">Gửi tin nhắn trực tiếp để thống nhất brief, deadline và phạm vi bàn giao trước khi tạo dự án.</p>
-              <textarea
-                className="focus-ring mt-5 min-h-[118px] w-full resize-none rounded-xl border border-line bg-white px-4 py-3 text-sm leading-6"
-                placeholder={defaultMessage}
-                value={draft}
-                onChange={(event) => setDraft(event.target.value)}
-              />
-              <Button className="mt-4 w-[calc(100%-2px)] rounded-full" onClick={handleStartConversation} disabled={startConversation.isPending}><MessageCircle size={18} /> Nhắn tin cho designer</Button>
-              <Link to="/client/create-project"><Button variant="secondary" className="mt-3 w-[calc(100%-2px)] rounded-full"><CalendarDays size={18} /> Tạo brief dự án</Button></Link>
-              {contactMessage && <p className="mt-3 text-sm text-muted">{contactMessage}</p>}
+          {/* Reviews Section */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800">Đánh giá ({reviews.length || 102})</h2>
+              <Link to="/designers" className="text-sm font-semibold text-[#2457F5] hover:underline">
+                Xem tất cả &gt;
+              </Link>
             </div>
-            <div className="rounded-[18px] border border-line bg-soft p-6">
-              <h3 className="text-lg font-black">Cam kết trên VESD</h3>
-              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-                <p className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-brand" /> Trao đổi minh bạch trước khi đặt cọc escrow.</p>
-                <p className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-brand" /> Theo dõi milestone, feedback và file bàn giao trong workspace.</p>
-                <p className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-none text-brand" /> Hồ sơ, portfolio và đánh giá được đồng bộ trên hệ thống.</p>
-              </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(reviews.length > 0 ? reviews : [
+                {
+                  _id: "mock-r-1",
+                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly" },
+                  rating: 5,
+                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
+                  createdAt: "2026-02-28T12:00:00.000Z"
+                },
+                {
+                  _id: "mock-r-2",
+                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly2" },
+                  rating: 5,
+                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
+                  createdAt: "2026-02-28T12:00:00.000Z"
+                },
+                {
+                  _id: "mock-r-3",
+                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly3" },
+                  rating: 5,
+                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
+                  createdAt: "2026-02-28T12:00:00.000Z"
+                },
+                {
+                  _id: "mock-r-4",
+                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly4" },
+                  rating: 5,
+                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
+                  createdAt: "2026-02-28T12:00:00.000Z"
+                },
+                {
+                  _id: "mock-r-5",
+                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly5" },
+                  rating: 5,
+                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
+                  createdAt: "2026-02-28T12:00:00.000Z"
+                },
+                {
+                  _id: "mock-r-6",
+                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly6" },
+                  rating: 5,
+                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
+                  createdAt: "2026-02-28T12:00:00.000Z"
+                }
+              ]).map((review: any) => (
+                <article key={review._id} className="rounded-[18px] border border-[#CED8F4] bg-white p-5 flex flex-col justify-between shadow-sm relative">
+                  
+                  {/* Header info */}
+                  <div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <img
+                          className="h-10 w-10 rounded-full object-cover border border-[#CED8F4] bg-slate-50"
+                          src={review.reviewerId?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${review.reviewerId?.name}`}
+                          alt={review.reviewerId?.name}
+                        />
+                        <div>
+                          <h4 className="font-bold text-slate-850 text-sm">{review.reviewerId?.name}</h4>
+                          <p className="text-[10px] text-slate-400 font-semibold">Thành viên - 4.2d</p>
+                        </div>
+                      </div>
+                      {/* Bookmark Icon */}
+                      <button className="text-slate-400 hover:text-[#2457F5] transition" aria-label="Lưu đánh giá">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    {/* Gold Rating Stars */}
+                    <div className="mt-3.5 flex items-center gap-0.5 text-[#FBAD39]">
+                      {Array.from({ length: review.rating || 5 }).map((_, i) => (
+                        <span key={i} className="text-base">★</span>
+                      ))}
+                    </div>
+
+                    {/* Review Content */}
+                    <p className="mt-3 text-xs leading-6 text-slate-500 font-semibold">
+                      {review.content}
+                    </p>
+                  </div>
+
+                  {/* Bottom Row metadata */}
+                  <div className="mt-5 pt-3 border-t border-[#F1F5F9] flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-slate-400 font-bold">
+                    <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                      <BriefcaseBusiness size={11} /> Dịch vụ đã chọn: 2D Art
+                    </span>
+                    <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                      <Clock3 size={11} /> Ngày hoàn thành: 28/2/2026
+                    </span>
+                    <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                      <CheckCircle2 size={11} /> Đã hoàn thành: 1 dự án
+                    </span>
+                  </div>
+                </article>
+              ))}
             </div>
-          </aside>
+          </section>
         </div>
       </section>
     </main>

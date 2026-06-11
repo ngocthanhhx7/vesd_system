@@ -84,7 +84,14 @@ const designerProfileSchema = new Schema(
     accountType: { type: String, enum: ['free', 'designer_premium'], default: 'free' },
     premiumStatus: { type: String, enum: ['free', 'premium'], default: 'free' },
     premiumExpiresAt: Date,
-    profileViews: { type: Number, default: 0 }
+    profileViews: { type: Number, default: 0 },
+    background: { type: String, default: '' },
+    socialLinks: {
+      facebook: { type: String, default: '' },
+      linkedin: { type: String, default: '' },
+      twitter: { type: String, default: '' },
+      tiktok: { type: String, default: '' }
+    }
   },
   { timestamps: true }
 );
