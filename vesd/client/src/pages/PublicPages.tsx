@@ -234,8 +234,8 @@ export function HomePage() {
                 <span className="mt-4 rounded-xl bg-[#E9EFFF] px-3 py-2 text-xs leading-none text-brand transition group-hover:bg-white sm:mt-6 sm:text-[14.8px]">Xem thêm</span>
               </Link>
             ))}
-            </div>
           </div>
+        </div>
       </section>
       <section className="bg-white pb-10 pt-12 md:pb-[178px] md:pt-[77px]">
         <div className="home-milestone-bg relative overflow-visible pb-5 text-white md:h-[540px] md:pb-0">
@@ -270,9 +270,9 @@ export function HomePage() {
                 ].map(([value, label]) => {
                   return <div key={label} className="flex flex-col items-center justify-center border-l border-white/25 px-2 py-5 md:py-8"><span className="font-['Zen_Dots'] text-2xl italic leading-8 tracking-[.02em] md:text-4xl md:leading-[43px]">{value}</span><span className="mt-2 text-sm font-bold leading-5 tracking-[.02em] md:mt-4 md:text-2xl md:leading-7">{label}</span></div>;
                 })}
+              </div>
             </div>
           </div>
-        </div>
         </div>
       </section>
       <section className="home-cta-pattern relative min-h-[360px] overflow-hidden bg-brand py-12 text-white md:h-[518px] md:py-0">
@@ -547,9 +547,9 @@ export function DesignerProfilePage() {
   return (
     <main className="bg-white pb-16 font-sans">
       <Seo title={`${user.name} - ${profile.title} | VESD`} description={`${user.name} nhận dự án ${profile.categories?.join(', ')} từ ${profile.startingPrice?.toLocaleString('vi-VN')}đ.`} schema={{ '@context': 'https://schema.org', '@type': 'Person', name: user.name, jobTitle: profile.title }} />
-      
+
       {/* Cover Banner (Fixed geometric pattern) */}
-      <section 
+      <section
         className="relative h-[120px] w-full overflow-hidden flex items-center justify-center bg-cover bg-center border-b border-[#CED8F4]"
         style={{ backgroundImage: `url('/assets/Rectangle 23785.png')` }}
       >
@@ -561,11 +561,11 @@ export function DesignerProfilePage() {
 
       {/* Main Header Container with Custom Background & Info */}
       <section className="container-page mt-6 relative z-10">
-        <div className="rounded-[20px] border border-[#CED8F4] bg-white overflow-hidden shadow-md">
+        <div className="bg-white overflow-hidden">
           {/* Custom Background Image Block */}
-          <div 
+          <div
             className="relative h-[250px] w-full bg-cover bg-center bg-slate-50"
-            style={{ 
+            style={{
               backgroundImage: profile.background ? `url(${profile.background})` : 'none'
             }}
           >
@@ -576,17 +576,17 @@ export function DesignerProfilePage() {
             )}
 
             {/* Overlaid Breadcrumbs */}
-            <div className="absolute top-4 left-6 z-20 text-xs sm:text-sm text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] font-semibold flex items-center gap-1.5 bg-black/30 px-3.5 py-1.5 rounded-full backdrop-blur-[2px]">
+            <div className="absolute top-4 left-6 z-20 text-xs sm:text-sm text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] font-semibold flex items-center gap-1.5">
               <Link to="/" className="hover:underline transition-all">Thuê Freelancer</Link>
-              <span>&gt;</span>
+              <span className="text-white/70">&gt;</span>
               <span className="font-bold">{user.name}</span>
             </div>
           </div>
 
           {/* Details & Actions Content */}
-          <div className="p-6">
+          <div className="py-6 px-6">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
+              <div className="flex flex-col gap-6 sm:flex-row sm:items-start min-w-0 flex-1">
                 {/* Avatar and Social Media */}
                 <div className="flex flex-col items-center gap-3">
                   <div className="relative -mt-20 sm:-mt-24 z-20">
@@ -600,22 +600,22 @@ export function DesignerProfilePage() {
                   <div className="flex items-center gap-3 mt-1">
                     <a href={profile.socialLinks?.facebook || "#"} target="_blank" rel="noreferrer" title="Facebook">
                       <svg className="w-5 h-5 fill-current text-slate-400 hover:text-blue-600 transition" viewBox="0 0 24 24">
-                        <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.8z"/>
+                        <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.8z" />
                       </svg>
                     </a>
                     <a href={profile.socialLinks?.linkedin || "#"} target="_blank" rel="noreferrer" title="LinkedIn">
                       <svg className="w-5 h-5 fill-current text-slate-400 hover:text-blue-700 transition" viewBox="0 0 24 24">
-                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/>
+                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
                       </svg>
                     </a>
                     <a href={profile.socialLinks?.twitter || "#"} target="_blank" rel="noreferrer" title="Twitter">
                       <svg className="w-5 h-5 fill-current text-slate-400 hover:text-sky-500 transition" viewBox="0 0 24 24">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                       </svg>
                     </a>
                     <a href={profile.socialLinks?.tiktok || "#"} target="_blank" rel="noreferrer" title="TikTok">
                       <svg className="w-5 h-5 fill-current text-slate-400 hover:text-black transition" viewBox="0 0 24 24">
-                        <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.74-3.94-1.72-.8-.72-1.39-1.63-1.75-2.62-.01 1.7-.01 3.4-.01 5.11 0 2.24-.46 4.57-1.8 6.23-1.57 2.01-4.26 2.9-6.74 2.5-2.61-.41-4.83-2.39-5.46-4.97-.73-2.92.51-6.19 3.02-7.53 1.25-.66 2.69-.93 4.09-.8V12c-1.37.07-2.72.76-3.41 1.95-.74 1.25-.63 2.98.26 4.09 1.03 1.3 3.05 1.59 4.38.65 1.05-.72 1.48-2.09 1.48-3.33.01-4.81.01-9.61.01-14.42-.03-.31-.05-.62-.07-.92z"/>
+                        <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.74-3.94-1.72-.8-.72-1.39-1.63-1.75-2.62-.01 1.7-.01 3.4-.01 5.11 0 2.24-.46 4.57-1.8 6.23-1.57 2.01-4.26 2.9-6.74 2.5-2.61-.41-4.83-2.39-5.46-4.97-.73-2.92.51-6.19 3.02-7.53 1.25-.66 2.69-.93 4.09-.8V12c-1.37.07-2.72.76-3.41 1.95-.74 1.25-.63 2.98.26 4.09 1.03 1.3 3.05 1.59 4.38.65 1.05-.72 1.48-2.09 1.48-3.33.01-4.81.01-9.61.01-14.42-.03-.31-.05-.62-.07-.92z" />
                       </svg>
                     </a>
                   </div>
@@ -662,17 +662,17 @@ export function DesignerProfilePage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-row sm:flex-col lg:flex-row gap-3 w-full sm:w-auto self-center lg:self-start mt-4 sm:mt-0">
+              <div className="flex flex-row sm:flex-col lg:flex-row gap-4 w-full sm:w-auto self-center lg:self-start mt-4 sm:mt-0 shrink-0">
                 <Button
                   variant="secondary"
-                  className="flex-1 sm:flex-none w-full sm:w-36 h-11 rounded-[22px] border-[#2457F5] text-[#2457F5] hover:bg-blue-50 font-semibold"
+                  className="w-full lg:w-[300px] h-10 rounded-[22px] border-[#2457F5] text-[#2457F5] hover:bg-blue-50 font-semibold"
                   onClick={handleStartConversation}
                   disabled={startConversation.isPending}
                 >
                   Nhắn Tin
                 </Button>
-                <Link className="flex-1 sm:flex-none w-full sm:w-36" to="/client/create-project">
-                  <Button className="w-full h-11 rounded-[22px] bg-[#2457F5] hover:bg-blue-700 font-semibold shadow-md text-white">
+                <Link className="w-full lg:w-[300px]" to="/client/create-project">
+                  <Button className="w-full h-10 rounded-[22px] bg-[#2457F5] hover:bg-blue-700 font-semibold shadow-md text-white">
                     Thuê Ngay
                   </Button>
                 </Link>
@@ -685,34 +685,34 @@ export function DesignerProfilePage() {
 
       {/* Main Body Grid */}
       <section className="container-page mt-8 grid gap-8 lg:grid-cols-[280px_1fr]">
-        
+
         {/* Left Column: Sidebar Card "Tỷ lệ nhận việc" */}
         <aside className="space-y-6">
           <div className="rounded-[20px] border border-[#CED8F4] bg-white p-5 shadow-sm text-center sm:text-left">
             <h3 className="text-base font-bold text-slate-800 border-b border-[#CED8F4] pb-3 mb-4">
               Tỷ lệ nhận việc
             </h3>
-            
+
             {/* Inline SVG Chart */}
             <div className="my-4 flex justify-center">
               <svg className="w-full max-w-[240px] h-28" viewBox="0 0 240 100">
                 <defs>
                   <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2457F5" stopOpacity="0.2"/>
-                    <stop offset="100%" stopColor="#2457F5" stopOpacity="0.0"/>
+                    <stop offset="0%" stopColor="#2457F5" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#2457F5" stopOpacity="0.0" />
                   </linearGradient>
                 </defs>
                 {/* Grid lines */}
                 <line x1="10" y1="20" x2="230" y2="20" stroke="#F1F5F9" strokeWidth="1" />
                 <line x1="10" y1="50" x2="230" y2="50" stroke="#F1F5F9" strokeWidth="1" />
                 <line x1="10" y1="80" x2="230" y2="80" stroke="#F1F5F9" strokeWidth="1" />
-                
+
                 {/* Area under the line */}
                 <path d="M 10 75 L 45 60 L 80 70 L 115 45 L 150 55 L 185 25 L 220 40 L 220 90 L 10 90 Z" fill="url(#chart-grad)" />
-                
+
                 {/* Main line path */}
                 <path d="M 10 75 L 45 60 L 80 70 L 115 45 L 150 55 L 185 25 L 220 40" fill="none" stroke="#2457F5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-                
+
                 {/* Chart dots */}
                 <circle cx="10" cy="75" r="4.5" fill="white" stroke="#2457F5" strokeWidth="2.5" />
                 <circle cx="45" cy="60" r="4.5" fill="white" stroke="#2457F5" strokeWidth="2.5" />
@@ -759,17 +759,17 @@ export function DesignerProfilePage() {
 
         {/* Right Column: Giới thiệu, Portfolio, Đánh giá */}
         <div className="space-y-8 min-w-0">
-          
+
           {/* Card Giới thiệu */}
-          <section className="rounded-[20px] border border-[#CED8F4] bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-[#2457F5] border-b border-[#CED8F4] pb-3 mb-4">
+          <section className="bg-white py-6">
+            <h2 className="text-xl font-bold text-[#2457F5] pb-2 mb-4">
               Giới thiệu
             </h2>
             <div className="text-slate-600 text-sm leading-6 space-y-4">
               <p className="whitespace-pre-line text-[14.5px] leading-relaxed">
                 {profile.bio || `Khang, tên là Khang — một designer 3D chuyên nghiệp với hơn 10 năm kinh nghiệm trong các mô hình 3D, hình ảnh trực quan và hoạt hình chất lượng cao...`}
               </p>
-              
+
               {/* Skills Bullet List with checkmarks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5 pt-2 font-medium">
                 {skills.map((skill: string, index: number) => (
@@ -818,7 +818,7 @@ export function DesignerProfilePage() {
                 Xem tất cả &gt;
               </Link>
             </div>
-            
+
             {/* Masonry-like Grid Layout from Figma Design */}
             <div className="space-y-3">
               {/* Top Grid: Column 1, 2, 3, 4 */}
@@ -941,7 +941,7 @@ export function DesignerProfilePage() {
                 }
               ]).map((review: any) => (
                 <article key={review._id} className="rounded-[18px] border border-[#CED8F4] bg-white p-5 flex flex-col justify-between shadow-sm relative">
-                  
+
                   {/* Header info */}
                   <div>
                     <div className="flex items-start justify-between gap-3">

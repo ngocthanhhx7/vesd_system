@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { BarChart3, CheckCircle2, Clock, CreditCard, FolderKanban, ShieldCheck, Sparkles, Zap } from 'lucide-react';
+import { BarChart3, CheckCircle2, Clock, CreditCard, FolderKanban, ImagePlus, Pencil, ShieldCheck, Sparkles, Trash2, Zap } from 'lucide-react';
 import { Badge, Card, FormGroup, Input, Select, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
 import { endpoints, PremiumPlan } from '../../services/api';
@@ -368,18 +368,289 @@ export function DesignerProfileSetup() {
 }
 
 export function PortfolioManager() {
+  const queryClient = useQueryClient();
+  const { data: account } = useQuery({ queryKey: ['my-account'], queryFn: endpoints.myAccount });
+  const userId = account?.user?._id;
+  const { data: portfolioItems = [], isLoading } = useQuery({
+    queryKey: ['my-portfolio', userId],
+    queryFn: () => endpoints.myPortfolio(userId!),
+    enabled: !!userId
+  });
+
+  const [form, setForm] = useState({ title: '', category: '', description: '', tools: '' });
+  const [images, setImages] = useState<{ url: string; name: string; type: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [message, setMessage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const showMessage = (msg: string) => { setMessage(msg); setTimeout(() => setMessage(''), 4000); };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files?.length) return;
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) { showMessage('Chỉ chấp nhận file ảnh (JPG, PNG, WebP)'); continue; }
+      if (file.size > 5 * 1024 * 1024) { showMessage('Ảnh tối đa 5MB'); continue; }
+      try {
+        setUploading(true);
+        const result = await endpoints.uploadImage(file);
+        setImages(prev => [...prev, { url: result.url, name: file.name, type: file.type }]);
+      } catch (err) {
+        showMessage(err instanceof Error ? err.message : 'Không thể tải ảnh lên');
+      } finally {
+        setUploading(false);
+      }
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeImage = (index: number) => setImages(prev => prev.filter((_, i) => i !== index));
+
+  const resetForm = () => {
+    setForm({ title: '', category: '', description: '', tools: '' });
+    setImages([]);
+    setEditingId(null);
+  };
+
+  const startEdit = (item: any) => {
+    setEditingId(item._id);
+    setForm({
+      title: item.title || '',
+      category: item.category || '',
+      description: item.description || '',
+      tools: (item.tools || []).join(', ')
+    });
+    setImages(item.images || []);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const createMutation = useMutation({
+    mutationFn: (body: any) => endpoints.createPortfolio(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-portfolio'] });
+      resetForm();
+      showMessage('Đã thêm dự án vào hồ sơ năng lực!');
+    },
+    onError: (err) => showMessage(err instanceof Error ? err.message : 'Không thể tạo portfolio')
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: any }) => endpoints.updatePortfolio(id, body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-portfolio'] });
+      resetForm();
+      showMessage('Đã cập nhật dự án!');
+    },
+    onError: (err) => showMessage(err instanceof Error ? err.message : 'Không thể cập nhật portfolio')
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => endpoints.deletePortfolio(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-portfolio'] });
+      showMessage('Đã xóa dự án!');
+    },
+    onError: (err) => showMessage(err instanceof Error ? err.message : 'Không thể xóa portfolio')
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.title.trim()) { showMessage('Vui lòng nhập tên dự án'); return; }
+    if (!images.length) { showMessage('Vui lòng upload ít nhất 1 ảnh'); return; }
+    const payload = {
+      title: form.title.trim(),
+      category: form.category.trim(),
+      description: form.description.trim(),
+      tools: form.tools.split(',').map(t => t.trim()).filter(Boolean),
+      images
+    };
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, body: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
+  };
+
+  const handleDelete = (id: string, title: string) => {
+    if (!window.confirm(`Bạn có chắc muốn xóa dự án "${title}"?`)) return;
+    deleteMutation.mutate(id);
+  };
+
+  const isSaving = createMutation.isPending || updateMutation.isPending;
+
   return (
     <Dashboard title="Quản lý hồ sơ năng lực">
+      {/* Form tạo/sửa */}
       <Card>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Input placeholder="Tên dự án" />
-          <Input placeholder="Danh mục" />
-          <Textarea className="md:col-span-2" placeholder="Mô tả" />
-          <Input type="file" />
-          <Input placeholder="Công cụ đã dùng" />
-          <Button>Thêm dự án vào hồ sơ</Button>
-        </div>
+        <h2 className="text-lg font-bold mb-4">{editingId ? '✏️ Sửa dự án' : '➕ Thêm dự án mới'}</h2>
+        <form className="grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+          <FormGroup label="Tên dự án" required>
+            <Input
+              placeholder="Ví dụ: Thiết kế logo ABC Corp"
+              value={form.title}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, title: e.target.value }))}
+              required
+            />
+          </FormGroup>
+          <FormGroup label="Danh mục">
+            <Input
+              placeholder="Ví dụ: logo-design, branding"
+              value={form.category}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, category: e.target.value }))}
+            />
+          </FormGroup>
+          <div className="md:col-span-2">
+            <FormGroup label="Mô tả">
+              <Textarea
+                placeholder="Mô tả chi tiết về dự án..."
+                value={form.description}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setForm(f => ({ ...f, description: e.target.value }))}
+              />
+            </FormGroup>
+          </div>
+
+          {/* Image Upload Zone */}
+          <div className="md:col-span-2">
+            <FormGroup label="Hình ảnh dự án" helper="Nhấp hoặc kéo thả để tải ảnh lên (JPG, PNG, WebP tối đa 5MB)" required>
+              <div className="mt-1 flex flex-col gap-3">
+                {/* Preview Grid */}
+                {images.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {images.map((img, idx) => (
+                      <div key={idx} className="relative group rounded-lg overflow-hidden border border-slate-200 bg-slate-50 aspect-[4/3]">
+                        <img src={img.url} alt={img.name} className="h-full w-full object-cover" />
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Button
+                            type="button"
+                            variant="danger"
+                            className="!py-1 !px-3 text-xs"
+                            onClick={() => removeImage(idx)}
+                          >
+                            <Trash2 size={14} className="mr-1" /> Xóa
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Drop Zone */}
+                <div
+                  onClick={() => !uploading && fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-slate-300 hover:border-brand rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition bg-slate-50"
+                >
+                  {uploading ? (
+                    <svg className="h-8 w-8 animate-spin text-brand" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                  ) : (
+                    <ImagePlus className="w-8 h-8 text-slate-400" />
+                  )}
+                  <span className="text-sm font-semibold text-slate-600">
+                    {uploading ? 'Đang tải lên...' : 'Nhấp để chọn ảnh dự án'}
+                  </span>
+                  <span className="text-xs text-slate-400">JPG, PNG, WebP tối đa 5MB · Có thể chọn nhiều ảnh</span>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+              </div>
+            </FormGroup>
+          </div>
+
+          <FormGroup label="Công cụ đã dùng" helper="Cách nhau bởi dấu phẩy. Ví dụ: Figma, Photoshop">
+            <Input
+              placeholder="Figma, Photoshop, Illustrator"
+              value={form.tools}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, tools: e.target.value }))}
+            />
+          </FormGroup>
+
+          <div className="md:col-span-2 flex items-center gap-3 mt-2">
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? 'Đang lưu...' : editingId ? 'Cập nhật dự án' : 'Thêm dự án vào hồ sơ'}
+            </Button>
+            {editingId && (
+              <Button type="button" variant="secondary" onClick={resetForm}>Hủy sửa</Button>
+            )}
+            {message && <p className="text-sm font-semibold text-brand">{message}</p>}
+          </div>
+        </form>
       </Card>
+
+      {/* Danh sách portfolio */}
+      <Section title={`Dự án đã đăng (${portfolioItems.length})`}>
+        {isLoading ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="h-60 animate-pulse bg-white"><span className="sr-only">Đang tải</span></Card>
+            ))}
+          </div>
+        ) : portfolioItems.length === 0 ? (
+          <Card>
+            <p className="text-center text-muted py-8">Chưa có dự án nào trong hồ sơ năng lực. Hãy thêm dự án đầu tiên ở form phía trên!</p>
+          </Card>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {portfolioItems.map((item: any) => (
+              <Card key={item._id} className="overflow-hidden !p-0">
+                {/* Thumbnail */}
+                <div className="relative aspect-[16/10] bg-slate-100">
+                  {item.images?.[0]?.url ? (
+                    <img src={item.images[0].url} alt={item.title} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center text-slate-300">
+                      <ImagePlus size={40} />
+                    </div>
+                  )}
+                  {item.images?.length > 1 && (
+                    <span className="absolute top-2 right-2 bg-black/60 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      +{item.images.length - 1} ảnh
+                    </span>
+                  )}
+                </div>
+                {/* Info */}
+                <div className="p-4">
+                  <h3 className="font-bold text-slate-800 truncate">{item.title || 'Không có tên'}</h3>
+                  {item.category && <p className="text-xs text-brand font-semibold mt-1 uppercase">{item.category}</p>}
+                  {item.description && <p className="text-sm text-muted mt-2 line-clamp-2">{item.description}</p>}
+                  {item.tools?.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {item.tools.map((tool: string) => (
+                        <span key={tool} className="text-[11px] bg-blue-50 text-brand px-2 py-0.5 rounded-full font-medium">{tool}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="mt-3 flex gap-2">
+                    <Button
+                      variant="secondary"
+                      className="!py-1.5 !px-3 text-xs"
+                      onClick={() => startEdit(item)}
+                    >
+                      <Pencil size={13} className="mr-1" /> Sửa
+                    </Button>
+                    <Button
+                      variant="danger"
+                      className="!py-1.5 !px-3 text-xs"
+                      onClick={() => handleDelete(item._id, item.title)}
+                      disabled={deleteMutation.isPending}
+                    >
+                      <Trash2 size={13} className="mr-1" /> Xóa
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </Section>
     </Dashboard>
   );
 }

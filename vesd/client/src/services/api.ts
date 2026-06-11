@@ -139,6 +139,11 @@ export const endpoints = {
     return api<any>('/uploads/file', { method: 'POST', body: form });
   },
   projectFileBlob: (projectId: string, key: string, disposition: 'inline' | 'attachment' = 'inline') => apiBlob(`/uploads/file-object?projectId=${encodeURIComponent(projectId)}&key=${encodeURIComponent(key)}&disposition=${disposition}`),
+  // Portfolio
+  myPortfolio: (designerId: string) => api<any[]>(`/portfolio/designer/${designerId}`),
+  createPortfolio: (body: unknown) => api<any>('/portfolio', { method: 'POST', body: JSON.stringify(body) }),
+  updatePortfolio: (id: string, body: unknown) => api<any>(`/portfolio/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  deletePortfolio: (id: string) => api<any>(`/portfolio/${id}`, { method: 'DELETE' }),
   // Search
   search: (q: string, limit = 5) => api<any>(`/search?q=${encodeURIComponent(q)}&limit=${limit}`),
   // Notifications
