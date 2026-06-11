@@ -154,7 +154,10 @@ export function WalletWithdrawPage() {
   });
   const deleteBankAccount = useMutation({
     mutationFn: (id: string) => endpoints.deleteBankAccount(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['bank-accounts'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['bank-accounts'] });
+      setWithdrawMessage('Đã xóa tài khoản ngân hàng thành công.');
+    },
     onError: (error) => setWithdrawMessage(error instanceof Error ? error.message : 'Không thể xóa tài khoản')
   });
   const createWithdrawal = useMutation({
@@ -187,7 +190,10 @@ export function WalletWithdrawPage() {
   });
   const syncWithdrawal = useMutation({
     mutationFn: (id: string) => endpoints.syncWithdrawal(id),
-    onSuccess: refreshMoneyData,
+    onSuccess: async () => {
+      await refreshMoneyData();
+      setWithdrawMessage('Đã đồng bộ trạng thái rút tiền thành công.');
+    },
     onError: (error) => setWithdrawMessage(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái rút tiền')
   });
   const setWithdrawField = (key: keyof typeof withdrawForm, value: string) => setWithdrawForm((current) => ({ ...current, [key]: value }));

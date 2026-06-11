@@ -133,7 +133,7 @@ export function LoginPage() {
           <button
             type="button"
             className="h-11 w-full rounded-full bg-[#5f5f5f] text-base font-medium text-white"
-            onClick={() => setError('Chua cau hinh VITE_GOOGLE_CLIENT_ID cho frontend')}
+            onClick={() => setError('Chưa cấu hình VITE_GOOGLE_CLIENT_ID cho frontend')}
           >
             Đăng nhập với Google
           </button>

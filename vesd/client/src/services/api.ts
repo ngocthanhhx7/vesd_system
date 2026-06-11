@@ -40,7 +40,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    const error = new Error(data?.message || 'Loi ket noi API') as Error & { details?: unknown };
+    const error = new Error(data?.message || 'Lỗi kết nối máy chủ. Vui lòng thử lại.') as Error & { details?: unknown };
     error.details = data?.details;
     throw error;
   }
@@ -54,7 +54,7 @@ export async function apiBlob(path: string, options: RequestInit = {}): Promise<
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   if (!response.ok) {
     const data = await response.json().catch(() => null);
-    throw new Error(data?.message || 'Loi ket noi API');
+    throw new Error(data?.message || 'Lỗi kết nối máy chủ. Vui lòng thử lại.');
   }
   return response.blob();
 }

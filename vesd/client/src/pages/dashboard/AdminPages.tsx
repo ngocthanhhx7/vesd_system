@@ -66,13 +66,31 @@ export function AdminListPage({ type }: { type: string }) {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
   const [selectedDispute, setSelectedDispute] = useState<any>(null);
+  const [message, setMessage] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const updateUser = useMutation({
     mutationFn: ({ id, nextStatus }: { id: string; nextStatus: string }) => endpoints.adminUpdateUserStatus(id, nextStatus),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', type] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', type] });
+      setMessage('Cập nhật trạng thái người dùng thành công.');
+      setTimeout(() => setMessage(''), 4000);
+    },
+    onError: (error) => {
+      setErrorMsg(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái người dùng');
+      setTimeout(() => setErrorMsg(''), 5000);
+    }
   });
   const updateProject = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: unknown }) => endpoints.updateProject(id, patch),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', type] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', type] });
+      setMessage('Cập nhật trạng thái dự án thành công.');
+      setTimeout(() => setMessage(''), 4000);
+    },
+    onError: (error) => {
+      setErrorMsg(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái dự án');
+      setTimeout(() => setErrorMsg(''), 5000);
+    }
   });
   const filtered = data.filter((item: any) => {
     const haystack = `${item.name || ''} ${item.email || ''} ${item.title || ''} ${item.reason || ''} ${item.category || ''} ${item.clientId?.name || ''} ${item.designerId?.name || ''}`.toLowerCase();
@@ -83,6 +101,8 @@ export function AdminListPage({ type }: { type: string }) {
   if (type === 'users') {
     return (
       <Dashboard title="Quản lý người dùng">
+        {message && <div className="mb-4 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium">{message}</div>}
+        {errorMsg && <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium">{errorMsg}</div>}
         <Card className="mb-4">
           <div className="grid gap-3 md:grid-cols-[1fr_220px]">
             <div className="relative">
@@ -128,6 +148,8 @@ export function AdminListPage({ type }: { type: string }) {
   if (type === 'projects') {
     return (
       <Dashboard title="Quản lý dự án">
+        {message && <div className="mb-4 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium">{message}</div>}
+        {errorMsg && <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium">{errorMsg}</div>}
         <Card className="mb-4">
           <div className="grid gap-3 md:grid-cols-[1fr_240px]">
             <div className="relative">
@@ -187,6 +209,8 @@ export function AdminListPage({ type }: { type: string }) {
   if (type === 'disputes') {
     return (
       <Dashboard title="Quản lý khiếu nại">
+        {message && <div className="mb-4 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium">{message}</div>}
+        {errorMsg && <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium">{errorMsg}</div>}
         <Card className="mb-4">
           <div className="grid gap-3 md:grid-cols-[1fr_220px]">
             <div className="relative">
@@ -254,6 +278,8 @@ export function AdminListPage({ type }: { type: string }) {
 
   return (
     <Dashboard title={adminTitles[type] || 'Quản trị'}>
+      {message && <div className="mb-4 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium">{message}</div>}
+      {errorMsg && <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium">{errorMsg}</div>}
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-base">
@@ -288,13 +314,25 @@ export function AdminSimplePage({ title }: { title: string }) {
 export function AdminWithdrawalsPage() {
   const queryClient = useQueryClient();
   const { data = [] } = useQuery({ queryKey: ['admin-withdrawals'], queryFn: endpoints.adminWithdrawals });
+  const [message, setMessage] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const syncWithdrawal = useMutation({
     mutationFn: (id: string) => endpoints.adminSyncWithdrawal(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-withdrawals'] })
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-withdrawals'] });
+      setMessage('Đồng bộ trạng thái rút tiền thành công.');
+      setTimeout(() => setMessage(''), 4000);
+    },
+    onError: (error) => {
+      setErrorMsg(error instanceof Error ? error.message : 'Không thể cập nhật trạng thái rút tiền');
+      setTimeout(() => setErrorMsg(''), 5000);
+    }
   });
 
   return (
     <Dashboard title="Yêu cầu rút tiền">
+      {message && <div className="mb-4 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium">{message}</div>}
+      {errorMsg && <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium">{errorMsg}</div>}
       <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-base">
@@ -367,12 +405,20 @@ export function AdminDiscountsPage() {
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyDiscount);
   const { data = [] } = useQuery({ queryKey: ['admin-discounts'], queryFn: endpoints.adminDiscounts });
+  const [message, setMessage] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
   const createDiscount = useMutation({
     mutationFn: () => endpoints.createDiscount(toDiscountPayload(form)),
     onSuccess: async () => {
       setForm(emptyDiscount);
       await queryClient.invalidateQueries({ queryKey: ['admin-discounts'] });
       await queryClient.invalidateQueries({ queryKey: ['public-premium-discounts'] });
+      setMessage('Tạo mã giảm giá thành công.');
+      setTimeout(() => setMessage(''), 4000);
+    },
+    onError: (error) => {
+      setErrorMsg(error instanceof Error ? error.message : 'Không thể tạo mã giảm giá');
+      setTimeout(() => setErrorMsg(''), 5000);
     }
   });
   const updateDiscount = useMutation({
@@ -380,6 +426,12 @@ export function AdminDiscountsPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin-discounts'] });
       await queryClient.invalidateQueries({ queryKey: ['public-premium-discounts'] });
+      setMessage('Cập nhật mã giảm giá thành công.');
+      setTimeout(() => setMessage(''), 4000);
+    },
+    onError: (error) => {
+      setErrorMsg(error instanceof Error ? error.message : 'Không thể cập nhật mã giảm giá');
+      setTimeout(() => setErrorMsg(''), 5000);
     }
   });
 
@@ -394,6 +446,8 @@ export function AdminDiscountsPage() {
 
   return (
     <Dashboard title="Quản lý mã giảm giá">
+      {message && <div className="col-span-full mb-4 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium">{message}</div>}
+      {errorMsg && <div className="col-span-full mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium">{errorMsg}</div>}
       <div className="grid gap-4 lg:grid-cols-[420px_1fr]">
         <Card>
           <h2 className="text-xl font-black">Thêm mã giảm giá</h2>
