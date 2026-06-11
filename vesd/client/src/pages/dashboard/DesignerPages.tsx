@@ -207,14 +207,16 @@ export function DesignerProfileSetup() {
               required
             />
           </FormGroup>
-          <FormGroup label="Giới thiệu bản thân" className="md:col-span-2" required>
-            <Textarea
-              placeholder="Giới thiệu chi tiết kinh nghiệm, phong cách thiết kế của bạn..."
-              value={form.bio}
-              onChange={(e) => setField('bio', e.target.value)}
-              required
-            />
-          </FormGroup>
+          <div className="md:col-span-2">
+            <FormGroup label="Giới thiệu bản thân" required>
+              <Textarea
+                placeholder="Giới thiệu chi tiết kinh nghiệm, phong cách thiết kế của bạn..."
+                value={form.bio}
+                onChange={(e) => setField('bio', e.target.value)}
+                required
+              />
+            </FormGroup>
+          </div>
           <FormGroup label="Kỹ năng (cách nhau bởi dấu phẩy)" helper="Ví dụ: Figma, Illustrator, Photoshop">
             <Input
               placeholder="Figma, Photoshop, Illustrator"
