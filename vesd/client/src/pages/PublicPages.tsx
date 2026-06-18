@@ -633,9 +633,19 @@ export function DesignerProfilePage() {
                   </h1>
 
                   <div className="mt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2 text-sm">
-                    <span className="text-[#FBAD39] text-lg">★★★★★</span>
-                    <span className="font-semibold text-slate-700">{(profile.ratingAverage || 5.0).toFixed(1)}</span>
-                    <span className="text-slate-500">({profile.ratingCount || 102} đánh giá)</span>
+                    {profile.ratingCount > 0 ? (
+                      <>
+                        <div className="flex items-center gap-0.5 text-[#FBAD39] text-lg">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <span key={i} className={i < Math.round(profile.ratingAverage || 0) ? "" : "text-pale"}>★</span>
+                          ))}
+                        </div>
+                        <span className="font-semibold text-slate-700">{(profile.ratingAverage || 0).toFixed(1)}</span>
+                        <span className="text-slate-500">({profile.ratingCount} đánh giá)</span>
+                      </>
+                    ) : (
+                      <span className="text-slate-400 font-semibold">Chưa có đánh giá</span>
+                    )}
                   </div>
 
                   {/* Specialization Tags */}
@@ -917,109 +927,69 @@ export function DesignerProfilePage() {
           {/* Reviews Section */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-slate-800">Đánh giá ({reviews.length || 102})</h2>
+              <h2 className="text-xl font-bold text-slate-800">Đánh giá ({profile.ratingCount || 0})</h2>
               <Link to="/designers" className="text-sm font-semibold text-[#2457F5] hover:underline">
                 Xem tất cả &gt;
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(reviews.length > 0 ? reviews : [
-                {
-                  _id: "mock-r-1",
-                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly" },
-                  rating: 5,
-                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
-                  createdAt: "2026-02-28T12:00:00.000Z"
-                },
-                {
-                  _id: "mock-r-2",
-                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly2" },
-                  rating: 5,
-                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
-                  createdAt: "2026-02-28T12:00:00.000Z"
-                },
-                {
-                  _id: "mock-r-3",
-                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly3" },
-                  rating: 5,
-                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
-                  createdAt: "2026-02-28T12:00:00.000Z"
-                },
-                {
-                  _id: "mock-r-4",
-                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly4" },
-                  rating: 5,
-                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
-                  createdAt: "2026-02-28T12:00:00.000Z"
-                },
-                {
-                  _id: "mock-r-5",
-                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly5" },
-                  rating: 5,
-                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
-                  createdAt: "2026-02-28T12:00:00.000Z"
-                },
-                {
-                  _id: "mock-r-6",
-                  reviewerId: { name: "Nguyễn Huyền Ly", avatar: "https://api.dicebear.com/8.x/initials/svg?seed=Ly6" },
-                  rating: 5,
-                  content: "Rất hài lòng khi cộng tác cùng Khang, quy trình làm việc rất nhanh và đúng thời hạn. Tôi rất hy vọng được làm việc lần tới cùng Khang.",
-                  createdAt: "2026-02-28T12:00:00.000Z"
-                }
-              ]).map((review: any) => (
-                <article key={review._id} className="rounded-[18px] border border-[#CED8F4] bg-white p-5 flex flex-col justify-between shadow-sm relative">
+            {reviews.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {reviews.map((review: any) => (
+                  <article key={review._id} className="rounded-[18px] border border-[#CED8F4] bg-white p-5 flex flex-col justify-between shadow-sm relative">
 
-                  {/* Header info */}
-                  <div>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
-                        <img
-                          className="h-10 w-10 rounded-full object-cover border border-[#CED8F4] bg-slate-50"
-                          src={review.reviewerId?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${review.reviewerId?.name}`}
-                          alt={review.reviewerId?.name}
-                        />
-                        <div>
-                          <h4 className="font-bold text-slate-850 text-sm">{review.reviewerId?.name}</h4>
-                          <p className="text-[10px] text-slate-400 font-semibold">Thành viên - 4.2d</p>
+                    {/* Header info */}
+                    <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            className="h-10 w-10 rounded-full object-cover border border-[#CED8F4] bg-slate-50"
+                            src={review.reviewerId?.avatar || `https://api.dicebear.com/8.x/initials/svg?seed=${encodeURIComponent(review.reviewerId?.name || '')}`}
+                            alt={review.reviewerId?.name}
+                          />
+                          <div>
+                            <h4 className="font-bold text-slate-850 text-sm">{review.reviewerId?.name}</h4>
+                            <p className="text-[10px] text-slate-400 font-semibold">Thành viên</p>
+                          </div>
                         </div>
+                        {/* Bookmark Icon */}
+                        <button className="text-slate-400 hover:text-[#2457F5] transition" aria-label="Lưu đánh giá">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                          </svg>
+                        </button>
                       </div>
-                      {/* Bookmark Icon */}
-                      <button className="text-slate-400 hover:text-[#2457F5] transition" aria-label="Lưu đánh giá">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                        </svg>
-                      </button>
+
+                      {/* Gold Rating Stars */}
+                      <div className="mt-3.5 flex items-center gap-0.5 text-[#FBAD39]">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span key={i} className={`text-base ${i < (review.rating || 5) ? "" : "text-pale"}`}>★</span>
+                        ))}
+                      </div>
+
+                      {/* Review Content */}
+                      <p className="mt-3 text-xs leading-6 text-slate-500 font-semibold">
+                        {review.content}
+                      </p>
                     </div>
 
-                    {/* Gold Rating Stars */}
-                    <div className="mt-3.5 flex items-center gap-0.5 text-[#FBAD39]">
-                      {Array.from({ length: review.rating || 5 }).map((_, i) => (
-                        <span key={i} className="text-base">★</span>
-                      ))}
+                    {/* Bottom Row metadata */}
+                    <div className="mt-5 pt-3 border-t border-[#F1F5F9] flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-slate-400 font-bold">
+                      <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                        <BriefcaseBusiness size={11} /> Dịch vụ: {review.projectId?.category ? (profileCategoryLabels[review.projectId.category] || review.projectId.category) : 'Thiết kế'}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                        <Clock3 size={11} /> Ngày hoàn thành: {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                      </span>
                     </div>
-
-                    {/* Review Content */}
-                    <p className="mt-3 text-xs leading-6 text-slate-500 font-semibold">
-                      {review.content}
-                    </p>
-                  </div>
-
-                  {/* Bottom Row metadata */}
-                  <div className="mt-5 pt-3 border-t border-[#F1F5F9] flex flex-wrap items-center gap-x-4 gap-y-2 text-[10px] text-slate-400 font-bold">
-                    <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      <BriefcaseBusiness size={11} /> Dịch vụ đã chọn: 2D Art
-                    </span>
-                    <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      <Clock3 size={11} /> Ngày hoàn thành: 28/2/2026
-                    </span>
-                    <span className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      <CheckCircle2 size={11} /> Đã hoàn thành: 1 dự án
-                    </span>
-                  </div>
-                </article>
-              ))}
-            </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-[18px] border border-dashed border-[#CED8F4] bg-white p-8 text-center text-slate-450 font-semibold shadow-sm">
+                Chưa có đánh giá nào từ khách hàng.
+              </div>
+            )}
           </section>
         </div>
       </section>

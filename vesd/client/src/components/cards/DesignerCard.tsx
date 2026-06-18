@@ -9,10 +9,16 @@ export function DesignerCard({ profile }: { profile: any }) {
   return (
     <Card className="flex h-[333px] w-full flex-col rounded-[14px] border-[#FBAD39] p-6 shadow-[0_2px_6px_rgba(48,150,137,0.08)]">
       <div className="flex items-center justify-between text-[9.33px] leading-4">
-        <div className="flex items-center gap-1 text-[#FBAD39]">
-          <span>★★★★</span><span className="text-pale">★</span>
-          <span className="ml-1 text-[9.33px] font-medium text-[#596780]">127 đánh giá</span>
-        </div>
+        {profile.ratingCount > 0 ? (
+          <div className="flex items-center gap-1 text-[#FBAD39]">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <span key={i} className={i < Math.round(profile.ratingAverage || 0) ? "" : "text-pale"}>★</span>
+            ))}
+            <span className="ml-1 text-[9.33px] font-medium text-[#596780]">{(profile.ratingAverage || 0).toFixed(1)} ({profile.ratingCount} đánh giá)</span>
+          </div>
+        ) : (
+          <span className="text-[9.33px] font-medium text-slate-400">Chưa có đánh giá</span>
+        )}
         <Bookmark className="text-muted" size={17} />
       </div>
       <div className="mt-3 flex items-start gap-[14px]">

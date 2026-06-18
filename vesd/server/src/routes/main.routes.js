@@ -260,7 +260,7 @@ mainRoutes.get('/designers/:idOrSlug', asyncHandler(async (req, res) => {
   if (!profile) throw new ApiError(404, 'Khong tim thay designer');
   const [portfolio, reviews] = await Promise.all([
     Portfolio.find({ designerId: profile.userId._id }).limit(12),
-    Review.find({ revieweeId: profile.userId._id, status: 'visible' }).populate('reviewerId', 'name avatar').limit(10)
+    Review.find({ revieweeId: profile.userId._id, status: 'visible' }).populate('reviewerId', 'name avatar').populate('projectId', 'category').limit(10)
   ]);
   res.json({ profile, portfolio, reviews });
 }));
