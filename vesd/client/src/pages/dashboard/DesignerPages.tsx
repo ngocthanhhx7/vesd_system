@@ -75,6 +75,7 @@ export function DesignerProfileSetup() {
     availability: 'available',
     education: '',
     experience: '',
+    address: '',
     facebook: '',
     linkedin: '',
     twitter: '',
@@ -132,7 +133,8 @@ export function DesignerProfileSetup() {
         linkedin: p.socialLinks?.linkedin || '',
         twitter: p.socialLinks?.twitter || '',
         tiktok: p.socialLinks?.tiktok || '',
-        background: p.background || ''
+        background: p.background || '',
+        address: p.address || ''
       });
     }
   }, [data]);
@@ -165,6 +167,7 @@ export function DesignerProfileSetup() {
       availability: form.availability,
       education: form.education,
       experience: form.experience,
+      address: form.address,
       socialLinks: {
         facebook: form.facebook,
         linkedin: form.linkedin,
@@ -259,6 +262,13 @@ export function DesignerProfileSetup() {
               placeholder="Ví dụ: 3 năm, 5 năm..."
               value={form.experience}
               onChange={(e) => setField('experience', e.target.value)}
+            />
+          </FormGroup>
+          <FormGroup label="Địa chỉ" helper="Địa chỉ hiển thị trên hồ sơ (ví dụ: Thanh Xuân, Hà Nội)">
+            <Input
+              placeholder="Ví dụ: Thanh Xuân, Hà Nội"
+              value={form.address}
+              onChange={(e) => setField('address', e.target.value)}
             />
           </FormGroup>
           <FormGroup label="Ảnh nền hồ sơ" helper="Ảnh nền sẽ hiển thị làm bìa hồ sơ của bạn (khuyên dùng tỉ lệ rộng)">

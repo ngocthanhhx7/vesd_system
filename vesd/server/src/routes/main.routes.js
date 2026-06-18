@@ -886,7 +886,30 @@ mainRoutes.get('/uploads/file-object', requireAuth, asyncHandler(async (req, res
   object.Body.pipe(res);
 }));
 
-mainRoutes.get('/admin/users', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await User.find(req.query.role ? { roles: req.query.role } : {}).select('-passwordHash').sort({ createdAt: -1 }))));
+mainRoutes.get('/admin/users', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+  const { page, limit } = pageParams(req);
+  const query = {};
+  if (req.query.role && req.query.role !== 'all') {
+    query.roles = req.query.role;
+  }
+  if (req.query.status && req.query.status !== 'all') {
+    query.status = req.query.status;
+  }
+  if (req.query.q) {
+    const regex = new RegExp(String(req.query.q).trim(), 'i');
+    query.$or = [{ name: regex }, { email: regex }];
+  }
+  const [items, total] = await Promise.all([
+    User.find(query).select('-passwordHash').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    User.countDocuments(query)
+  ]);
+  res.json({
+    items,
+    total,
+    page,
+    pages: Math.ceil(total / limit)
+  });
+}));
 mainRoutes.patch('/admin/users/:id/status', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await User.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true }).select('-passwordHash'))));
 mainRoutes.get('/admin/designers/pending', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => res.json(await DesignerProfile.find({ verificationStatus: 'pending' }).populate('userId', 'name email avatar'))));
 mainRoutes.patch('/admin/designers/:id/verify', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => res.json(await DesignerProfile.findByIdAndUpdate(req.params.id, { verificationStatus: req.body.status, verificationNote: req.body.note }, { new: true }))));

@@ -76,6 +76,7 @@ const designerProfileSchema = new Schema(
     availability: { type: String, default: 'available' },
     education: String,
     experience: String,
+    address: { type: String, default: '' },
     verificationStatus: { type: String, enum: ['unverified', 'pending', 'verified', 'rejected'], default: 'unverified' },
     verificationNote: String,
     ratingAverage: { type: Number, default: 0 },

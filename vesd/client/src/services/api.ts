@@ -112,7 +112,7 @@ export const endpoints = {
   validateDiscount: (body: unknown) => api<any>('/discounts/validate', { method: 'POST', body: JSON.stringify(body) }),
   subscribe: (body: unknown) => api<any>('/premium/subscribe', { method: 'POST', body: JSON.stringify(body) }),
   premiumMy: () => api<any[]>('/premium/my'),
-  adminUsers: () => api<any[]>('/admin/users'),
+  adminUsers: (query = '') => api<any>(`/admin/users${query}`),
   adminProjects: () => api<any[]>('/admin/projects'),
   adminDisputes: () => api<any[]>('/admin/disputes'),
   adminResolveDispute: (id: string, body: { adminDecision: string; resolutionType: string; resolutionAmount?: number }) => api<any>(`/admin/disputes/${id}/resolve`, { method: 'PATCH', body: JSON.stringify(body) }),

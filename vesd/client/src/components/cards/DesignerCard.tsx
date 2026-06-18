@@ -19,7 +19,7 @@ export function DesignerCard({ profile }: { profile: any }) {
         <Avatar className="h-[30px] w-[30px] text-[10px]" src={user.avatar} name={user.name || profile.title} loading="lazy" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-[19.77px] font-semibold leading-6">{user.name || 'Vũ Tuấn Khang'}</div>
-          <p className="text-xs leading-4 text-ink">Thanh Xuân, Hà Nội</p>
+          <p className="text-xs leading-4 text-ink">{profile.address || 'Thanh Xuân, Hà Nội'}</p>
         </div>
       </div>
       <p className="mt-[17px] line-clamp-4 flex-1 text-xs leading-[18px] text-ink">{profile.bio || 'Xin chào, tôi là Khang, tôi là designer chuyên về thiết kế nhận diện thương hiệu và thiết kế...'}</p>

@@ -655,7 +655,7 @@ export function DesignerProfilePage() {
                       <Clock3 size={14} /> Vừa hoạt động
                     </span>
                     <span className="flex items-center gap-1.5 text-[#2457F5]">
-                      <MapPin size={14} /> {profile.experience ? `Kinh nghiệm ${profile.experience}` : 'Đến từ Hà Nội'}
+                      <MapPin size={14} /> {profile.address || (profile.experience ? `Kinh nghiệm ${profile.experience}` : 'Đến từ Hà Nội')}
                     </span>
                   </div>
                 </div>
@@ -824,62 +824,90 @@ export function DesignerProfilePage() {
               {/* Top Grid: Column 1, 2, 3, 4 */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {/* Column 1 (spans 2 rows / tall) */}
-                <div className="row-span-2 h-[220px] md:h-[292px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[0]?.images?.[0]?.url || "/assets/figma-blue-board.png"} alt="" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3 text-white">
-                    <span className="text-xs font-bold truncate">{portfolio[0]?.title || "Case study 1"}</span>
-                  </div>
+                <div className="row-span-2 h-[220px] md:h-[292px] bg-[#E2E8F0] rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  {portfolio[0] ? (
+                    <>
+                      <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[0]?.images?.[0]?.url} alt="" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3 text-white">
+                        <span className="text-xs font-bold truncate">{portfolio[0]?.title}</span>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
 
                 {/* Column 2 Row 1 */}
-                <div className="h-[104px] md:h-[140px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[1]?.images?.[0]?.url || "/assets/figma-mobile-mockup.png"} alt="" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
-                    <span className="text-xs font-bold truncate">{portfolio[1]?.title || "Case study 2"}</span>
-                  </div>
+                <div className="h-[104px] md:h-[140px] bg-[#E2E8F0] rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  {portfolio[1] ? (
+                    <>
+                      <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[1]?.images?.[0]?.url} alt="" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                        <span className="text-xs font-bold truncate">{portfolio[1]?.title}</span>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
 
                 {/* Column 3 Row 1 */}
-                <div className="h-[104px] md:h-[140px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[2]?.images?.[0]?.url || "/assets/figma-business-card.png"} alt="" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
-                    <span className="text-xs font-bold truncate">{portfolio[2]?.title || "Case study 3"}</span>
-                  </div>
+                <div className="h-[104px] md:h-[140px] bg-[#E2E8F0] rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  {portfolio[2] ? (
+                    <>
+                      <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[2]?.images?.[0]?.url} alt="" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                        <span className="text-xs font-bold truncate">{portfolio[2]?.title}</span>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
 
                 {/* Column 4 (spans 2 rows / tall) */}
-                <div className="row-span-2 h-[220px] md:h-[292px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[3]?.images?.[0]?.url || "/assets/figma-blue-board.png"} alt="" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3 text-white">
-                    <span className="text-xs font-bold truncate">{portfolio[3]?.title || "Case study 4"}</span>
-                  </div>
+                <div className="row-span-2 h-[220px] md:h-[292px] bg-[#E2E8F0] rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  {portfolio[3] ? (
+                    <>
+                      <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[3]?.images?.[0]?.url} alt="" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-3 text-white">
+                        <span className="text-xs font-bold truncate">{portfolio[3]?.title}</span>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
 
                 {/* Column 2 Row 2 (renders under Column 2 Row 1) */}
-                <div className="h-[104px] md:h-[140px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[4]?.images?.[0]?.url || "/assets/figma-mobile-mockup.png"} alt="" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
-                    <span className="text-xs font-bold truncate">{portfolio[4]?.title || "Case study 5"}</span>
-                  </div>
+                <div className="h-[104px] md:h-[140px] bg-[#E2E8F0] rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  {portfolio[4] ? (
+                    <>
+                      <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[4]?.images?.[0]?.url} alt="" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                        <span className="text-xs font-bold truncate">{portfolio[4]?.title}</span>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
 
                 {/* Column 3 Row 2 (renders under Column 3 Row 1) */}
-                <div className="h-[104px] md:h-[140px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
-                  <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[5]?.images?.[0]?.url || "/assets/figma-business-card.png"} alt="" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
-                    <span className="text-xs font-bold truncate">{portfolio[5]?.title || "Case study 6"}</span>
-                  </div>
+                <div className="h-[104px] md:h-[140px] bg-[#E2E8F0] rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                  {portfolio[5] ? (
+                    <>
+                      <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[5]?.images?.[0]?.url} alt="" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                        <span className="text-xs font-bold truncate">{portfolio[5]?.title}</span>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               </div>
 
               {/* Bottom Grid: 5 equal columns */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {[6, 7, 8, 9, 10].map((num) => (
-                  <div key={num} className="h-[76px] md:h-[100px] bg-slate-100 rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
-                    <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[num]?.images?.[0]?.url || `/assets/figma-${num % 2 === 0 ? 'mobile-mockup' : 'business-card'}.png`} alt="" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
-                      <span className="text-[10px] font-bold truncate">{portfolio[num]?.title || `Project ${num}`}</span>
-                    </div>
+                  <div key={num} className="h-[76px] md:h-[100px] bg-[#E2E8F0] rounded-lg border border-[#E2E8F0] overflow-hidden group relative">
+                    {portfolio[num] ? (
+                      <>
+                        <img className="w-full h-full object-cover group-hover:scale-105 transition duration-300" src={portfolio[num]?.images?.[0]?.url} alt="" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition flex items-end p-2 text-white">
+                          <span className="text-[10px] font-bold truncate">{portfolio[num]?.title}</span>
+                        </div>
+                      </>
+                    ) : null}
                   </div>
                 ))}
               </div>

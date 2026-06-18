@@ -60,11 +60,31 @@ export function AdminDashboard() {
 }
 
 export function AdminListPage({ type }: { type: string }) {
-  const query = type === 'users' ? endpoints.adminUsers : type === 'projects' ? endpoints.adminProjects : type === 'disputes' ? endpoints.adminDisputes : endpoints.adminUsers;
-  const { data = [] } = useQuery({ queryKey: ['admin', type], queryFn: query });
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('all');
+  const [role, setRole] = useState('all');
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
+  const queryClient = useQueryClient();
+  const query = type === 'users' ? endpoints.adminUsers : type === 'projects' ? endpoints.adminProjects : type === 'disputes' ? endpoints.adminDisputes : endpoints.adminUsers;
+  
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', type, { search, status, role, page }],
+    queryFn: () => {
+      if (type === 'users') {
+        const queryParams = new URLSearchParams();
+        if (search) queryParams.set('q', search);
+        if (status !== 'all') queryParams.set('status', status);
+        if (role !== 'all') queryParams.set('role', role);
+        queryParams.set('page', String(page));
+        queryParams.set('limit', String(limit));
+        return endpoints.adminUsers(`?${queryParams.toString()}`);
+      }
+      return query();
+    }
+  });
+
   const [selectedDispute, setSelectedDispute] = useState<any>(null);
   const [message, setMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -80,6 +100,7 @@ export function AdminListPage({ type }: { type: string }) {
       setTimeout(() => setErrorMsg(''), 5000);
     }
   });
+
   const updateProject = useMutation({
     mutationFn: ({ id, patch }: { id: string; patch: unknown }) => endpoints.updateProject(id, patch),
     onSuccess: () => {
@@ -92,7 +113,21 @@ export function AdminListPage({ type }: { type: string }) {
       setTimeout(() => setErrorMsg(''), 5000);
     }
   });
-  const filtered = data.filter((item: any) => {
+
+  if (isLoading) {
+    return (
+      <Dashboard title={type === 'users' ? 'Quản lý người dùng' : type === 'projects' ? 'Quản lý dự án' : 'Quản lý khiếu nại'}>
+        <Card>
+          <p className="text-muted py-8 text-center">Đang tải dữ liệu...</p>
+        </Card>
+      </Dashboard>
+    );
+  }
+
+  const usersData = type === 'users' ? data : null;
+  const itemsList = type === 'users' ? (usersData?.items || []) : (data || []);
+
+  const filtered = type === 'users' ? itemsList : itemsList.filter((item: any) => {
     const haystack = `${item.name || ''} ${item.email || ''} ${item.title || ''} ${item.reason || ''} ${item.category || ''} ${item.clientId?.name || ''} ${item.designerId?.name || ''}`.toLowerCase();
     const currentStatus = item.status || item.verificationStatus || 'active';
     return (!search || haystack.includes(search.toLowerCase())) && (status === 'all' || currentStatus === status);
@@ -104,12 +139,18 @@ export function AdminListPage({ type }: { type: string }) {
         {message && <div className="mb-4 p-3 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg text-sm font-medium">{message}</div>}
         {errorMsg && <div className="mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg text-sm font-medium">{errorMsg}</div>}
         <Card className="mb-4">
-          <div className="grid gap-3 md:grid-cols-[1fr_220px]">
+          <div className="grid gap-3 md:grid-cols-[1fr_180px_180px]">
             <div className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-              <Input className="pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tên, email, vai trò" />
+              <Input className="pl-9" value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Tìm tên, email" />
             </div>
-            <Select value={status} onChange={(event) => setStatus(event.target.value)}>
+            <Select value={role} onChange={(event) => { setRole(event.target.value); setPage(1); }}>
+              <option value="all">Tất cả vai trò</option>
+              <option value="client">Client</option>
+              <option value="designer">Designer</option>
+              <option value="admin">Admin</option>
+            </Select>
+            <Select value={status} onChange={(event) => { setStatus(event.target.value); setPage(1); }}>
               <option value="all">Tất cả trạng thái</option>
               <option value="active">Đang hoạt động</option>
               <option value="pending">Đang chờ</option>
@@ -141,6 +182,27 @@ export function AdminListPage({ type }: { type: string }) {
             </table>
           </div>
         </Card>
+        {usersData?.pages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-4 text-base font-medium">
+            <Button
+              variant="secondary"
+              disabled={page === 1}
+              onClick={() => setPage(p => Math.max(p - 1, 1))}
+            >
+              Trang trước
+            </Button>
+            <span className="text-[#596780]">
+              Trang <strong className="text-ink">{page}</strong> / {usersData.pages} (Tổng {usersData.total} người dùng)
+            </span>
+            <Button
+              variant="secondary"
+              disabled={page >= usersData.pages}
+              onClick={() => setPage(p => Math.min(p + 1, usersData.pages))}
+            >
+              Trang sau
+            </Button>
+          </div>
+        )}
       </Dashboard>
     );
   }
