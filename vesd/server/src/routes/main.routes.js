@@ -233,12 +233,12 @@ mainRoutes.get('/designers', asyncHandler(async (req, res) => {
   }
   if (req.query.q) query.$text = { $search: req.query.q };
   const sortMap = {
-    rating: { premiumStatus: -1, ratingAverage: -1 },
-    price: { startingPrice: 1 },
-    newest: { createdAt: -1 },
-    popularity: { premiumStatus: -1, profileViews: -1 }
+    rating: { premiumStatus: -1, ratingAverage: -1, _id: 1 },
+    price: { startingPrice: 1, _id: 1 },
+    newest: { createdAt: -1, _id: 1 },
+    popularity: { premiumStatus: -1, profileViews: -1, _id: 1 }
   };
-  const sort = sortMap[req.query.sort] || { premiumStatus: -1, ratingAverage: -1, completedProjects: -1 };
+  const sort = sortMap[req.query.sort] || { premiumStatus: -1, ratingAverage: -1, completedProjects: -1, _id: 1 };
   const [items, total, categoryFacets] = await Promise.all([
     DesignerProfile.find(query).populate('userId', 'name avatar').sort(sort).skip((page - 1) * limit).limit(limit).lean(),
     DesignerProfile.countDocuments(query),
@@ -811,7 +811,7 @@ mainRoutes.get('/notifications', requireAuth, asyncHandler(async (req, res) => {
   const p = Math.max(Number(page), 1);
   const l = Math.min(Number(limit) || 20, 50);
   const [notifications, total, unreadCount] = await Promise.all([
-    Notification.find(query).sort({ createdAt: -1 }).skip((p - 1) * l).limit(l).lean(),
+    Notification.find(query).sort({ createdAt: -1, _id: -1 }).skip((p - 1) * l).limit(l).lean(),
     Notification.countDocuments(query),
     Notification.countDocuments({ userId: req.user._id, isRead: false })
   ]);
@@ -900,7 +900,7 @@ mainRoutes.get('/admin/users', requireAuth, requireRole('admin'), asyncHandler(a
     query.$or = [{ name: regex }, { email: regex }];
   }
   const [items, total] = await Promise.all([
-    User.find(query).select('-passwordHash').sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    User.find(query).select('-passwordHash').sort({ createdAt: -1, _id: -1 }).skip((page - 1) * limit).limit(limit).lean(),
     User.countDocuments(query)
   ]);
   res.json({
