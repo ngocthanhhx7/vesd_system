@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DesignerCard, getHomeDesignerPageItems } from './PublicPages';
 import { AdminAnalyticsPage, ProjectCard } from './DashboardPages';
-import { buildLinePoints, formatDuration } from './dashboard/AdminAnalyticsPage';
+import { buildLinePoints, chartState, formatDuration } from './dashboard/AdminAnalyticsPage';
+import { getOrCreateAnalyticsSession } from '../services/analytics';
 
 describe('component contracts', () => {
   it('DesignerCard exists', () => {
@@ -21,8 +22,36 @@ describe('component contracts', () => {
     expect(buildLinePoints([], 'sessions')).toBe('');
     expect(buildLinePoints([{ sessions: 10 }, { sessions: 10 }], 'sessions')).toBe('0,50 100,50');
   });
+  it('describes empty and single-point chart states', () => {
+    expect(chartState([], 'sessions')).toEqual({ kind: 'empty', value: 0 });
+    expect(chartState([{ sessions: 10 }], 'sessions')).toEqual({ kind: 'single', value: 10 });
+    expect(chartState([{ sessions: 10 }, { sessions: 12 }], 'sessions')).toEqual({ kind: 'line', value: 12 });
+  });
   it('formats session duration as minutes and seconds', () => {
     expect(formatDuration(0)).toBe('0s');
     expect(formatDuration(125)).toBe('2m 5s');
+  });
+  it('keeps the same analytics session across reloads within 30 minutes', () => {
+    const storage = new Map<string, string>();
+    const store = {
+      getItem: (key: string) => storage.get(key) || null,
+      setItem: (key: string, value: string) => { storage.set(key, value); }
+    };
+    const first = getOrCreateAnalyticsSession({ now: 1000, storage: store, makeId: () => 'session-a' });
+    const second = getOrCreateAnalyticsSession({ now: 1000 + 10 * 60 * 1000, storage: store, makeId: () => 'session-b' });
+    expect(first.isSessionStart).toBe(true);
+    expect(second.sessionId).toBe('session-a');
+    expect(second.isSessionStart).toBe(false);
+  });
+  it('starts a new analytics session after 30 minutes of inactivity', () => {
+    const storage = new Map<string, string>();
+    const store = {
+      getItem: (key: string) => storage.get(key) || null,
+      setItem: (key: string, value: string) => { storage.set(key, value); }
+    };
+    getOrCreateAnalyticsSession({ now: 1000, storage: store, makeId: () => 'session-a' });
+    const next = getOrCreateAnalyticsSession({ now: 1000 + 31 * 60 * 1000, storage: store, makeId: () => 'session-b' });
+    expect(next.sessionId).toBe('session-b');
+    expect(next.isSessionStart).toBe(true);
   });
 });

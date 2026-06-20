@@ -33,7 +33,7 @@ import { handleCassoWithdrawalWebhook, requestCassoWithdrawal, requestPayosWithd
 import { confirmPayosWebhook, getPayosPayoutBalance } from '../services/payosService.js';
 import { transferWalletToDesigner } from '../services/walletService.js';
 import { addSSEClient } from '../services/notificationService.js';
-import { generateAnalyticsAiReport, getAdminAnalytics, getAnalyticsAiQuota, recordAnalyticsEvent, recordConversion, recordPerformanceEvent } from '../services/analyticsService.js';
+import { ensureAnalyticsBackfill, generateAnalyticsAiReport, getAdminAnalytics, getAnalyticsAiQuota, recordAnalyticsEvent, recordConversion, recordPerformanceEvent } from '../services/analyticsService.js';
 import { emitToConversation, emitToUsers } from '../realtime/socket.js';
 
 export const mainRoutes = Router();
@@ -120,6 +120,10 @@ mainRoutes.get('/admin/analytics', requireAuth, requireRole('admin'), asyncHandl
   const analytics = await getAdminAnalytics(req.query.range);
   const quota = await getAnalyticsAiQuota(req.user);
   res.json({ ...analytics, aiQuota: quota });
+}));
+
+mainRoutes.post('/admin/analytics/backfill', requireAuth, requireRole('admin'), asyncHandler(async (_req, res) => {
+  res.status(201).json(await ensureAnalyticsBackfill());
 }));
 
 mainRoutes.post('/admin/analytics/ai-report', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {

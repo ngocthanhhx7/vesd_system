@@ -9,13 +9,29 @@ const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID as string | und
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 const SESSION_KEY = 'vesd_analytics_session';
 const VISITOR_KEY = 'vesd_analytics_visitor';
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
 const isGAEnabled = !!GA_MEASUREMENT_ID;
-let pageViewCount = 0;
 let maxScrollDepth = 0;
-let sessionStartedAt = Date.now();
 let performanceInstalled = false;
 let interactionsInstalled = false;
+
+type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
+type PersistedAnalyticsSession = {
+  sessionId: string;
+  startedAt: number;
+  lastActivityAt: number;
+  pageViews: number;
+};
+
+type AnalyticsSessionOptions = {
+  now?: number;
+  storage?: StorageLike | null;
+  makeId?: () => string;
+  incrementPageViews?: boolean;
+};
+
+let memorySession: PersistedAnalyticsSession | null = null;
 
 function gtag(...args: unknown[]) {
   if (typeof window !== 'undefined' && isGAEnabled && window.gtag) {
@@ -82,14 +98,53 @@ function safeStorage() {
   }
 }
 
+function parseSession(raw: string | null, now: number): PersistedAnalyticsSession | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object' && typeof parsed.sessionId === 'string') {
+      return {
+        sessionId: parsed.sessionId,
+        startedAt: Number(parsed.startedAt) || now,
+        lastActivityAt: Number(parsed.lastActivityAt) || now,
+        pageViews: Math.max(Number(parsed.pageViews) || 0, 0)
+      };
+    }
+  } catch {
+    return { sessionId: raw, startedAt: now, lastActivityAt: now, pageViews: 0 };
+  }
+  return null;
+}
+
+function persistSession(storage: StorageLike | null, session: PersistedAnalyticsSession) {
+  if (storage) storage.setItem(SESSION_KEY, JSON.stringify(session));
+  memorySession = session;
+}
+
+export function getOrCreateAnalyticsSession({
+  now = Date.now(),
+  storage = safeStorage(),
+  makeId = randomId,
+  incrementPageViews = true
+}: AnalyticsSessionOptions = {}) {
+  const current = parseSession(storage?.getItem(SESSION_KEY) || null, now) || (storage ? null : memorySession);
+  const isExpired = current ? now - current.lastActivityAt > SESSION_TIMEOUT_MS : true;
+  const isSessionStart = !current || isExpired;
+  const base = isSessionStart
+    ? { sessionId: makeId(), startedAt: now, lastActivityAt: now, pageViews: 0 }
+    : current;
+  const next = {
+    ...base,
+    lastActivityAt: now,
+    pageViews: base.pageViews + (incrementPageViews ? 1 : 0)
+  };
+  persistSession(storage, next);
+  if (isSessionStart) maxScrollDepth = 0;
+  return { ...next, isSessionStart };
+}
+
 export function getAnalyticsSessionId() {
-  const storage = safeStorage();
-  if (!storage) return 'server-render-session';
-  const current = storage.getItem(SESSION_KEY);
-  if (current) return current;
-  const next = randomId();
-  storage.setItem(SESSION_KEY, next);
-  return next;
+  return getOrCreateAnalyticsSession({ incrementPageViews: false }).sessionId || 'server-render-session';
 }
 
 function visitorState() {
@@ -127,8 +182,7 @@ function sendInternalAnalytics(payload: Record<string, unknown>, endpoint = '/an
 
 export function trackPageView(path: string, title: string) {
   const visitor = visitorState();
-  const isSessionStart = pageViewCount === 0;
-  pageViewCount += 1;
+  const session = getOrCreateAnalyticsSession();
   pageView(path, title);
   sendInternalAnalytics({
     type: 'page_view',
@@ -136,7 +190,7 @@ export function trackPageView(path: string, title: string) {
     title,
     visitorId: visitor.visitorId,
     isNewVisitor: visitor.isNewVisitor,
-    isSessionStart
+    isSessionStart: session.isSessionStart
   });
 }
 
@@ -206,10 +260,11 @@ export function installInteractionTracking() {
     }
   };
   const onUnload = () => {
+    const session = getOrCreateAnalyticsSession({ incrementPageViews: false });
     sendInternalAnalytics({
       type: 'session',
-      value: Math.round((Date.now() - sessionStartedAt) / 1000),
-      isBounce: pageViewCount <= 1 && maxScrollDepth < 25
+      value: Math.round((Date.now() - session.startedAt) / 1000),
+      isBounce: session.pageViews <= 1 && maxScrollDepth < 25
     });
   };
   window.addEventListener('click', onClick, { passive: true });

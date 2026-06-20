@@ -128,6 +128,7 @@ export const endpoints = {
   createDiscount: (body: unknown) => api<any>('/admin/discounts', { method: 'POST', body: JSON.stringify(body) }),
   updateDiscount: (id: string, body: unknown) => api<any>(`/admin/discounts/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
   adminAnalytics: (range = '7d') => api<any>(`/admin/analytics?range=${encodeURIComponent(range)}`),
+  adminAnalyticsBackfill: () => api<any>('/admin/analytics/backfill', { method: 'POST' }),
   adminAnalyticsAiReport: (range = '7d') => api<any>('/admin/analytics/ai-report', { method: 'POST', body: JSON.stringify({ range }) }),
   uploadImage: (file: File) => {
     const form = new FormData();

@@ -50,6 +50,13 @@ export function buildLinePoints(series: SeriesPoint[], key: string) {
   }).join(' ');
 }
 
+export function chartState(series: SeriesPoint[], key: string) {
+  const value = Number(latest(series, {})[key]) || 0;
+  if (!series.length) return { kind: 'empty', value };
+  if (series.length === 1) return { kind: 'single', value };
+  return { kind: 'line', value };
+}
+
 export function formatDuration(seconds: number) {
   const value = Math.max(Math.round(seconds || 0), 0);
   if (value < 60) return `${value}s`;
@@ -83,6 +90,10 @@ export function AdminAnalyticsPage() {
     mutationFn: () => endpoints.adminAnalyticsAiReport(range),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-analytics'] })
   });
+  const backfillMutation = useMutation({
+    mutationFn: () => endpoints.adminAnalyticsBackfill(),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-analytics'] })
+  });
 
   const summary = data?.summary;
   const series = summary?.series || [];
@@ -110,8 +121,8 @@ export function AdminAnalyticsPage() {
           <Select className="w-40" value={range} onChange={(event) => setRange(event.target.value as RangeKey)}>
             {ranges.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </Select>
-          <Button variant="secondary" type="button" onClick={() => queryClient.invalidateQueries({ queryKey: ['admin-analytics'] })}>
-            <RefreshCw className="h-4 w-4" />
+          <Button variant="secondary" type="button" disabled={backfillMutation.isPending} onClick={() => backfillMutation.mutate()}>
+            <RefreshCw className={`h-4 w-4 ${backfillMutation.isPending ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
@@ -234,18 +245,20 @@ function SectionTitle({ icon: Icon, title, subtitle }: { icon: any; title: strin
 }
 
 function LineChart({ title, series, field, color, suffix }: { title: string; series: SeriesPoint[]; field: string; color: string; suffix: string }) {
+  const state = chartState(series, field);
   const points = buildLinePoints(series, field);
-  const current = Number(latest(series, {})[field]) || 0;
   return (
     <div className="rounded-lg border border-line bg-soft/60 p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="font-bold">{title}</p>
-        <Badge tone="info">{round(current)}{suffix}</Badge>
+        <Badge tone="info">{round(state.value)}{suffix}</Badge>
       </div>
       <svg viewBox="0 0 100 100" className="h-36 w-full overflow-visible">
         <line x1="0" y1="92" x2="100" y2="92" stroke="#CED8F4" strokeWidth="1" />
         <line x1="0" y1="8" x2="0" y2="92" stroke="#CED8F4" strokeWidth="1" />
-        {points && <polyline fill="none" points={points} stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />}
+        {state.kind === 'empty' && <text x="50" y="53" textAnchor="middle" className="fill-slate-400 text-[9px] font-semibold">Chua co du lieu</text>}
+        {state.kind === 'single' && <circle cx="50" cy="50" r="4" fill={color} />}
+        {state.kind === 'line' && points && <polyline fill="none" points={points} stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />}
       </svg>
     </div>
   );

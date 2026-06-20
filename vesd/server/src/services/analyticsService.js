@@ -115,6 +115,24 @@ export function buildFakeDailyMetric(date, index = 0) {
   };
 }
 
+export function buildMissingBackfillMetrics({ existingDates = [], now = new Date() } = {}) {
+  const existing = new Set(existingDates);
+  const start = dateFromKey(ANALYTICS_START_DATE);
+  const end = new Date(now);
+  end.setUTCHours(0, 0, 0, 0);
+  const docs = [];
+  for (let cursor = new Date(start), index = 0; cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1), index += 1) {
+    const key = utcDateKey(cursor);
+    if (!existing.has(key)) docs.push(buildFakeDailyMetric(new Date(cursor), index));
+  }
+  return docs;
+}
+
+export function shouldCountSessionStart({ payloadSessionId, knownSessionIds = new Set() } = {}) {
+  const sessionId = String(payloadSessionId || '').trim();
+  return Boolean(sessionId && !knownSessionIds.has(sessionId));
+}
+
 function avg(values, fallback = 0) {
   const valid = values.map(Number).filter((value) => Number.isFinite(value) && value > 0);
   if (!valid.length) return fallback;
@@ -230,15 +248,11 @@ async function ensureDailyMetric(dateKey) {
 }
 
 export async function ensureAnalyticsBackfill(now = new Date()) {
-  const existing = await AnalyticsDailyMetric.estimatedDocumentCount();
-  if (existing > 0) return { inserted: 0 };
-  const start = dateFromKey(ANALYTICS_START_DATE);
-  const end = new Date(now);
-  end.setUTCHours(0, 0, 0, 0);
-  const docs = [];
-  for (let cursor = new Date(start), index = 0; cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1), index += 1) {
-    docs.push(buildFakeDailyMetric(new Date(cursor), index));
-  }
+  const window = getRangeWindow('all', now);
+  const existingMetrics = await AnalyticsDailyMetric.find({
+    date: { $gte: utcDateKey(window.start), $lte: utcDateKey(window.end) }
+  }).select('date').lean();
+  const docs = buildMissingBackfillMetrics({ existingDates: existingMetrics.map((metric) => metric.date), now });
   if (docs.length) await AnalyticsDailyMetric.insertMany(docs, { ordered: false });
   return { inserted: docs.length };
 }
@@ -247,6 +261,16 @@ export async function recordAnalyticsEvent(payload = {}, req = {}) {
   const type = ['page_view', 'click', 'scroll', 'session', 'performance', 'conversion'].includes(payload.type) ? payload.type : 'click';
   const sessionId = String(payload.sessionId || req.get?.('X-Analytics-Session-ID') || '').slice(0, 128);
   const dateKey = dayKeyInVietnam(payload.timestamp ? new Date(payload.timestamp) : new Date());
+  const dayStart = dateFromKey(dateKey);
+  const dayEnd = new Date(dayStart);
+  dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+  const existingPageViewSession = type === 'page_view' && sessionId
+    ? await AnalyticsEvent.exists({
+      type: 'page_view',
+      sessionId,
+      createdAt: { $gte: dayStart, $lt: dayEnd }
+    })
+    : null;
   await AnalyticsEvent.create({
     type,
     sessionId,
@@ -263,12 +287,16 @@ export async function recordAnalyticsEvent(payload = {}, req = {}) {
   metric.trafficSources = { ...emptySources(), ...(metric.trafficSources?.toObject?.() || metric.trafficSources || {}) };
   metric.conversions = { ...emptyConversions(), ...(metric.conversions?.toObject?.() || metric.conversions || {}) };
   if (type === 'page_view') {
-    metric.sessions += payload.isSessionStart ? 1 : 0;
-    metric.users += payload.isSessionStart ? 1 : 0;
-    metric.newUsers += payload.isNewVisitor && payload.isSessionStart ? 1 : 0;
-    metric.returningUsers += !payload.isNewVisitor && payload.isSessionStart ? 1 : 0;
+    const countSessionStart = Boolean(payload.isSessionStart && shouldCountSessionStart({
+      payloadSessionId: sessionId,
+      knownSessionIds: existingPageViewSession ? new Set([sessionId]) : new Set()
+    }));
+    metric.sessions += countSessionStart ? 1 : 0;
+    metric.users += countSessionStart ? 1 : 0;
+    metric.newUsers += payload.isNewVisitor && countSessionStart ? 1 : 0;
+    metric.returningUsers += !payload.isNewVisitor && countSessionStart ? 1 : 0;
     metric.pageViews += 1;
-    metric.trafficSources[source] = (metric.trafficSources[source] || 0) + (payload.isSessionStart ? 1 : 0);
+    metric.trafficSources[source] = (metric.trafficSources[source] || 0) + (countSessionStart ? 1 : 0);
   }
   if (type === 'click') metric.clicks += 1;
   if (type === 'scroll') {
