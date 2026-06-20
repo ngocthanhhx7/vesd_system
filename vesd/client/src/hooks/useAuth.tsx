@@ -1,5 +1,6 @@
 import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
 import { ApiUser, endpoints, setToken } from '../services/api';
+import { event, setUserProperties } from '../services/analytics';
 
 type AuthContextValue = {
   user: ApiUser | null;
@@ -15,6 +16,13 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function applyUserProperties(user: ApiUser) {
+  setUserProperties({
+    role: user.roles?.[0] || '',
+    email_verified: Boolean(user.emailVerified)
+  });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<ApiUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     endpoints
       .me()
-      .then((data) => setUser(data.user))
+      .then((data) => {
+        setUser(data.user);
+        applyUserProperties(data.user);
+      })
       .catch(() => setToken(null))
       .finally(() => setLoading(false));
   }, []);
@@ -34,20 +45,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await endpoints.login({ email, password });
       setToken(data.token);
       setUser(data.user);
+      event('login', { method: 'email' });
+      applyUserProperties(data.user);
     },
     register: async (body) => {
       const data = await endpoints.register(body);
       setToken(data.token);
       setUser(data.user);
+      event('sign_up', { method: 'email' });
+      applyUserProperties(data.user);
     },
     loginWithGoogle: async (credential) => {
       const data = await endpoints.loginGoogle(credential);
       setToken(data.token);
       setUser(data.user);
+      event('login', { method: 'google' });
+      applyUserProperties(data.user);
     },
     logout: () => {
       setToken(null);
       setUser(null);
+      event('logout');
+      setUserProperties({ role: null, premium_status: null, email_verified: null });
     },
     hasRole: (role) => Boolean(user?.roles.includes(role)),
     updateUser: (nextUser) => setUser(nextUser),
@@ -55,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const data = await endpoints.me();
         setUser(data.user);
+        applyUserProperties(data.user);
       } catch { /* ignore */ }
     }
   }), [user, loading]);

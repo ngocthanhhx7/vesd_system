@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Avatar } from '../../components/ui/Avatar';
 import { EmptyState, Skeleton, Textarea } from '../../components/ui/Primitives';
 import { useAuth } from '../../hooks/useAuth';
+import { event } from '../../services/analytics';
 import { Dashboard } from './shared/Dashboard';
 
 function userId(value: any) {
@@ -67,6 +68,7 @@ export function MessagesPage() {
     mutationFn: (message: string) => endpoints.sendConversationMessage(activeId, { content: message }),
     onSuccess: () => {
       setContent('');
+      event('send_message', { conversation_id: activeId });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['conversation-messages', activeId] });
     }

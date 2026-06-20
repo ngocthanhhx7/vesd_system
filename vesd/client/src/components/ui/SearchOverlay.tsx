@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, Clock, FolderKanban, UserCircle, Wallet, ArrowDownToLine, Command, CornerDownLeft, ArrowUp, ArrowDown } from 'lucide-react';
 import { endpoints } from '../../services/api';
+import { event } from '../../services/analytics';
 import { StatusBadge } from '../ui/Primitives';
 
 const RECENT_KEY = 'vesd_recent_searches';
@@ -84,6 +85,7 @@ export function SearchOverlay({ open, onClose }: { open: boolean; onClose: () =>
 
   const goTo = (url: string, label?: string) => {
     if (label) saveRecent(label);
+    event('search', { search_term: debouncedQuery || label || '' });
     onClose();
     navigate(url);
   };

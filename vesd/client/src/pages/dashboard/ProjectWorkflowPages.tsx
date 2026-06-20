@@ -5,6 +5,7 @@ import { AlertTriangle, BarChart3, BriefcaseBusiness, CalendarDays, CheckCircle2
 import { Badge, Card, Input, Select, Skeleton, StatusBadge, Textarea } from '../../components/ui/Primitives';
 import { Button } from '../../components/ui/Button';
 import { endpoints } from '../../services/api';
+import { event } from '../../services/analytics';
 import { Dashboard } from './shared/Dashboard';
 import { Metric } from './shared/Metric';
 import { ProjectCard } from './shared/ProjectCard';
@@ -81,6 +82,7 @@ export function CreateProjectPage() {
         queryClient.invalidateQueries({ queryKey: ['my-projects'] }),
         queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
       ]);
+      event('create_project');
       navigate('/client/projects');
     },
     onError: (error) => setMessage(error instanceof Error ? error.message : 'Không thể đăng dự án')
@@ -333,6 +335,7 @@ export function EscrowPage() {
       }
       setTopupSuggestion(null);
       setMessage('Đã khóa tiền thuê trong escrow. Phí sàn 5% sẽ trừ khi giải ngân cho designer.');
+      event('pay_escrow', { project_id: projectId, currency: 'VND' });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['wallet'] }),
         queryClient.invalidateQueries({ queryKey: ['tx'] }),
@@ -541,7 +544,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
 
   const startProject = useMutation({
     mutationFn: () => endpoints.startProject(id as string, { content: 'Designer bắt đầu thực hiện dự án' }),
-    onSuccess: async () => { setMessage('Đã chuyển dự án sang trạng thái đang làm.'); await refreshProject(); },
+    onSuccess: async () => { setMessage('Đã chuyển dự án sang trạng thái đang làm.'); event('start_project', { project_id: id }); await refreshProject(); },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể bắt đầu dự án')
   });
 
@@ -567,6 +570,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
       }
       setTopupSuggestion(null);
       setMessage('Đã khóa tiền thuê trong escrow thành công. Dự án đã sẵn sàng thực hiện.');
+      event('pay_escrow', { project_id: id, value: project?.agreement?.price || 0, currency: 'VND' });
       await refreshProject();
     },
     onError: (error) => {
@@ -582,20 +586,20 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
       setUploadProgress('Đang gửi milestone cho khách hàng...');
       return endpoints.submitMilestone(id as string, milestoneId, uploaded);
     },
-    onSuccess: async () => { setMessage('Đã gửi milestone cho khách hàng duyệt.'); setMilestoneFiles({}); await refreshProject(); },
+    onSuccess: async () => { setMessage('Đã gửi milestone cho khách hàng duyệt.'); setMilestoneFiles({}); event('submit_milestone', { project_id: id }); await refreshProject(); },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể gửi milestone'),
     onSettled: () => setUploadProgress('')
   });
 
   const approveMilestone = useMutation({
     mutationFn: (milestoneId: string) => endpoints.approveMilestone(id as string, milestoneId),
-    onSuccess: async () => { setMessage('Đã duyệt milestone.'); await refreshProject(); },
+    onSuccess: async () => { setMessage('Đã duyệt milestone.'); event('approve_milestone', { project_id: id }); await refreshProject(); },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể duyệt milestone')
   });
 
   const requestRevision = useMutation({
     mutationFn: () => endpoints.requestRevision(id as string, revisionText.trim()),
-    onSuccess: async () => { setMessage('Đã gửi yêu cầu chỉnh sửa.'); setRevisionText(''); await refreshProject(); },
+    onSuccess: async () => { setMessage('Đã gửi yêu cầu chỉnh sửa.'); setRevisionText(''); event('request_revision', { project_id: id }); await refreshProject(); },
     onError: (err) => setMessage(err instanceof Error ? err.message : 'Không thể gửi yêu cầu chỉnh sửa')
   });
 
@@ -623,6 +627,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
       setAllowMissingFinalFiles(false);
       setCanApproveWithMissingFiles(false);
       setMessage('Đã hoàn tất dự án và giải ngân escrow.');
+      event('complete_project', { project_id: id, value: budget || 0, currency: 'VND' });
       await refreshProject();
     },
     onError: (err) => {
@@ -657,6 +662,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
     },
     onSuccess: async () => {
       setMessage('Đã gửi khiếu nại thành công. Dự án đã được chuyển sang trạng thái tranh chấp.');
+      event('create_dispute', { project_id: id, reason: disputeReason });
       setShowDisputeModal(false);
       setDisputeReason('Không bàn giao sản phẩm');
       setDisputeDescription('');

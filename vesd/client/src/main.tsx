@@ -1,9 +1,10 @@
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Outlet, RouterProvider } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './hooks/useAuth';
+import { useAnalytics } from './hooks/useAnalytics';
 import { DashboardLayout, Protected, PublicLayout } from './components/layout/Layout';
 import { CategoryPage, DesignerProfilePage, DesignersPage, HelpPage, HomePage, PricingPage } from './pages/PublicPages';
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, RoleSelectionPage, VerifyEmailPage } from './pages/AuthPages';
@@ -37,6 +38,11 @@ import {
 } from './pages/DashboardPages';
 import './styles/index.css';
 
+function AnalyticsTracker() {
+  useAnalytics();
+  return <Outlet />;
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: { retry: 1, staleTime: 30_000 }
@@ -44,6 +50,9 @@ const queryClient = new QueryClient({
 });
 
 const router = createBrowserRouter([
+  {
+    element: <AnalyticsTracker />,
+    children: [
   {
     element: <PublicLayout />,
     children: [
@@ -134,7 +143,8 @@ const router = createBrowserRouter([
       ]
     }]
   }
-]);
+  ]
+}]);
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <HelmetProvider>

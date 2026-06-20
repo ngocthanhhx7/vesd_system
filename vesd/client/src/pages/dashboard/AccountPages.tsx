@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button';
 import { Avatar } from '../../components/ui/Avatar';
 import { endpoints } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
+import { event } from '../../services/analytics';
 import { Dashboard, Section } from './shared/Dashboard';
 import { Metric } from './shared/Metric';
 
@@ -86,6 +87,7 @@ export function WalletTopupPage() {
     endpoints.syncPayosPayment(orderCode)
       .then(async () => {
         setTopupMessage('payOS đã xác nhận nạp ví thành công.');
+        event('topup_wallet', { value: Number(topupAmount), currency: 'VND' });
         await refreshMoneyData();
       })
       .catch((error) => setTopupMessage(error instanceof Error ? error.message : 'Chưa thể xác nhận giao dịch payOS'));
@@ -94,6 +96,7 @@ export function WalletTopupPage() {
     mutationFn: () => endpoints.topUpWallet({ amount: Number(topupAmount) }),
     onSuccess: (result: any) => {
       if (result?.checkoutUrl) window.location.href = result.checkoutUrl;
+      event('topup_wallet', { value: Number(topupAmount), currency: 'VND' });
     },
     onError: (error) => setTopupMessage(error instanceof Error ? error.message : 'Không thể tạo giao dịch nạp ví')
   });
@@ -180,6 +183,7 @@ export function WalletWithdrawPage() {
     onSuccess: async (result: any) => {
       setTransferInstruction(result.transferInstruction || null);
       setWithdrawMessage('Đã gửi yêu cầu rút tiền. Casso sẽ tự xác nhận khi ngân hàng ghi nhận giao dịch chuyển ra.');
+      event('withdraw', { value: Number(withdrawForm.amount), currency: 'VND' });
       setWithdrawForm({ amount: '', bankName: '', toAccountNumber: '', toAccountName: '', saveAccount: false, label: '' });
       setSelectedAccountId('');
       setQrFile(null);
