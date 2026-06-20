@@ -4,7 +4,8 @@ import {
   AnalyticsAiReport,
   AnalyticsAiUsage,
   AnalyticsDailyMetric,
-  AnalyticsEvent
+  AnalyticsEvent,
+  User
 } from '../models/index.js';
 
 export const ANALYTICS_START_DATE = '2026-06-01';
@@ -63,31 +64,76 @@ function emptySources() {
   return Object.fromEntries(TRAFFIC_SOURCES.map((key) => [key, 0]));
 }
 
-export function buildFakeDailyMetric(date, index = 0) {
+function cleanSources(value = {}) {
+  return { ...emptySources(), ...(value?.toObject?.() || value || {}) };
+}
+
+function cleanConversions(value = {}) {
+  return { ...emptyConversions(), ...(value?.toObject?.() || value || {}) };
+}
+
+function distributeIntegerBudget(total, weights) {
+  const budget = Math.max(Math.round(Number(total) || 0), 0);
+  if (!weights.length || budget === 0) return weights.map(() => 0);
+  const weightSum = weights.reduce((sum, value) => sum + Math.max(value, 0), 0) || 1;
+  const raw = weights.map((weight) => (Math.max(weight, 0) / weightSum) * budget);
+  const base = raw.map(Math.floor);
+  let remainder = budget - base.reduce((sum, value) => sum + value, 0);
+  raw
+    .map((value, index) => ({ index, fraction: value - Math.floor(value) }))
+    .sort((a, b) => b.fraction - a.fraction)
+    .forEach(({ index }) => {
+      if (remainder > 0) {
+        base[index] += 1;
+        remainder -= 1;
+      }
+    });
+  return base;
+}
+
+function splitInteger(total, ratios) {
+  const keys = Object.keys(ratios);
+  const allocations = distributeIntegerBudget(total, keys.map((key) => ratios[key]));
+  return Object.fromEntries(keys.map((key, index) => [key, allocations[index]]));
+}
+
+function buildTechnicalMetric(index = 0) {
+  return {
+    pageLoadTime: round(clamp(2.2 - index * 0.012, 1.75, 2.25)),
+    tti: round(clamp(3.05 - index * 0.014, 2.35, 3.1)),
+    lcp: round(clamp(2.55 - index * 0.012, 2.0, 2.6)),
+    fid: Math.round(clamp(42 - index * 0.5, 28, 44)),
+    inp: Math.round(clamp(205 - index * 1.8, 160, 210)),
+    cls: round(clamp(0.095 - index * 0.0015, 0.055, 0.1), 3),
+    uptime: round(clamp(99.32 + index * 0.012, 99.3, 99.82))
+  };
+}
+
+export function buildFakeDailyMetric(date, index = 0, userBudget) {
   const weekday = date.getUTCDay();
   const isWeekend = weekday === 0 || weekday === 6;
-  const trend = index * 7;
-  const wave = Math.round(Math.sin(index / 2.2) * 8);
-  const sessions = Math.max(42, Math.round(68 + trend + wave - (isWeekend ? 12 : 0)));
-  const users = Math.round(sessions * (0.72 + ((index % 5) * 0.015)));
+  const users = Math.max(Math.round(Number(userBudget ?? (1 + index * 0.25)) || 0), 0);
+  const sessionRatio = clamp(1.7 + (index % 4) * 0.08 - (isWeekend ? 0.08 : 0), 1.6, 2.05);
+  const sessions = users > 0 ? Math.max(users, Math.round(users * sessionRatio)) : 0;
+  const pageViews = Math.round(sessions * (2.15 + (index % 3) * 0.14));
+  const clicks = Math.round(pageViews * clamp(0.11 + index * 0.002, 0.1, 0.18));
+  const bounces = Math.round(sessions * clamp(0.49 - index * 0.003 + (isWeekend ? 0.03 : 0), 0.38, 0.52));
   const newUsers = Math.round(users * clamp(0.54 - index * 0.006, 0.34, 0.56));
   const returningUsers = Math.max(users - newUsers, 0);
-  const pageViews = Math.round(sessions * (2.15 + (index % 4) * 0.18));
-  const clicks = Math.round(pageViews * clamp(0.14 + index * 0.002, 0.12, 0.27));
-  const bounces = Math.round(sessions * clamp(0.48 - index * 0.004 + (isWeekend ? 0.04 : 0), 0.27, 0.52));
-  const registrations = Math.round(sessions * clamp(0.055 + index * 0.001, 0.05, 0.095));
+  const registrations = Math.round(users * clamp(0.075 + index * 0.001, 0.07, 0.1));
   const contacts = Math.round(registrations * clamp(0.62 + index * 0.002, 0.55, 0.78));
   const projectsCreated = Math.round(contacts * clamp(0.48 + index * 0.001, 0.42, 0.62));
   const escrowPaid = Math.round(projectsCreated * clamp(0.42 + index * 0.001, 0.35, 0.54));
   const premiumSubscriptions = Math.max(0, Math.round(registrations * clamp(0.14 + index * 0.001, 0.1, 0.22)));
-  const sourceBase = emptySources();
-  sourceBase.direct = Math.round(sessions * 0.31);
-  sourceBase.search = Math.round(sessions * 0.28);
-  sourceBase.social = Math.round(sessions * 0.21);
-  sourceBase.referral = Math.round(sessions * 0.11);
-  sourceBase.email = Math.round(sessions * 0.05);
-  sourceBase.paid = Math.round(sessions * 0.03);
-  sourceBase.unknown = Math.max(0, sessions - Object.values(sourceBase).reduce((sum, value) => sum + value, 0));
+  const sourceBase = splitInteger(sessions, {
+    direct: 0.36,
+    search: 0.26,
+    social: 0.18,
+    referral: 0.1,
+    email: 0.05,
+    paid: 0.02,
+    unknown: 0.03
+  });
 
   return {
     date: utcDateKey(date),
@@ -100,19 +146,134 @@ export function buildFakeDailyMetric(date, index = 0) {
     bounces,
     totalSessionDuration: Math.round(sessions * (92 + index * 3.5 + (isWeekend ? -8 : 5))),
     scrollDepthTotal: Math.round(sessions * clamp(51 + index * 0.8, 48, 74)),
+    scrollDepthEvents: sessions,
     trafficSources: sourceBase,
     conversions: { registrations, contacts, projectsCreated, escrowPaid, premiumSubscriptions },
-    technical: {
-      pageLoadTime: round(clamp(2.55 - index * 0.018, 1.7, 2.65)),
-      tti: round(clamp(3.45 - index * 0.02, 2.3, 3.55)),
-      lcp: round(clamp(2.85 - index * 0.016, 1.95, 2.9)),
-      fid: Math.round(clamp(48 - index * 0.6, 25, 55)),
-      inp: Math.round(clamp(232 - index * 2.5, 145, 240)),
-      cls: round(clamp(0.11 - index * 0.002, 0.045, 0.12), 3),
-      uptime: round(clamp(99.18 + index * 0.018, 99.1, 99.92))
-    },
+    technical: buildTechnicalMetric(index),
     synthetic: true
   };
+}
+
+function addMetricValues(base, extra = {}) {
+  base.sessions += Number(extra.sessions) || 0;
+  base.users += Number(extra.users) || 0;
+  base.newUsers += Number(extra.newUsers) || 0;
+  base.returningUsers += Number(extra.returningUsers) || 0;
+  base.pageViews += Number(extra.pageViews) || 0;
+  base.clicks += Number(extra.clicks) || 0;
+  base.bounces += Number(extra.bounces) || 0;
+  base.totalSessionDuration += Number(extra.totalSessionDuration) || 0;
+  base.scrollDepthTotal += Number(extra.scrollDepthTotal) || 0;
+  base.scrollDepthEvents += Number(extra.scrollDepthEvents) || 0;
+  const sources = cleanSources(extra.trafficSources);
+  const conversions = cleanConversions(extra.conversions);
+  for (const key of TRAFFIC_SOURCES) base.trafficSources[key] = (base.trafficSources[key] || 0) + (Number(sources[key]) || 0);
+  for (const key of CONVERSION_KEYS) base.conversions[key] = (base.conversions[key] || 0) + (Number(conversions[key]) || 0);
+  if ((Number(extra.technical?.sampleCount) || 0) > 0) base.technical = { ...extra.technical };
+  if (extra.synthetic === false) base.synthetic = false;
+  return base;
+}
+
+function metricFromEventDate(date) {
+  return {
+    date,
+    sessions: 0,
+    users: 0,
+    newUsers: 0,
+    returningUsers: 0,
+    pageViews: 0,
+    clicks: 0,
+    bounces: 0,
+    totalSessionDuration: 0,
+    scrollDepthTotal: 0,
+    scrollDepthEvents: 0,
+    trafficSources: emptySources(),
+    conversions: emptyConversions(),
+    technical: { uptime: 99.5, sampleCount: 0 },
+    synthetic: false,
+    _sessionIds: new Set()
+  };
+}
+
+export function buildObservedDailyMetrics(events = []) {
+  const byDate = new Map();
+  for (const event of events) {
+    const date = dayKeyInVietnam(event.createdAt || new Date());
+    const metric = byDate.get(date) || metricFromEventDate(date);
+    const source = TRAFFIC_SOURCES.includes(event.source) ? event.source : 'unknown';
+    if (event.type === 'page_view') {
+      metric.pageViews += 1;
+      const sessionId = String(event.sessionId || '').trim();
+      if (sessionId && !metric._sessionIds.has(sessionId)) {
+        metric._sessionIds.add(sessionId);
+        metric.sessions += 1;
+        metric.users += 1;
+        if (event.isNewVisitor) metric.newUsers += 1;
+        else metric.returningUsers += 1;
+        metric.trafficSources[source] = (metric.trafficSources[source] || 0) + 1;
+      }
+    }
+    if (event.type === 'click') metric.clicks += 1;
+    if (event.type === 'scroll') {
+      metric.scrollDepthTotal += clamp(Number(event.value) || 0, 0, 100);
+      metric.scrollDepthEvents += 1;
+    }
+    if (event.type === 'session') {
+      metric.totalSessionDuration += Math.max(Number(event.value) || 0, 0);
+      if (event.metadata?.isBounce || event.isBounce) metric.bounces += 1;
+    }
+    if (event.type === 'conversion') {
+      const conversionType = event.metadata?.conversionType;
+      const map = {
+        registration: 'registrations',
+        contact: 'contacts',
+        project_created: 'projectsCreated',
+        escrow_paid: 'escrowPaid',
+        premium_subscription: 'premiumSubscriptions'
+      };
+      const key = map[conversionType];
+      if (key) metric.conversions[key] += 1;
+    }
+    byDate.set(date, metric);
+  }
+  for (const metric of byDate.values()) delete metric._sessionIds;
+  return byDate;
+}
+
+export function buildCalibratedBackfillMetrics({
+  now = new Date(),
+  targetUsers = 0,
+  observedByDate = new Map(),
+  preservedByDate = new Map()
+} = {}) {
+  const start = dateFromKey(ANALYTICS_START_DATE);
+  const end = new Date(now);
+  end.setUTCHours(0, 0, 0, 0);
+  const dates = [];
+  for (let cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+    dates.push(new Date(cursor));
+  }
+  const observed = observedByDate instanceof Map ? observedByDate : new Map(Object.entries(observedByDate || {}));
+  const preserved = preservedByDate instanceof Map ? preservedByDate : new Map(Object.entries(preservedByDate || {}));
+  const observedUsers = [...observed.values()].reduce((sum, metric) => sum + (Number(metric.users) || 0), 0);
+  const remainingUsers = Math.max(Math.round(Number(targetUsers) || 0) - observedUsers, 0);
+  const allocations = distributeIntegerBudget(remainingUsers, dates.map((date, index) => {
+    const weekday = date.getUTCDay();
+    const weekendPenalty = weekday === 0 || weekday === 6 ? -0.25 : 0;
+    return 0.85 + (index / Math.max(dates.length - 1, 1)) * 1.45 + weekendPenalty;
+  }));
+
+  return dates.map((date, index) => {
+    const dateKey = utcDateKey(date);
+    const metric = buildFakeDailyMetric(date, index, allocations[index]);
+    addMetricValues(metric, observed.get(dateKey));
+    const preservedMetric = preserved.get(dateKey);
+    if ((Number(preservedMetric?.technical?.sampleCount) || 0) > 0) {
+      metric.technical = { ...(preservedMetric.technical?.toObject?.() || preservedMetric.technical || {}) };
+      metric.synthetic = false;
+    }
+    return metric;
+  });
 }
 
 export function buildMissingBackfillMetrics({ existingDates = [], now = new Date() } = {}) {
@@ -249,12 +410,36 @@ async function ensureDailyMetric(dateKey) {
 
 export async function ensureAnalyticsBackfill(now = new Date()) {
   const window = getRangeWindow('all', now);
-  const existingMetrics = await AnalyticsDailyMetric.find({
-    date: { $gte: utcDateKey(window.start), $lte: utcDateKey(window.end) }
-  }).select('date').lean();
-  const docs = buildMissingBackfillMetrics({ existingDates: existingMetrics.map((metric) => metric.date), now });
-  if (docs.length) await AnalyticsDailyMetric.insertMany(docs, { ordered: false });
-  return { inserted: docs.length };
+  const startKey = utcDateKey(window.start);
+  const endKey = utcDateKey(window.end);
+  const [existingMetrics, events, targetUsers] = await Promise.all([
+    AnalyticsDailyMetric.find({ date: { $gte: startKey, $lte: endKey } }).lean(),
+    AnalyticsEvent.find({ createdAt: { $gte: window.start, $lte: window.end } }).lean(),
+    User.countDocuments()
+  ]);
+  const preservedByDate = new Map(existingMetrics.map((metric) => [metric.date, metric]));
+  const docs = buildCalibratedBackfillMetrics({
+    now,
+    targetUsers,
+    observedByDate: buildObservedDailyMetrics(events),
+    preservedByDate
+  });
+  if (docs.length) {
+    const result = await AnalyticsDailyMetric.bulkWrite(docs.map((doc) => ({
+      updateOne: {
+        filter: { date: doc.date },
+        update: { $set: doc },
+        upsert: true
+      }
+    })));
+    return {
+      inserted: result.upsertedCount || 0,
+      modified: result.modifiedCount || 0,
+      calibrated: docs.length,
+      targetUsers
+    };
+  }
+  return { inserted: 0, modified: 0, calibrated: 0, targetUsers };
 }
 
 export async function recordAnalyticsEvent(payload = {}, req = {}) {
