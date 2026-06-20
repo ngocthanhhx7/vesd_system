@@ -1,3 +1,5 @@
+import { getAnalyticsSessionId } from './analytics';
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 
 export type ApiUser = {
@@ -37,6 +39,7 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   if (!(options.body instanceof FormData)) headers.set('Content-Type', 'application/json');
   const token = getToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
+  headers.set('X-Analytics-Session-ID', getAnalyticsSessionId());
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   const data = await response.json().catch(() => null);
   if (!response.ok) {
@@ -51,6 +54,7 @@ export async function apiBlob(path: string, options: RequestInit = {}): Promise<
   const headers = new Headers(options.headers);
   const token = getToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
+  headers.set('X-Analytics-Session-ID', getAnalyticsSessionId());
   const response = await fetch(`${API_URL}${path}`, { ...options, headers });
   if (!response.ok) {
     const data = await response.json().catch(() => null);
@@ -123,6 +127,8 @@ export const endpoints = {
   adminDiscounts: () => api<any[]>('/admin/discounts'),
   createDiscount: (body: unknown) => api<any>('/admin/discounts', { method: 'POST', body: JSON.stringify(body) }),
   updateDiscount: (id: string, body: unknown) => api<any>(`/admin/discounts/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  adminAnalytics: (range = '7d') => api<any>(`/admin/analytics?range=${encodeURIComponent(range)}`),
+  adminAnalyticsAiReport: (range = '7d') => api<any>('/admin/analytics/ai-report', { method: 'POST', body: JSON.stringify({ range }) }),
   uploadImage: (file: File) => {
     const form = new FormData();
     form.append('file', file);

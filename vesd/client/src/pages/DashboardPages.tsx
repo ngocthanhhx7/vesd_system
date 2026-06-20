@@ -1,4 +1,5 @@
 export { AdminDashboard, AdminDiscountsPage, AdminListPage, AdminSimplePage, AdminWithdrawalsPage } from './dashboard/AdminPages';
+export { AdminAnalyticsPage } from './dashboard/AdminAnalyticsPage';
 export { ChangePasswordPage, ReviewsPage, SettingsPage, WalletPage, WalletTopupPage, WalletWithdrawPage } from './dashboard/AccountPages';
 export { ClientDashboard } from './dashboard/ClientPages';
 export { DesignerDashboard, DesignerProfileSetup, PortfolioManager, PremiumPage, RequestsPage } from './dashboard/DesignerPages';

@@ -354,6 +354,90 @@ const projectCommentSchema = new Schema(
 );
 projectCommentSchema.index({ projectId: 1, createdAt: 1 });
 
+const analyticsEventSchema = new Schema(
+  {
+    type: { type: String, enum: ['page_view', 'click', 'scroll', 'session', 'performance', 'conversion'], required: true },
+    sessionId: String,
+    userId: { type: Schema.Types.ObjectId, ref: 'User' },
+    path: String,
+    title: String,
+    source: String,
+    isNewVisitor: Boolean,
+    value: Number,
+    metadata: Schema.Types.Mixed
+  },
+  { timestamps: true }
+);
+analyticsEventSchema.index({ type: 1, createdAt: -1 });
+analyticsEventSchema.index({ sessionId: 1, createdAt: -1 });
+
+const analyticsDailyMetricSchema = new Schema(
+  {
+    date: { type: String, required: true, unique: true },
+    sessions: { type: Number, default: 0 },
+    users: { type: Number, default: 0 },
+    newUsers: { type: Number, default: 0 },
+    returningUsers: { type: Number, default: 0 },
+    pageViews: { type: Number, default: 0 },
+    clicks: { type: Number, default: 0 },
+    bounces: { type: Number, default: 0 },
+    totalSessionDuration: { type: Number, default: 0 },
+    scrollDepthTotal: { type: Number, default: 0 },
+    scrollDepthEvents: { type: Number, default: 0 },
+    trafficSources: {
+      direct: { type: Number, default: 0 },
+      search: { type: Number, default: 0 },
+      social: { type: Number, default: 0 },
+      referral: { type: Number, default: 0 },
+      email: { type: Number, default: 0 },
+      paid: { type: Number, default: 0 },
+      unknown: { type: Number, default: 0 }
+    },
+    conversions: {
+      registrations: { type: Number, default: 0 },
+      contacts: { type: Number, default: 0 },
+      projectsCreated: { type: Number, default: 0 },
+      escrowPaid: { type: Number, default: 0 },
+      premiumSubscriptions: { type: Number, default: 0 }
+    },
+    technical: {
+      pageLoadTime: Number,
+      tti: Number,
+      lcp: Number,
+      fid: Number,
+      inp: Number,
+      cls: Number,
+      uptime: { type: Number, default: 99.5 },
+      sampleCount: { type: Number, default: 0 }
+    },
+    synthetic: { type: Boolean, default: false }
+  },
+  { timestamps: true }
+);
+
+const analyticsAiUsageSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    date: { type: String, required: true },
+    count: { type: Number, default: 0 }
+  },
+  { timestamps: true }
+);
+analyticsAiUsageSchema.index({ userId: 1, date: 1 }, { unique: true });
+
+const analyticsAiReportSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    date: String,
+    range: String,
+    quotaUsed: Number,
+    report: Schema.Types.Mixed,
+    snapshot: Schema.Types.Mixed
+  },
+  { timestamps: true }
+);
+analyticsAiReportSchema.index({ range: 1, createdAt: -1 });
+
 const conversationSchema = new Schema(
   {
     clientId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -396,5 +480,9 @@ export const Discount = model('Discount', discountSchema);
 export const Subscription = model('Subscription', subscriptionSchema);
 export const ChecklistTemplate = model('ChecklistTemplate', checklistTemplateSchema);
 export const ProjectComment = model('ProjectComment', projectCommentSchema);
+export const AnalyticsEvent = model('AnalyticsEvent', analyticsEventSchema);
+export const AnalyticsDailyMetric = model('AnalyticsDailyMetric', analyticsDailyMetricSchema);
+export const AnalyticsAiUsage = model('AnalyticsAiUsage', analyticsAiUsageSchema);
+export const AnalyticsAiReport = model('AnalyticsAiReport', analyticsAiReportSchema);
 export const Conversation = model('Conversation', conversationSchema);
 export const DirectMessage = model('DirectMessage', directMessageSchema);

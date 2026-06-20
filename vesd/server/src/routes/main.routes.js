@@ -33,6 +33,7 @@ import { handleCassoWithdrawalWebhook, requestCassoWithdrawal, requestPayosWithd
 import { confirmPayosWebhook, getPayosPayoutBalance } from '../services/payosService.js';
 import { transferWalletToDesigner } from '../services/walletService.js';
 import { addSSEClient } from '../services/notificationService.js';
+import { generateAnalyticsAiReport, getAdminAnalytics, getAnalyticsAiQuota, recordAnalyticsEvent, recordConversion, recordPerformanceEvent } from '../services/analyticsService.js';
 import { emitToConversation, emitToUsers } from '../realtime/socket.js';
 
 export const mainRoutes = Router();
@@ -105,6 +106,24 @@ mainRoutes.get('/stats/public', asyncHandler(async (_req, res) => {
     activeProjects,
     averageRating: Number((ratingStats[0]?.average || 0).toFixed(2))
   });
+}));
+
+mainRoutes.post('/analytics/events', asyncHandler(async (req, res) => {
+  res.status(201).json(await recordAnalyticsEvent(req.body, req));
+}));
+
+mainRoutes.post('/analytics/performance', asyncHandler(async (req, res) => {
+  res.status(201).json(await recordPerformanceEvent(req.body, req));
+}));
+
+mainRoutes.get('/admin/analytics', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+  const analytics = await getAdminAnalytics(req.query.range);
+  const quota = await getAnalyticsAiQuota(req.user);
+  res.json({ ...analytics, aiQuota: quota });
+}));
+
+mainRoutes.post('/admin/analytics/ai-report', requireAuth, requireRole('admin'), asyncHandler(async (req, res) => {
+  res.status(201).json(await generateAnalyticsAiReport(req.user, req.body.range || req.query.range));
 }));
 
 mainRoutes.get('/users/me', requireAuth, asyncHandler(async (req, res) => {
@@ -289,6 +308,7 @@ mainRoutes.post('/projects', requireAuth, requireRole('client'), asyncHandler(as
   const clientProfile = await ClientProfile.findOne({ userId: req.user._id });
   const priorityLevel = clientProfile?.accountType === 'business_premium' && clientProfile?.premiumStatus === 'premium' ? 'premium' : 'standard';
   const project = await Project.create({ ...req.body, clientId: req.user._id, priorityLevel, status: 'pending_designer' });
+  recordConversion(req, 'project_created', { projectId: project._id }).catch(() => null);
   res.status(201).json(project);
 }));
 mainRoutes.get('/projects/open', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
@@ -446,7 +466,9 @@ mainRoutes.post('/payments/escrow', requireAuth, requireRole('client'), asyncHan
       cancelUrl: req.body.cancelUrl
     }));
   }
-  return res.json(await fundEscrow({ projectId: req.body.projectId, userId: req.user._id, paymentMethod: req.body.paymentMethod, discountCode: req.body.discountCode }));
+  const result = await fundEscrow({ projectId: req.body.projectId, userId: req.user._id, paymentMethod: req.body.paymentMethod, discountCode: req.body.discountCode });
+  recordConversion(req, 'escrow_paid', { projectId: req.body.projectId }).catch(() => null);
+  return res.json(result);
 }));
 mainRoutes.post('/payments/mock-success', requireAuth, asyncHandler(async (_req, res) => res.json({ status: 'success' })));
 mainRoutes.post('/payments/payos/:orderCode/sync', requireAuth, asyncHandler(async (req, res) => res.json(await syncPayosPayment({ orderCode: req.params.orderCode, user: req.user }))));
@@ -554,6 +576,7 @@ mainRoutes.post('/conversations/direct', requireAuth, requireRole('client'), asy
     emitToConversation(conversation._id, 'message:new', { conversationId: String(conversation._id), message });
   }
   emitToUsers(conversation.participants, 'conversation:updated', { conversation });
+  recordConversion(req, 'contact', { designerId, conversationId: conversation._id }).catch(() => null);
   res.status(message ? 201 : 200).json({ conversation, message });
 }));
 
@@ -713,6 +736,7 @@ mainRoutes.post('/premium/subscribe', requireAuth, asyncHandler(async (req, res)
     message: `${plan.name} co hieu luc den ${endDate.toLocaleDateString('vi-VN')}.`,
     actionUrl: role === 'designer' ? '/designer/premium' : '/client/premium'
   });
+  recordConversion(req, 'premium_subscription', { subscriptionId: subscription._id, planId: plan._id }).catch(() => null);
   res.status(201).json(await subscription.populate('planId'));
 }));
 mainRoutes.get('/premium/my', requireAuth, asyncHandler(async (req, res) => res.json(await Subscription.find({ userId: req.user._id }).populate('planId'))));

@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>http://localhost:5173/</loc></url>
-  <url><loc>http://localhost:5173/designers</loc></url>
-  <url><loc>http://localhost:5173/services/logo-design</loc></url>
-  <url><loc>http://localhost:5173/services/social-media-design</loc></url>
-  <url><loc>http://localhost:5173/services/brand-identity</loc></url>
-  <url><loc>http://localhost:5173/pricing</loc></url>
-  <url><loc>http://localhost:5173/help</loc></url>
+  <url><loc>https://vesd.online/</loc></url>
+  <url><loc>https://vesd.online/designers</loc></url>
+  <url><loc>https://vesd.online/services/logo-design</loc></url>
+  <url><loc>https://vesd.online/services/social-media-design</loc></url>
+  <url><loc>https://vesd.online/services/brand-identity</loc></url>
+  <url><loc>https://vesd.online/pricing</loc></url>
+  <url><loc>https://vesd.online/help</loc></url>
 </urlset>
-

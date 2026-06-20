@@ -18,6 +18,7 @@ import {
   Star,
   ListChecks,
   TicketPercent,
+  BarChart3,
   type LucideIcon
 } from 'lucide-react';
 
@@ -109,6 +110,7 @@ export const dashboardNav: Record<DashboardRole, NavGroup[]> = {
       title: 'Quản lý',
       items: [
         { href: '/admin/users', label: 'Người dùng', icon: Users },
+        { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
         { href: '/admin/verification', label: 'Xác minh', icon: ShieldCheck },
         { href: '/admin/projects', label: 'Dự án', icon: FolderKanban },
       ]

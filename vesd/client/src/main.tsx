@@ -10,6 +10,7 @@ import { CategoryPage, DesignerProfilePage, DesignersPage, HelpPage, HomePage, P
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, RoleSelectionPage, VerifyEmailPage } from './pages/AuthPages';
 import {
   AdminDashboard,
+  AdminAnalyticsPage,
   AdminDiscountsPage,
   AdminListPage,
   AdminSimplePage,
@@ -128,6 +129,7 @@ const router = createBrowserRouter([
       path: '/admin',
       children: [
         { index: true, element: <AdminDashboard /> },
+        { path: 'analytics', element: <AdminAnalyticsPage /> },
         { path: 'users', element: <AdminListPage type="users" /> },
         { path: 'verification', element: <AdminSimplePage title="Xác minh designer" /> },
         { path: 'projects', element: <AdminListPage type="projects" /> },

@@ -4,12 +4,17 @@ import { asyncHandler, ApiError } from '../utils/apiError.js';
 import { loginUser, registerUser, googleLogin } from '../services/authService.js';
 import { requireAuth } from '../middlewares/auth.js';
 import { sendEmail } from '../services/emailService.js';
+import { recordConversion } from '../services/analyticsService.js';
 import { User } from '../models/index.js';
 import { env } from '../config/env.js';
 
 export const authRoutes = Router();
 
-authRoutes.post('/register', asyncHandler(async (req, res) => res.status(201).json(await registerUser(req.body))));
+authRoutes.post('/register', asyncHandler(async (req, res) => {
+  const result = await registerUser(req.body);
+  recordConversion({ get: req.get.bind(req), user: result.user }, 'registration', { roles: result.user?.roles || [] }).catch(() => null);
+  res.status(201).json(result);
+}));
 authRoutes.post('/login', asyncHandler(async (req, res) => res.json(await loginUser(req.body))));
 authRoutes.post('/google', asyncHandler(async (req, res) => res.json(await googleLogin(req.body.credential))));
 authRoutes.post('/logout', (_req, res) => res.json({ message: 'Dang xuat thanh cong' }));

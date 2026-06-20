@@ -25,9 +25,9 @@ test('auth password minimum length policy', () => {
 });
 
 test('client urls config supports comma-separated origins', () => {
-  assert.deepEqual(parseClientUrls('https://vesd.site, https://www.vesd.site/'), [
-    'https://vesd.site',
-    'https://www.vesd.site'
+  assert.deepEqual(parseClientUrls('https://vesd.online, https://www.vesd.online/'), [
+    'https://vesd.online',
+    'https://www.vesd.online'
   ]);
 });
 test('disputable project statuses rule', () => {
