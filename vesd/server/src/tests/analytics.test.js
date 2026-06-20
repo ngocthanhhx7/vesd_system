@@ -76,11 +76,12 @@ test('calibrated backfill fits the current 74-user project scale', () => {
   });
   const summary = buildAnalyticsSummary(docs);
   assert.equal(summary.totals.users, 74);
-  assert.ok(summary.totals.sessions >= 120);
-  assert.ok(summary.totals.sessions <= 155);
-  assert.ok(summary.totals.pageViews >= 260);
-  assert.ok(summary.totals.pageViews <= 380);
-  assert.ok(summary.conversions.rate >= 0);
+  assert.ok(summary.totals.sessions >= 190);
+  assert.ok(summary.totals.sessions <= 215);
+  assert.ok(summary.totals.pageViews >= 420);
+  assert.ok(summary.totals.pageViews <= 560);
+  assert.ok(summary.conversions.escrowPaid >= 1);
+  assert.ok(summary.conversions.rate >= 0.4);
   assert.ok(summary.conversions.rate <= 1.5);
   assert.ok(docs.every((doc) => doc.conversions.contacts <= doc.conversions.registrations));
   assert.ok(docs.every((doc) => doc.conversions.projectsCreated <= doc.conversions.contacts));

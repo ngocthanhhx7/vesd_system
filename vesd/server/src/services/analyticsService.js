@@ -113,14 +113,14 @@ export function buildFakeDailyMetric(date, index = 0, userBudget) {
   const weekday = date.getUTCDay();
   const isWeekend = weekday === 0 || weekday === 6;
   const users = Math.max(Math.round(Number(userBudget ?? (1 + index * 0.25)) || 0), 0);
-  const sessionRatio = clamp(1.7 + (index % 4) * 0.08 - (isWeekend ? 0.08 : 0), 1.6, 2.05);
+  const sessionRatio = clamp(2.62 + (index % 4) * 0.08 - (isWeekend ? 0.12 : 0), 2.48, 2.9);
   const sessions = users > 0 ? Math.max(users, Math.round(users * sessionRatio)) : 0;
-  const pageViews = Math.round(sessions * (2.15 + (index % 3) * 0.14));
-  const clicks = Math.round(pageViews * clamp(0.11 + index * 0.002, 0.1, 0.18));
+  const pageViews = Math.round(sessions * (2.22 + (index % 3) * 0.14));
+  const clicks = Math.round(pageViews * clamp(0.105 + index * 0.0015, 0.1, 0.16));
   const bounces = Math.round(sessions * clamp(0.49 - index * 0.003 + (isWeekend ? 0.03 : 0), 0.38, 0.52));
   const newUsers = Math.round(users * clamp(0.54 - index * 0.006, 0.34, 0.56));
   const returningUsers = Math.max(users - newUsers, 0);
-  const registrations = Math.round(users * clamp(0.075 + index * 0.001, 0.07, 0.1));
+  const registrations = 0;
   const contacts = Math.round(registrations * clamp(0.62 + index * 0.002, 0.55, 0.78));
   const projectsCreated = Math.round(contacts * clamp(0.48 + index * 0.001, 0.42, 0.62));
   const escrowPaid = Math.round(projectsCreated * clamp(0.42 + index * 0.001, 0.35, 0.54));
@@ -172,6 +172,33 @@ function addMetricValues(base, extra = {}) {
   if ((Number(extra.technical?.sampleCount) || 0) > 0) base.technical = { ...extra.technical };
   if (extra.synthetic === false) base.synthetic = false;
   return base;
+}
+
+function applySyntheticConversions(metrics) {
+  const syntheticMetrics = metrics.filter((metric) => metric.users > 0);
+  const syntheticUsers = syntheticMetrics.reduce((sum, metric) => sum + metric.users, 0);
+  const syntheticSessions = syntheticMetrics.reduce((sum, metric) => sum + metric.sessions, 0);
+  const registrations = Math.max(1, Math.round(syntheticUsers * 0.11));
+  const contacts = Math.max(1, Math.min(registrations, Math.round(registrations * 0.65)));
+  const projectsCreated = Math.max(1, Math.min(contacts, Math.round(contacts * 0.5)));
+  const escrowPaid = Math.max(1, Math.min(projectsCreated, Math.round(syntheticSessions * 0.006)));
+  const premiumSubscriptions = Math.max(0, Math.min(registrations, Math.round(registrations * 0.16)));
+  const budgets = { registrations, contacts, projectsCreated, escrowPaid, premiumSubscriptions };
+  const weights = syntheticMetrics.map((metric, index) => metric.users + (index / Math.max(syntheticMetrics.length - 1, 1)) * 2);
+
+  for (const key of CONVERSION_KEYS) {
+    const allocations = distributeIntegerBudget(budgets[key], weights);
+    syntheticMetrics.forEach((metric, index) => {
+      metric.conversions[key] += allocations[index];
+    });
+  }
+  for (const metric of syntheticMetrics) {
+    metric.conversions.contacts = Math.min(metric.conversions.contacts, metric.conversions.registrations);
+    metric.conversions.projectsCreated = Math.min(metric.conversions.projectsCreated, metric.conversions.contacts);
+    metric.conversions.escrowPaid = Math.min(metric.conversions.escrowPaid, metric.conversions.projectsCreated);
+    metric.conversions.premiumSubscriptions = Math.min(metric.conversions.premiumSubscriptions, metric.conversions.registrations);
+  }
+  return metrics;
 }
 
 function metricFromEventDate(date) {
@@ -263,9 +290,12 @@ export function buildCalibratedBackfillMetrics({
     return 0.85 + (index / Math.max(dates.length - 1, 1)) * 1.45 + weekendPenalty;
   }));
 
-  return dates.map((date, index) => {
-    const dateKey = utcDateKey(date);
-    const metric = buildFakeDailyMetric(date, index, allocations[index]);
+  const syntheticMetrics = applySyntheticConversions(dates.map((date, index) => {
+    return buildFakeDailyMetric(date, index, allocations[index]);
+  }));
+
+  return syntheticMetrics.map((metric) => {
+    const dateKey = metric.date;
     addMetricValues(metric, observed.get(dateKey));
     const preservedMetric = preserved.get(dateKey);
     if ((Number(preservedMetric?.technical?.sampleCount) || 0) > 0) {
