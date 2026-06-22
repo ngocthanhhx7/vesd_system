@@ -6,6 +6,7 @@ import {
   buildCalibratedBackfillMetrics,
   buildFakeDailyMetric,
   buildMissingBackfillMetrics,
+  buildObservedDailyMetrics,
   getAiQuotaState,
   getRangeWindow,
   shouldCountSessionStart,
@@ -151,6 +152,55 @@ test('calibrated backfill adds no fake users when observed users exceed target',
   });
   assert.equal(buildAnalyticsSummary(docs).totals.users, 80);
   assert.equal(docs.filter((doc) => doc.date !== '2026-06-20').reduce((sum, doc) => sum + doc.users, 0), 0);
+});
+
+test('observed scroll depth uses max depth per session instead of summing scroll events', () => {
+  const createdAt = new Date('2026-06-22T04:00:00.000Z');
+  const events = [
+    { type: 'page_view', sessionId: 'session-1', source: 'direct', isNewVisitor: true, createdAt },
+    ...[10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => ({
+      type: 'scroll',
+      sessionId: 'session-1',
+      value,
+      createdAt
+    }))
+  ];
+  const metric = buildObservedDailyMetrics(events).get('2026-06-22');
+  const summary = buildAnalyticsSummary([metric]);
+  assert.equal(metric.scrollDepthTotal, 100);
+  assert.equal(metric.scrollDepthEvents, 1);
+  assert.equal(summary.behaviour.scrollDepth, 100);
+});
+
+test('observed scroll depth averages max depth across sessions', () => {
+  const createdAt = new Date('2026-06-22T04:00:00.000Z');
+  const events = [
+    { type: 'page_view', sessionId: 'session-a', source: 'direct', isNewVisitor: true, createdAt },
+    { type: 'page_view', sessionId: 'session-b', source: 'search', isNewVisitor: false, createdAt },
+    { type: 'scroll', sessionId: 'session-a', value: 20, createdAt },
+    { type: 'scroll', sessionId: 'session-a', value: 40, createdAt },
+    { type: 'scroll', sessionId: 'session-b', value: 10, createdAt },
+    { type: 'scroll', sessionId: 'session-b', value: 80, createdAt }
+  ];
+  const summary = buildAnalyticsSummary([buildObservedDailyMetrics(events).get('2026-06-22')]);
+  assert.equal(summary.behaviour.scrollDepth, 60);
+});
+
+test('analytics summary clamps legacy inflated scroll depth to 100 percent', () => {
+  const summary = buildAnalyticsSummary([{
+    date: '2026-06-22',
+    sessions: 1,
+    users: 1,
+    pageViews: 1,
+    clicks: 0,
+    bounces: 0,
+    totalSessionDuration: 0,
+    scrollDepthTotal: 550,
+    trafficSources: {},
+    conversions: {},
+    technical: {}
+  }]);
+  assert.equal(summary.behaviour.scrollDepth, 100);
 });
 
 test('session start is counted once per persistent session id', () => {

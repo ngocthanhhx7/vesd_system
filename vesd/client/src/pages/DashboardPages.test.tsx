@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DesignerCard, getHomeDesignerPageItems } from './PublicPages';
 import { AdminAnalyticsPage, ProjectCard } from './DashboardPages';
-import { buildLinePoints, chartState, formatDuration } from './dashboard/AdminAnalyticsPage';
+import { boundedPercent, buildLinePoints, chartState, formatDuration } from './dashboard/AdminAnalyticsPage';
 import { getOrCreateAnalyticsSession } from '../services/analytics';
 
 describe('component contracts', () => {
@@ -30,6 +30,11 @@ describe('component contracts', () => {
   it('formats session duration as minutes and seconds', () => {
     expect(formatDuration(0)).toBe('0s');
     expect(formatDuration(125)).toBe('2m 5s');
+  });
+  it('bounds progress percentages for display', () => {
+    expect(boundedPercent(-10)).toBe(0);
+    expect(boundedPercent(58.6)).toBe(58.6);
+    expect(boundedPercent(858.91)).toBe(100);
   });
   it('keeps the same analytics session across reloads within 30 minutes', () => {
     const storage = new Map<string, string>();

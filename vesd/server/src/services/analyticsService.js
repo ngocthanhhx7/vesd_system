@@ -218,7 +218,8 @@ function metricFromEventDate(date) {
     conversions: emptyConversions(),
     technical: { uptime: 99.5, sampleCount: 0 },
     synthetic: false,
-    _sessionIds: new Set()
+    _sessionIds: new Set(),
+    _scrollDepthBySession: new Map()
   };
 }
 
@@ -242,8 +243,11 @@ export function buildObservedDailyMetrics(events = []) {
     }
     if (event.type === 'click') metric.clicks += 1;
     if (event.type === 'scroll') {
-      metric.scrollDepthTotal += clamp(Number(event.value) || 0, 0, 100);
-      metric.scrollDepthEvents += 1;
+      const sessionId = String(event.sessionId || '').trim();
+      if (sessionId) {
+        const depth = clamp(Number(event.value) || 0, 0, 100);
+        metric._scrollDepthBySession.set(sessionId, Math.max(metric._scrollDepthBySession.get(sessionId) || 0, depth));
+      }
     }
     if (event.type === 'session') {
       metric.totalSessionDuration += Math.max(Number(event.value) || 0, 0);
@@ -263,7 +267,13 @@ export function buildObservedDailyMetrics(events = []) {
     }
     byDate.set(date, metric);
   }
-  for (const metric of byDate.values()) delete metric._sessionIds;
+  for (const metric of byDate.values()) {
+    const depths = [...metric._scrollDepthBySession.values()];
+    metric.scrollDepthTotal = depths.reduce((sum, value) => sum + value, 0);
+    metric.scrollDepthEvents = depths.length;
+    delete metric._sessionIds;
+    delete metric._scrollDepthBySession;
+  }
   return byDate;
 }
 
@@ -382,7 +392,7 @@ export function buildAnalyticsSummary(metrics = []) {
       averageSessionDuration: Math.round(totalSessionDuration / Math.max(sessions, 1)),
       pagesPerSession: round(pageViews / Math.max(sessions, 1)),
       clickThroughRate: round((clicks / Math.max(pageViews, 1)) * 100),
-      scrollDepth: round(scrollDepthTotal / Math.max(sessions, 1))
+      scrollDepth: round(clamp(scrollDepthTotal / Math.max(sessions, 1), 0, 100))
     },
     conversions: {
       ...conversions,
@@ -479,12 +489,20 @@ export async function recordAnalyticsEvent(payload = {}, req = {}) {
   const dayStart = dateFromKey(dateKey);
   const dayEnd = new Date(dayStart);
   dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+  const scrollDepth = type === 'scroll' ? clamp(Number(payload.value) || 0, 0, 100) : 0;
   const existingPageViewSession = type === 'page_view' && sessionId
     ? await AnalyticsEvent.exists({
       type: 'page_view',
       sessionId,
       createdAt: { $gte: dayStart, $lt: dayEnd }
     })
+    : null;
+  const previousScrollEvent = type === 'scroll' && sessionId
+    ? await AnalyticsEvent.findOne({
+      type: 'scroll',
+      sessionId,
+      createdAt: { $gte: dayStart, $lt: dayEnd }
+    }).sort({ value: -1 }).select('value').lean()
     : null;
   await AnalyticsEvent.create({
     type,
@@ -515,9 +533,15 @@ export async function recordAnalyticsEvent(payload = {}, req = {}) {
   }
   if (type === 'click') metric.clicks += 1;
   if (type === 'scroll') {
-    const sessions = Math.max(metric.sessions, 1);
-    metric.scrollDepthTotal = Math.round(((metric.scrollDepthTotal || 0) + clamp(Number(payload.value) || 0, 0, 100)) / (metric.scrollDepthEvents + 1) * sessions);
-    metric.scrollDepthEvents += 1;
+    const previousMax = Number(previousScrollEvent?.value) || 0;
+    if (sessionId) {
+      const delta = Math.max(scrollDepth - previousMax, 0);
+      metric.scrollDepthTotal = (Number(metric.scrollDepthTotal) || 0) + delta;
+      metric.scrollDepthEvents += previousMax > 0 ? 0 : 1;
+    } else {
+      metric.scrollDepthTotal = (Number(metric.scrollDepthTotal) || 0) + scrollDepth;
+      metric.scrollDepthEvents += 1;
+    }
   }
   if (type === 'session') {
     metric.totalSessionDuration += Math.max(Number(payload.value) || 0, 0);

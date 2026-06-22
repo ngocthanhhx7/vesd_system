@@ -75,6 +75,10 @@ function formatPercent(value: number) {
   return `${round(value || 0)}%`;
 }
 
+export function boundedPercent(value: number) {
+  return Math.max(0, Math.min(Number(value) || 0, 100));
+}
+
 function latest<T>(items: T[] | undefined, fallback: T): T {
   return items?.length ? items[items.length - 1] : fallback;
 }
@@ -293,10 +297,11 @@ function MiniStat({ label, value }: { label: string; value: string | number }) {
 }
 
 function ProgressStat({ label, value }: { label: string; value: number }) {
+  const safeValue = boundedPercent(value);
   return (
     <div className="rounded-lg border border-line bg-soft/70 p-3">
-      <div className="mb-2 flex justify-between text-sm font-semibold"><span>{label}</span><span>{formatPercent(value)}</span></div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-brand" style={{ width: `${Math.max(0, Math.min(value, 100))}%` }} /></div>
+      <div className="mb-2 flex justify-between text-sm font-semibold"><span>{label}</span><span>{formatPercent(safeValue)}</span></div>
+      <div className="h-2.5 overflow-hidden rounded-full bg-white"><div className="h-full rounded-full bg-brand" style={{ width: `${safeValue}%` }} /></div>
     </div>
   );
 }
