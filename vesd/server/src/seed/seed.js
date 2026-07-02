@@ -103,7 +103,7 @@ async function run() {
       userId: user._id,
       slug: slugify(`${user.name}-${i}`, { lower: true, strict: true }),
       title: ['Brand Identity Designer', 'Logo Designer', 'Social Media Designer', 'UI/UX Designer', 'Packaging Designer', 'Motion Designer'][i % 6],
-      bio: 'Designer Viet Nam co kinh nghiem thuc chien voi startup, SME va thuong hieu dia phuong. Manh ve brief ro rang, file ban giao dung chuan va feedback nhanh.',
+      bio: 'Designer Việt Nam có kinh nghiệm thực chiến với startup, SME và thương hiệu địa phương. Mạnh về brief rõ ràng, file bàn giao đúng chuẩn và feedback nhanh.',
       skills: Array.from({ length: 4 + (i % 4) }, (_v, k) => pick(skills, i, k)),
       categories: [pick(categories, i), pick(categories, i, 1)],
       styleTags: [pick(styles, i), pick(styles, i, 2), pick(styles, i, 4)],
@@ -127,7 +127,7 @@ async function run() {
     portfolios.push({
       designerId: designers[i % designers.length]._id,
       title: `Case study ${i + 1}: ${pick(categories, i).replaceAll('-', ' ')}`,
-      description: 'Bo thiet ke hoan chinh gom huong nhin, source file va guideline ung dung cho nhieu kenh.',
+      description: 'Bộ thiết kế hoàn chỉnh gồm hướng nhìn, source file và guideline ứng dụng cho nhiều kênh.',
       category: pick(categories, i),
       images: [{ url: `https://picsum.photos/seed/vesd-portfolio-${i}/900/650`, name: `portfolio-${i}.jpg`, type: 'image/jpeg' }],
       tools: [pick(skills, i), pick(skills, i, 1)],
@@ -143,7 +143,7 @@ async function run() {
       roleTarget: 'designer',
       price: 1299000,
       durationDays: 90,
-      benefits: ['Tang hien thi ho so', 'Uu tien trong ket qua tim kiem', 'Co the nhan tich xanh uy tin', 'Tang co hoi nhan du an']
+      benefits: ['Tăng hiển thị hồ sơ', 'Ưu tiên trong kết quả tìm kiếm', 'Có thể nhận tích xanh uy tín', 'Tăng cơ hội nhận dự án']
     },
     {
       code: 'business_premium',
@@ -151,14 +151,14 @@ async function run() {
       roleTarget: 'client',
       price: 2499000,
       durationDays: 90,
-      benefits: ['Uu tien dang du an', 'Ket noi nhanh hon voi designer phu hop', 'Ho tro quan ly du an nang cao', 'Uu tien ho tro va xu ly khieu nai']
+      benefits: ['Ưu tiên đăng dự án', 'Kết nối nhanh hơn với designer phù hợp', 'Hỗ trợ quản lý dự án nâng cao', 'Ưu tiên hỗ trợ và xử lý khiếu nại']
     }
   ]);
 
   await Discount.insertMany([
-    { code: 'VESD20', name: 'Giam gia VESD premium', description: 'Giam 20% cho goi Premium', discountType: 'percent', value: 20, maxDiscount: 150000, appliesTo: 'premium', roleTarget: 'both', usageLimit: 500, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 14 * 86400000), showOnHome: true },
-    { code: 'FIRSTPROJECT', name: 'Du an dau tien', description: 'Giam 10% phi escrow cho doanh nghiep moi', discountType: 'percent', value: 10, maxDiscount: 300000, minOrderAmount: 1000000, appliesTo: 'project', roleTarget: 'client', usageLimit: 300, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 30 * 86400000) },
-    { code: 'DESIGNER50K', name: 'Designer onboarding', description: 'Giam 50.000d cho designer nang cap Premium', discountType: 'fixed', value: 50000, appliesTo: 'premium', roleTarget: 'designer', usageLimit: 200, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 21 * 86400000) }
+    { code: 'VESD20', name: 'Giam gia VESD premium', description: 'Giảm 20% cho gói Premium', discountType: 'percent', value: 20, maxDiscount: 150000, appliesTo: 'premium', roleTarget: 'both', usageLimit: 500, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 14 * 86400000), showOnHome: true },
+    { code: 'FIRSTPROJECT', name: 'Du an dau tien', description: 'Giảm 10% phí escrow cho doanh nghiệp mới', discountType: 'percent', value: 10, maxDiscount: 300000, minOrderAmount: 1000000, appliesTo: 'project', roleTarget: 'client', usageLimit: 300, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 30 * 86400000) },
+    { code: 'DESIGNER50K', name: 'Designer onboarding', description: 'Giảm 50.000đ cho designer nâng cấp Premium', discountType: 'fixed', value: 50000, appliesTo: 'premium', roleTarget: 'designer', usageLimit: 200, startsAt: new Date(Date.now() - 86400000), endsAt: new Date(Date.now() + 21 * 86400000) }
   ]);
 
   await ChecklistTemplate.insertMany([
@@ -177,10 +177,10 @@ async function run() {
     const project = await Project.create({
       clientId: clients[i % clients.length]._id,
       designerId: designers[i % designers.length]._id,
-      title: `Thiet ke ${pick(categories, i).replaceAll('-', ' ')} cho ${companyNames[i % companyNames.length]}`,
+      title: `Thiết kế ${pick(categories, i).replaceAll('-', ' ')} cho ${companyNames[i % companyNames.length]}`,
       category: pick(categories, i),
-      description: 'Can thiet ke chuyen nghiep, de ung dung tren kenh online va in an. Brief can ro scope, deliverables, timeline va file ban giao.',
-      targetAudience: ['Gen Z', 'SME owner', 'Phu huynh tre', 'Khach hang B2B'][i % 4],
+      description: 'Cần thiết kế chuyên nghiệp, dễ ứng dụng trên kênh online và in ấn. Brief cần rõ scope, deliverables, timeline và file bàn giao.',
+      targetAudience: ['Gen Z', 'SME owner', 'Phụ huynh trẻ', 'Khách hàng B2B'][i % 4],
       budget: { min: agreed - 600000, max: agreed + 900000, agreed },
       deadline: new Date(Date.now() + (7 + (i % 18)) * 86400000),
       stylePreferences: [pick(styles, i), pick(styles, i, 1)],
@@ -193,11 +193,11 @@ async function run() {
       preferredDesignerLevel: ['junior', 'mid-level', 'senior'][i % 3],
       status,
       agreement: ['agreement_pending', 'payment_pending', 'escrow_funded', 'in_progress', 'submitted', 'revision_requested', 'final_submitted', 'completed', 'disputed'].includes(status)
-        ? { scope: 'Thiet ke theo brief da thong nhat va ban giao dung checklist.', price: agreed, deadline: new Date(Date.now() + (10 + (i % 12)) * 86400000), revisionLimit: 2, deliverables: ['Source file', 'Exports', 'Guideline'], ipTerms: 'Client so huu IP sau khi thanh toan du', refundTerms: 'Xu ly qua dispute center', confirmedAt: new Date(Date.now() - 2 * 86400000) }
+        ? { scope: 'Thiết kế theo brief đã thống nhất và bàn giao đúng checklist.', price: agreed, deadline: new Date(Date.now() + (10 + (i % 12)) * 86400000), revisionLimit: 2, deliverables: ['Source file', 'Exports', 'Guideline'], ipTerms: 'Client sở hữu IP sau khi thanh toán đủ', refundTerms: 'Xử lý qua dispute center', confirmedAt: new Date(Date.now() - 2 * 86400000) }
         : undefined,
       milestones: [
-        { title: 'Concept & direction', description: 'Chon huong thiet ke dung brief', amount: Math.round(agreed * 0.45), dueDate: new Date(Date.now() + 5 * 86400000), status: ['submitted', 'revision_requested', 'final_submitted', 'completed'].includes(status) ? 'approved' : status === 'in_progress' ? 'in_progress' : 'pending' },
-        { title: 'Final handover', description: 'Hoan thien file, guideline va ban giao IP', amount: Math.round(agreed * 0.55), dueDate: new Date(Date.now() + 12 * 86400000), status: ['final_submitted', 'completed'].includes(status) ? 'submitted' : 'pending' }
+        { title: 'Concept & direction', description: 'Chọn hướng thiết kế đúng brief', amount: Math.round(agreed * 0.45), dueDate: new Date(Date.now() + 5 * 86400000), status: ['submitted', 'revision_requested', 'final_submitted', 'completed'].includes(status) ? 'approved' : status === 'in_progress' ? 'in_progress' : 'pending' },
+        { title: 'Final handover', description: 'Hoàn thiện file, guideline và bàn giao IP', amount: Math.round(agreed * 0.55), dueDate: new Date(Date.now() + 12 * 86400000), status: ['final_submitted', 'completed'].includes(status) ? 'submitted' : 'pending' }
       ],
       finalFiles: ['final_submitted', 'completed'].includes(status) ? [{ url: '/uploads/mock/final-package.zip', name: 'final-package.zip', type: 'application/zip', checklistItem: 'Logo package' }] : []
     });
@@ -205,9 +205,9 @@ async function run() {
   }
 
   await ProjectComment.insertMany(projects.flatMap((project, i) => [
-    { projectId: project._id, senderId: project.clientId, content: 'Brief da duoc gui, can tu van huong thiet ke phu hop.', type: 'message' },
-    { projectId: project._id, senderId: project.designerId, content: 'Da nhan brief, se de xuat scope va milestone.', type: 'message' },
-    ...(i % 5 === 0 ? [{ projectId: project._id, senderId: project.clientId, content: 'Vui long dieu chinh mau sac theo brand guideline.', type: 'feedback' }] : [])
+    { projectId: project._id, senderId: project.clientId, content: 'Brief đã được gửi, cần tư vấn hướng thiết kế phù hợp.', type: 'message' },
+    { projectId: project._id, senderId: project.designerId, content: 'Đã nhận brief, sẽ đề xuất scope và milestone.', type: 'message' },
+    ...(i % 5 === 0 ? [{ projectId: project._id, senderId: project.clientId, content: 'Vui lòng điều chỉnh màu sắc theo brand guideline.', type: 'feedback' }] : [])
   ]));
 
   await Review.insertMany(projects.filter((project) => project.status === 'completed').map((project, i) => ({
@@ -215,15 +215,15 @@ async function run() {
     reviewerId: project.clientId,
     revieweeId: project.designerId,
     rating: 4 + (i % 2),
-    content: 'Designer phan hoi nhanh, ban giao dung checklist va dung tinh than thuong hieu.',
+    content: 'Designer phản hồi nhanh, bàn giao đúng checklist và đúng tinh thần thương hiệu.',
     criteria: { communication: 5, quality: 4 + (i % 2), deadline: 5 }
   })));
 
   await Dispute.insertMany(projects.filter((project) => project.status === 'disputed').map((project, i) => ({
     projectId: project._id,
     openedBy: i % 2 === 0 ? project.clientId : project.designerId,
-    reason: i % 2 === 0 ? 'File ban giao thieu source' : 'Vuot so lan revision',
-    description: 'Can admin xem lai agreement, feedback va checklist ban giao.',
+    reason: i % 2 === 0 ? 'File bàn giao thiếu source' : 'Vượt số lần revision',
+    description: 'Cần admin xem lại agreement, feedback và checklist bàn giao.',
     status: i % 2 === 0 ? 'under_review' : 'open'
   })));
 
@@ -243,9 +243,9 @@ async function run() {
   ]);
 
   await Notification.insertMany([
-    { userId: demoClient._id, title: 'Designer da gui concept', message: 'Vui long vao workspace de review milestone dau tien.', type: 'project', link: '/client/workspace' },
-    { userId: demoDesigner._id, title: 'Yeu cau moi', message: 'Business Client 1 da moi ban vao du an brand identity.', type: 'project', link: '/designer/requests' },
-    { userId: admin._id, title: 'Dispute moi', message: 'Co khieu nai can xu ly trong dispute center.', type: 'admin', link: '/admin/disputes' }
+    { userId: demoClient._id, title: 'Designer đã gửi concept', message: 'Vui lòng vào workspace để review milestone đầu tiên.', type: 'project', link: '/client/workspace' },
+    { userId: demoDesigner._id, title: 'Yêu cầu mới', message: 'Business Client 1 đã mời bạn vào dự án brand identity.', type: 'project', link: '/designer/requests' },
+    { userId: admin._id, title: 'Dispute mới', message: 'Có khiếu nại cần xử lý trong dispute center.', type: 'admin', link: '/admin/disputes' }
   ]);
 
   await Withdrawal.create({ designerId: demoDesigner._id, amount: 1000000, method: 'bank_transfer', accountInfo: { bank: 'VCB', accountName: 'Designer Demo' }, status: 'pending' });

@@ -55,11 +55,11 @@ async function markPayosCreationFailed(transaction, error) {
 
 export async function createPayosEscrowPayment({ projectId, user, discountCode, returnUrl, cancelUrl }) {
   const project = await Project.findById(projectId);
-  if (!project) throw new ApiError(404, 'Khong tim thay du an');
-  if (String(project.clientId) !== String(user._id)) throw new ApiError(403, 'Chi client cua du an duoc thanh toan');
+  if (!project) throw new ApiError(404, 'Không tìm thấy dự án');
+  if (String(project.clientId) !== String(user._id)) throw new ApiError(403, 'Chỉ client của dự án được thanh toán');
 
   const originalAmount = project.agreement?.price || project.budget?.agreed || project.budget?.max || 0;
-  if (originalAmount <= 0) throw new ApiError(400, 'Du an chua co so tien hop le');
+  if (originalAmount <= 0) throw new ApiError(400, 'Dự án chưa có số tiền hợp lệ');
 
   const { discount, discountAmount, finalAmount } = await validateDiscount({
     code: discountCode,
@@ -149,7 +149,7 @@ export async function createPayosWalletTopup({ user, amount, returnUrl, cancelUr
       description: paymentDescription(orderCode),
       buyerName: user.name,
       buyerEmail: user.email,
-      items: [{ name: 'Nap vi VESD', quantity: 1, price: value }],
+      items: [{ name: 'Nạp ví VESD', quantity: 1, price: value }],
       returnUrl: urls.returnUrl,
       cancelUrl: urls.cancelUrl
     });
@@ -169,10 +169,10 @@ export async function createPayosWalletTopup({ user, amount, returnUrl, cancelUr
 
 export async function createPayosPremiumPayment({ user, planId, discountCode, returnUrl, cancelUrl }) {
   const plan = await PremiumPlan.findById(planId);
-  if (!plan) throw new ApiError(404, 'Khong tim thay goi Premium');
+  if (!plan) throw new ApiError(404, 'Không tìm thấy gói Premium');
 
   const role = user.roles.includes('designer') ? 'designer' : 'client';
-  if (plan.roleTarget !== 'both' && plan.roleTarget !== role) throw new ApiError(403, 'Goi Premium khong ap dung cho loai tai khoan hien tai');
+  if (plan.roleTarget !== 'both' && plan.roleTarget !== role) throw new ApiError(403, 'Gói Premium không áp dụng cho loại tài khoản hiện tại');
 
   const { discount, discountAmount, finalAmount } = await validateDiscount({
     code: discountCode,
@@ -238,10 +238,10 @@ async function incrementDiscountUsage(transaction) {
 
 export async function payPremiumWithWallet({ user, planId, discountCode }) {
   const plan = await PremiumPlan.findById(planId);
-  if (!plan) throw new ApiError(404, 'Khong tim thay goi Premium');
+  if (!plan) throw new ApiError(404, 'Không tìm thấy gói Premium');
 
   const role = user.roles.includes('designer') ? 'designer' : 'client';
-  if (plan.roleTarget !== 'both' && plan.roleTarget !== role) throw new ApiError(403, 'Goi Premium khong ap dung cho loai tai khoan hien tai');
+  if (plan.roleTarget !== 'both' && plan.roleTarget !== role) throw new ApiError(403, 'Gói Premium không áp dụng cho loại tài khoản hiện tại');
 
   const { discount, discountAmount, finalAmount } = await validateDiscount({
     code: discountCode,
@@ -257,7 +257,7 @@ export async function payPremiumWithWallet({ user, planId, discountCode }) {
     { $inc: { balance: -amount, totalSpent: amount } },
     { new: true }
   );
-  if (!wallet) throw new ApiError(400, 'So du vi khong du de thanh toan goi Premium');
+  if (!wallet) throw new ApiError(400, 'Số dư ví không đủ để thanh toán gói Premium');
 
   const transaction = await Transaction.create({
     userId: user._id,
@@ -285,7 +285,7 @@ export async function payPremiumWithWallet({ user, planId, discountCode }) {
 
 async function activatePremiumFromTransaction(transaction) {
   const plan = await PremiumPlan.findById(transaction.metadata?.planId);
-  if (!plan) throw new ApiError(404, 'Khong tim thay goi Premium');
+  if (!plan) throw new ApiError(404, 'Không tìm thấy gói Premium');
 
   const role = transaction.metadata?.role || 'client';
   const accountType = transaction.metadata?.accountType || plan.code || premiumAccountTypeForRole(role);
@@ -318,8 +318,8 @@ async function activatePremiumFromTransaction(transaction) {
 
   await Notification.create({
     userId: transaction.userId,
-    title: 'Tai khoan Premium da kich hoat',
-    message: `${plan.name} co hieu luc den ${endDate.toLocaleDateString('vi-VN')}.`,
+    title: 'Tài khoản Premium đã kích hoạt',
+    message: `${plan.name} có hiệu lực đến ${endDate.toLocaleDateString('vi-VN')}.`,
     type: 'premium',
     link: role === 'designer' ? '/designer/premium' : '/client/premium'
   });
@@ -382,8 +382,8 @@ async function applyPayosPaymentStatus(transaction, paymentData) {
 }
 
 export async function handlePayosPaymentWebhook(payload) {
-  if (!payload?.data || !payload?.signature) throw new ApiError(400, 'Webhook payOS khong hop le');
-  if (!verifyPayosPaymentSignature(payload.data, payload.signature)) throw new ApiError(400, 'Chu ky webhook payOS khong hop le');
+  if (!payload?.data || !payload?.signature) throw new ApiError(400, 'Webhook payOS không hợp lệ');
+  if (!verifyPayosPaymentSignature(payload.data, payload.signature)) throw new ApiError(400, 'Chữ ký webhook payOS không hợp lệ');
 
   const transaction = await Transaction.findOne({ 'metadata.payosOrderCode': Number(payload.data.orderCode) });
   if (!transaction) return { received: true, ignored: true };
@@ -394,8 +394,8 @@ export async function handlePayosPaymentWebhook(payload) {
 
 export async function syncPayosPayment({ orderCode, user }) {
   const transaction = await Transaction.findOne({ 'metadata.payosOrderCode': Number(orderCode) });
-  if (!transaction) throw new ApiError(404, 'Khong tim thay giao dich payOS');
-  if (!user.roles.includes('admin') && String(transaction.userId) !== String(user._id)) throw new ApiError(403, 'Ban khong co quyen xem giao dich nay');
+  if (!transaction) throw new ApiError(404, 'Không tìm thấy giao dịch payOS');
+  if (!user.roles.includes('admin') && String(transaction.userId) !== String(user._id)) throw new ApiError(403, 'Bạn không có quyền xem giao dịch này');
 
   const payosResponse = await getPayosPaymentRequest(orderCode);
   await applyPayosPaymentStatus(transaction, payosResponse.data);

@@ -3,7 +3,7 @@ import { env } from '../config/env.js';
 import { ApiError } from '../utils/apiError.js';
 
 function requireWebhookSecret() {
-  if (!env.casso.webhookSecret) throw new ApiError(500, 'Chua cau hinh CASSO_WEBHOOK_SECRET');
+  if (!env.casso.webhookSecret) throw new ApiError(500, 'Chưa cấu hình CASSO_WEBHOOK_SECRET');
   return env.casso.webhookSecret;
 }
 
@@ -37,6 +37,6 @@ export function verifyCassoWebhookV2Signature(signatureHeader, payload) {
 }
 
 export function verifyCassoLegacySecureToken(secureToken) {
-  if (!env.casso.legacySecureToken) throw new ApiError(500, 'Chua cau hinh CASSO_WEBHOOK_SECRET');
+  if (!env.casso.legacySecureToken) throw new ApiError(500, 'Chưa cấu hình CASSO_WEBHOOK_SECRET');
   return safeEqual(env.casso.legacySecureToken, String(secureToken || ''));
 }

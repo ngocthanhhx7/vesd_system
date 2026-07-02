@@ -23,22 +23,22 @@ export const loginSchema = z.object({
 export async function registerUser(payload) {
   const data = registerSchema.parse(payload);
   const exists = await User.findOne({ email: data.email });
-  if (exists) throw new ApiError(409, 'Email da duoc su dung');
+  if (exists) throw new ApiError(409, 'Email đã được sử dụng');
   const passwordHash = await bcrypt.hash(data.password, 12);
   const user = await User.create({ name: data.name, email: data.email, passwordHash, roles: [data.role] });
   await Wallet.create({ userId: user._id });
   if (data.role === 'client') await ClientProfile.create({ userId: user._id });
-  if (data.role === 'designer') await DesignerProfile.create({ userId: user._id, title: 'Designer moi', slug: `${data.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}` });
+  if (data.role === 'designer') await DesignerProfile.create({ userId: user._id, title: 'Designer mới', slug: `${data.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}` });
   return { user: sanitizeUser(user), token: signToken(user) };
 }
 
 export async function loginUser(payload) {
   const data = loginSchema.parse(payload);
   const user = await User.findOne({ email: data.email }).select('+passwordHash');
-  if (!user) throw new ApiError(401, 'Email hoac mat khau khong dung');
+  if (!user) throw new ApiError(401, 'Email hoặc mật khẩu không đúng');
   const ok = await bcrypt.compare(data.password, user.passwordHash);
-  if (!ok) throw new ApiError(401, 'Email hoac mat khau khong dung');
-  if (user.status !== 'active') throw new ApiError(403, 'Tai khoan dang bi khoa');
+  if (!ok) throw new ApiError(401, 'Email hoặc mật khẩu không đúng');
+  if (user.status !== 'active') throw new ApiError(403, 'Tài khoản đang bị khóa');
   return { user: sanitizeUser(user), token: signToken(user) };
 }
 
@@ -55,7 +55,7 @@ export async function googleLogin(credential) {
       audience: env.googleClientId
     });
     const payload = ticket.getPayload();
-    if (!payload || !payload.email) throw new ApiError(400, 'Khong the xac thuc tu Google');
+    if (!payload || !payload.email) throw new ApiError(400, 'Không thể xác thực từ Google');
 
     const email = payload.email.toLowerCase();
     const name = payload.name || 'Google User';
@@ -87,12 +87,12 @@ export async function googleLogin(credential) {
       await user.save();
     }
 
-    if (user.status !== 'active') throw new ApiError(403, 'Tai khoan dang bi khoa');
+    if (user.status !== 'active') throw new ApiError(403, 'Tài khoản đang bị khóa');
 
     return { user: sanitizeUser(user), token: signToken(user) };
   } catch (error) {
     if (error instanceof ApiError) throw error;
     console.error('Google Auth Error:', error);
-    throw new ApiError(401, 'Xac thuc Google that bai');
+    throw new ApiError(401, 'Xác thực Google thất bại');
   }
 }

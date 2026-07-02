@@ -12,15 +12,15 @@ export async function validateDiscount({ code, amount, appliesTo = 'all', role =
   if (!code) return { discount: null, discountAmount: 0, finalAmount: amount };
 
   const discount = await Discount.findOne({ code: String(code).toUpperCase().trim(), isActive: true });
-  if (!discount) throw new ApiError(404, 'Ma giam gia khong hop le');
+  if (!discount) throw new ApiError(404, 'Mã giảm giá không hợp lệ');
 
   const now = new Date();
-  if (discount.startsAt && discount.startsAt > now) throw new ApiError(400, 'Ma giam gia chua bat dau');
-  if (discount.endsAt && discount.endsAt < now) throw new ApiError(400, 'Ma giam gia da het han');
-  if (discount.usageLimit && discount.usedCount >= discount.usageLimit) throw new ApiError(400, 'Ma giam gia da het luot su dung');
-  if (discount.minOrderAmount && amount < discount.minOrderAmount) throw new ApiError(400, 'Gia tri don hang chua dat muc toi thieu');
-  if (discount.appliesTo !== 'all' && discount.appliesTo !== appliesTo) throw new ApiError(400, 'Ma giam gia khong ap dung cho tinh nang nay');
-  if (discount.roleTarget !== 'both' && discount.roleTarget !== role) throw new ApiError(400, 'Ma giam gia khong ap dung cho vai tro hien tai');
+  if (discount.startsAt && discount.startsAt > now) throw new ApiError(400, 'Mã giảm giá chưa bắt đầu');
+  if (discount.endsAt && discount.endsAt < now) throw new ApiError(400, 'Mã giảm giá đã hết hạn');
+  if (discount.usageLimit && discount.usedCount >= discount.usageLimit) throw new ApiError(400, 'Mã giảm giá đã hết lượt sử dụng');
+  if (discount.minOrderAmount && amount < discount.minOrderAmount) throw new ApiError(400, 'Giá trị đơn hàng chưa đạt mức tối thiểu');
+  if (discount.appliesTo !== 'all' && discount.appliesTo !== appliesTo) throw new ApiError(400, 'Mã giảm giá không áp dụng cho tính năng này');
+  if (discount.roleTarget !== 'both' && discount.roleTarget !== role) throw new ApiError(400, 'Mã giảm giá không áp dụng cho vai trò hiện tại');
 
   const discountAmount = calculateDiscountAmount(discount, amount);
   return { discount, discountAmount, finalAmount: Math.max(amount - discountAmount, 0) };

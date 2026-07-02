@@ -48,7 +48,7 @@ const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 function messagePreview(content, attachments = []) {
   const value = String(content || '').trim();
   if (value) return value.slice(0, 180);
-  return attachments.length ? 'Da gui tep dinh kem' : '';
+  return attachments.length ? 'Đã gửi tệp đính kèm' : '';
 }
 
 function fileKey(file = {}) {
@@ -71,9 +71,9 @@ function projectHasFileKey(project, key) {
 }
 
 async function getConversationForUser(user, id) {
-  if (!objectIdPattern.test(String(id))) throw new ApiError(400, 'Cuoc tro chuyen khong hop le');
+  if (!objectIdPattern.test(String(id))) throw new ApiError(400, 'Cuộc trò chuyện không hợp lệ');
   const conversation = await Conversation.findOne({ _id: id, participants: user._id });
-  if (!conversation) throw new ApiError(404, 'Khong tim thay cuoc tro chuyen');
+  if (!conversation) throw new ApiError(404, 'Không tìm thấy cuộc trò chuyện');
   return conversation;
 }
 
@@ -170,7 +170,7 @@ mainRoutes.patch('/users/me', requireAuth, asyncHandler(async (req, res) => {
   const patch = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
   if (patch.email && patch.email !== req.user.email) {
     const exists = await User.findOne({ email: String(patch.email).toLowerCase().trim(), _id: { $ne: req.user._id } });
-    if (exists) throw new ApiError(409, 'Email da duoc su dung');
+    if (exists) throw new ApiError(409, 'Email đã được sử dụng');
     patch.emailVerified = false;
   }
   const user = await User.findByIdAndUpdate(req.user._id, patch, { new: true }).select('-passwordHash');
@@ -211,13 +211,13 @@ mainRoutes.patch('/users/me/notification-preferences', requireAuth, asyncHandler
 mainRoutes.patch('/users/me/password', requireAuth, asyncHandler(async (req, res) => {
   const currentPassword = String(req.body.currentPassword || '');
   const newPassword = String(req.body.newPassword || '');
-  if (newPassword.length < 8) throw new ApiError(400, 'Mat khau moi toi thieu 8 ky tu');
+  if (newPassword.length < 8) throw new ApiError(400, 'Mật khẩu mới tối thiểu 8 ký tự');
   const user = await User.findById(req.user._id).select('+passwordHash');
   const ok = await bcrypt.compare(currentPassword, user.passwordHash);
-  if (!ok) throw new ApiError(401, 'Mat khau hien tai khong dung');
+  if (!ok) throw new ApiError(401, 'Mật khẩu hiện tại không đúng');
   user.passwordHash = await bcrypt.hash(newPassword, 12);
   await user.save();
-  res.json({ message: 'Da doi mat khau' });
+  res.json({ message: 'Đã đổi mật khẩu' });
 }));
 
 mainRoutes.patch('/clients/profile', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
@@ -280,7 +280,7 @@ mainRoutes.get('/designers/:idOrSlug', asyncHandler(async (req, res) => {
   const key = req.params.idOrSlug;
   const query = key.match(/^[0-9a-fA-F]{24}$/) ? { $or: [{ _id: key }, { userId: key }] } : { slug: key };
   const profile = await DesignerProfile.findOneAndUpdate(query, { $inc: { profileViews: 1 } }, { new: true }).populate('userId', 'name avatar email');
-  if (!profile) throw new ApiError(404, 'Khong tim thay designer');
+  if (!profile) throw new ApiError(404, 'Không tìm thấy designer');
   const [portfolio, reviews] = await Promise.all([
     Portfolio.find({ designerId: profile.userId._id }).limit(12),
     Review.find({ revieweeId: profile.userId._id, status: 'visible' }).populate('reviewerId', 'name avatar').populate('projectId', 'category').limit(10)
@@ -300,12 +300,12 @@ mainRoutes.post('/portfolio', requireAuth, requireRole('designer'), asyncHandler
 mainRoutes.get('/portfolio/designer/:designerId', asyncHandler(async (req, res) => res.json(await Portfolio.find({ designerId: req.params.designerId }))));
 mainRoutes.patch('/portfolio/:id', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   const item = await Portfolio.findOneAndUpdate({ _id: req.params.id, designerId: req.user._id }, req.body, { new: true });
-  if (!item) throw new ApiError(404, 'Khong tim thay portfolio');
+  if (!item) throw new ApiError(404, 'Không tìm thấy portfolio');
   res.json(item);
 }));
 mainRoutes.delete('/portfolio/:id', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   await Portfolio.deleteOne({ _id: req.params.id, designerId: req.user._id });
-  res.json({ message: 'Da xoa portfolio' });
+  res.json({ message: 'Đã xóa portfolio' });
 }));
 
 mainRoutes.post('/projects', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
@@ -389,14 +389,14 @@ mainRoutes.post('/projects/:id/invite', requireAuth, requireRole('client'), asyn
 }));
 mainRoutes.post('/projects/:id/accept', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
-  if (String(project.designerId) !== String(req.user._id)) throw new ApiError(403, 'Khong phai designer duoc moi');
+  if (String(project.designerId) !== String(req.user._id)) throw new ApiError(403, 'Không phải designer được mời');
   project.status = 'agreement_pending';
   await project.save();
   res.json(project);
 }));
 mainRoutes.post('/projects/:id/claim', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   const project = await Project.findOne({ _id: req.params.id, status: 'pending_designer', $or: [{ designerId: { $exists: false } }, { designerId: null }] });
-  if (!project) throw new ApiError(404, 'Du an khong con mo hoac da co designer nhan');
+  if (!project) throw new ApiError(404, 'Dự án không còn mở hoặc đã có designer nhận');
   project.designerId = req.user._id;
   project.status = 'agreement_pending';
   await project.save();
@@ -419,11 +419,11 @@ mainRoutes.post('/projects/:id/agreement', requireAuth, asyncHandler(async (req,
 }));
 mainRoutes.post('/projects/:id/start', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
-  if (String(project.designerId) !== String(req.user._id)) throw new ApiError(403, 'Khong phai designer cua du an');
-  if (!['escrow_funded', 'revision_requested'].includes(project.status)) throw new ApiError(400, 'Du an chua san sang de bat dau');
+  if (String(project.designerId) !== String(req.user._id)) throw new ApiError(403, 'Không phải designer của dự án');
+  if (!['escrow_funded', 'revision_requested'].includes(project.status)) throw new ApiError(400, 'Dự án chưa sẵn sàng để bắt đầu');
   project.status = 'in_progress';
   await project.save();
-  await ProjectComment.create({ projectId: project._id, senderId: req.user._id, content: req.body.content || 'Designer da bat dau thuc hien du an', type: 'system' });
+  await ProjectComment.create({ projectId: project._id, senderId: req.user._id, content: req.body.content || 'Designer đã bắt đầu thực hiện dự án', type: 'system' });
   res.json(project);
 }));
 mainRoutes.post('/projects/:id/comments', requireAuth, asyncHandler(async (req, res) => {
@@ -434,7 +434,7 @@ mainRoutes.post('/projects/:id/comments', requireAuth, asyncHandler(async (req, 
 mainRoutes.post('/projects/:id/milestones/:milestoneId/submit', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
   const milestone = project.milestones.id(req.params.milestoneId);
-  if (!milestone) throw new ApiError(404, 'Khong tim thay milestone');
+  if (!milestone) throw new ApiError(404, 'Không tìm thấy milestone');
   await deleteProjectFiles(milestone.submittedFiles);
   milestone.status = 'submitted';
   milestone.submittedFiles = req.body.files || [];
@@ -444,12 +444,12 @@ mainRoutes.post('/projects/:id/milestones/:milestoneId/submit', requireAuth, req
 }));
 mainRoutes.post('/projects/:id/final-files', requireAuth, requireRole('designer'), asyncHandler(async (req, res) => {
   const project = await getOwnedProject(req.user, req.params.id);
-  if (String(project.designerId) !== String(req.user._id)) throw new ApiError(403, 'Khong phai designer cua du an');
+  if (String(project.designerId) !== String(req.user._id)) throw new ApiError(403, 'Không phải designer của dự án');
   await deleteProjectFiles(project.finalFiles);
   project.finalFiles = req.body.files || [];
   project.status = 'final_submitted';
   await project.save();
-  await ProjectComment.create({ projectId: project._id, senderId: req.user._id, content: req.body.note || 'Designer da ban giao file cuoi', attachments: req.body.files || [], type: 'system' });
+  await ProjectComment.create({ projectId: project._id, senderId: req.user._id, content: req.body.note || 'Designer đã bàn giao file cuối', attachments: req.body.files || [], type: 'system' });
   res.json(project);
 }));
 mainRoutes.post('/projects/:id/milestones/:milestoneId/approve', requireAuth, requireRole('client'), asyncHandler(async (req, res) => res.json(await approveMilestone({ project: await getOwnedProject(req.user, req.params.id), milestoneId: req.params.milestoneId, userId: req.user._id }))));
@@ -504,12 +504,12 @@ mainRoutes.post('/bank-accounts', requireAuth, asyncHandler(async (req, res) => 
 mainRoutes.patch('/bank-accounts/:id', requireAuth, asyncHandler(async (req, res) => {
   if (req.body.isDefault) await SavedBankAccount.updateMany({ userId: req.user._id, isDefault: true, _id: { $ne: req.params.id } }, { isDefault: false });
   const account = await SavedBankAccount.findOneAndUpdate({ _id: req.params.id, userId: req.user._id }, req.body, { new: true });
-  if (!account) throw new ApiError(404, 'Khong tim thay tai khoan ngan hang');
+  if (!account) throw new ApiError(404, 'Không tìm thấy tài khoản ngân hàng');
   res.json(account);
 }));
 mainRoutes.delete('/bank-accounts/:id', requireAuth, asyncHandler(async (req, res) => {
   await SavedBankAccount.deleteOne({ _id: req.params.id, userId: req.user._id });
-  res.json({ message: 'Da xoa tai khoan ngan hang' });
+  res.json({ message: 'Đã xóa tài khoản ngân hàng' });
 }));
 mainRoutes.get('/withdrawals/my', requireAuth, asyncHandler(async (req, res) => res.json(await Withdrawal.find({ $or: [{ userId: req.user._id }, { designerId: req.user._id }] }).sort({ createdAt: -1 }))));
 mainRoutes.post('/withdrawals', requireAuth, asyncHandler(async (req, res) => {
@@ -539,11 +539,11 @@ mainRoutes.get('/conversations/my', requireAuth, asyncHandler(async (req, res) =
 mainRoutes.post('/conversations/direct', requireAuth, requireRole('client'), asyncHandler(async (req, res) => {
   const designerId = String(req.body.designerId || '');
   const content = String(req.body.content || '').trim();
-  if (!objectIdPattern.test(designerId)) throw new ApiError(400, 'Designer khong hop le');
-  if (String(req.user._id) === designerId) throw new ApiError(400, 'Khong the tu nhan tin cho chinh minh');
+  if (!objectIdPattern.test(designerId)) throw new ApiError(400, 'Designer không hợp lệ');
+  if (String(req.user._id) === designerId) throw new ApiError(400, 'Không thể tự nhắn tin cho chính mình');
 
   const designerProfile = await DesignerProfile.findOne({ userId: designerId }).populate('userId', 'name email avatar roles');
-  if (!designerProfile?.userId) throw new ApiError(404, 'Khong tim thay designer');
+  if (!designerProfile?.userId) throw new ApiError(404, 'Không tìm thấy designer');
 
   const conversation = await Conversation.findOneAndUpdate(
     { clientId: req.user._id, designerId },
@@ -568,7 +568,7 @@ mainRoutes.post('/conversations/direct', requireAuth, requireRole('client'), asy
       userId: designerId,
       type: 'message.direct',
       category: 'system',
-      title: `${req.user.name} da nhan tin cho ban`,
+      title: `${req.user.name} đã nhắn tin cho bạn`,
       message: conversation.lastMessage,
       actionUrl: inboxPathFor(designerProfile.userId, conversation._id)
     });
@@ -598,7 +598,7 @@ mainRoutes.post('/conversations/:id/messages', requireAuth, asyncHandler(async (
   const conversation = await getConversationForUser(req.user, req.params.id);
   const content = String(req.body.content || '').trim();
   const attachments = Array.isArray(req.body.attachments) ? req.body.attachments : [];
-  if (!content && !attachments.length) throw new ApiError(400, 'Tin nhan khong duoc de trong');
+  if (!content && !attachments.length) throw new ApiError(400, 'Tin nhắn không được để trống');
 
   const message = await DirectMessage.create({
     conversationId: conversation._id,
@@ -617,7 +617,7 @@ mainRoutes.post('/conversations/:id/messages', requireAuth, asyncHandler(async (
     userId: recipient._id,
     type: 'message.direct',
     category: 'system',
-    title: `${req.user.name} da gui tin nhan moi`,
+    title: `${req.user.name} đã gửi tin nhắn mới`,
     message: conversation.lastMessage,
     actionUrl: inboxPathFor(recipient, conversation._id)
   })));
@@ -697,9 +697,9 @@ mainRoutes.post('/premium/subscribe', requireAuth, asyncHandler(async (req, res)
   }
 
   const plan = await PremiumPlan.findById(req.body.planId);
-  if (!plan) throw new ApiError(404, 'Khong tim thay goi Premium');
+  if (!plan) throw new ApiError(404, 'Không tìm thấy gói Premium');
   const role = req.user.roles.includes('designer') ? 'designer' : 'client';
-  if (plan.roleTarget !== 'both' && plan.roleTarget !== role) throw new ApiError(403, 'Goi Premium khong ap dung cho loai tai khoan hien tai');
+  if (plan.roleTarget !== 'both' && plan.roleTarget !== role) throw new ApiError(403, 'Gói Premium không áp dụng cho loại tài khoản hiện tại');
   const { discount, discountAmount, finalAmount } = await validateDiscount({ code: req.body.discountCode, amount: plan.price, appliesTo: 'premium', role });
   const startDate = new Date();
   const endDate = new Date(Date.now() + plan.durationDays * 86400000);
@@ -736,8 +736,8 @@ mainRoutes.post('/premium/subscribe', requireAuth, asyncHandler(async (req, res)
     userId: req.user._id,
     type: 'premium.activated',
     category: 'premium',
-    title: 'Tai khoan Premium da kich hoat',
-    message: `${plan.name} co hieu luc den ${endDate.toLocaleDateString('vi-VN')}.`,
+    title: 'Tài khoản Premium đã kích hoạt',
+    message: `${plan.name} có hiệu lực đến ${endDate.toLocaleDateString('vi-VN')}.`,
     actionUrl: role === 'designer' ? '/designer/premium' : '/client/premium'
   });
   recordConversion(req, 'premium_subscription', { subscriptionId: subscription._id, planId: plan._id }).catch(() => null);
@@ -890,8 +890,8 @@ mainRoutes.post('/uploads/image', requireAuth, upload.single('file'), asyncHandl
   res.status(201).json(result);
 }));
 mainRoutes.post('/uploads/avatar', requireAuth, upload.single('file'), asyncHandler(async (req, res) => {
-  if (!req.file) throw new ApiError(400, 'Vui long chon file avatar');
-  if (!req.file.mimetype?.startsWith('image/')) throw new ApiError(400, 'Avatar phai la file anh');
+  if (!req.file) throw new ApiError(400, 'Vui lòng chọn file avatar');
+  if (!req.file.mimetype?.startsWith('image/')) throw new ApiError(400, 'Avatar phải là file ảnh');
   const result = await uploadToS3(req.file, 'avatar');
   res.status(201).json(result);
 }));
@@ -904,9 +904,9 @@ mainRoutes.get('/uploads/file-object', requireAuth, asyncHandler(async (req, res
   const key = String(req.query.key || '');
   const projectId = String(req.query.projectId || '');
   const disposition = req.query.disposition === 'attachment' ? 'attachment' : 'inline';
-  if (!key.startsWith('files/') || !objectIdPattern.test(projectId)) throw new ApiError(400, 'File khong hop le');
+  if (!key.startsWith('files/') || !objectIdPattern.test(projectId)) throw new ApiError(400, 'File không hợp lệ');
   const project = await getOwnedProject(req.user, projectId);
-  if (!projectHasFileKey(project, key)) throw new ApiError(404, 'Khong tim thay file trong du an');
+  if (!projectHasFileKey(project, key)) throw new ApiError(404, 'Không tìm thấy file trong dự án');
   const object = await getFromS3(key);
   const fileName = key.split('/').pop() || 'download';
   res.setHeader('Content-Type', object.ContentType || 'application/octet-stream');

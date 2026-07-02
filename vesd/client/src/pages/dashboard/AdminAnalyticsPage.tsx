@@ -260,7 +260,7 @@ function LineChart({ title, series, field, color, suffix }: { title: string; ser
       <svg viewBox="0 0 100 100" className="h-36 w-full overflow-visible">
         <line x1="0" y1="92" x2="100" y2="92" stroke="#CED8F4" strokeWidth="1" />
         <line x1="0" y1="8" x2="0" y2="92" stroke="#CED8F4" strokeWidth="1" />
-        {state.kind === 'empty' && <text x="50" y="53" textAnchor="middle" className="fill-slate-400 text-[9px] font-semibold">Chua co du lieu</text>}
+        {state.kind === 'empty' && <text x="50" y="53" textAnchor="middle" className="fill-slate-400 text-[9px] font-semibold">Chưa có dữ liệu</text>}
         {state.kind === 'single' && <circle cx="50" cy="50" r="4" fill={color} />}
         {state.kind === 'line' && points && <polyline fill="none" points={points} stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />}
       </svg>

@@ -34,6 +34,17 @@ const statuses = [
   ['cancelled', 'Đã hủy']
 ];
 
+export function projectWorkflowRefreshKeys(projectId: string | undefined) {
+  return [
+    ['project', projectId],
+    ['my-projects'],
+    ['designer-projects'],
+    ['wallet'],
+    ['tx'],
+    ['dashboard-summary']
+  ];
+}
+
 function listFromText(value: FormDataEntryValue | null) {
   return String(value || '')
     .split(',')
@@ -515,12 +526,7 @@ export function WorkspacePage({ designer = false }: { designer?: boolean }) {
     : workspaceSteps.map((step, index) => ({ _id: `fallback-${index}`, title: step, status: index < 2 ? 'approved' : 'pending', submittedFiles: [] }));
   const projectCompleted = project?.status === 'completed';
   async function refreshProject() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['project', id] }),
-      queryClient.invalidateQueries({ queryKey: ['my-projects'] }),
-      queryClient.invalidateQueries({ queryKey: ['designer-projects'] }),
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
-    ]);
+    await Promise.all(projectWorkflowRefreshKeys(id).map((queryKey) => queryClient.invalidateQueries({ queryKey })));
   }
 
   async function uploadFiles(files: File[], progressPrefix = 'Đang tải file') {

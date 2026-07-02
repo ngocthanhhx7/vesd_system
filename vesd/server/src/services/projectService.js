@@ -9,8 +9,8 @@ export function canAccessProject(user, project) {
 
 export async function getOwnedProject(user, id) {
   const project = await Project.findById(id);
-  if (!project) throw new ApiError(404, 'Khong tim thay du an');
-  if (!canAccessProject(user, project)) throw new ApiError(403, 'Ban khong co quyen xem du an nay');
+  if (!project) throw new ApiError(404, 'Không tìm thấy dự án');
+  if (!canAccessProject(user, project)) throw new ApiError(403, 'Bạn không có quyền xem dự án này');
   return project;
 }
 
@@ -29,6 +29,20 @@ async function getProjectEscrowStats(projectId) {
   return { escrowPaid, released, refunded, remaining: Math.max(escrowPaid - released - refunded, 0) };
 }
 
+function releaseKeyForReason(reason) {
+  if (String(reason || '').startsWith('project_completed')) return 'project_completed';
+  return String(reason || 'escrow_release');
+}
+
+function transactionUpsertWasInserted(result) {
+  if (!result?.lastErrorObject) return true;
+  return result.lastErrorObject.updatedExisting === false || Boolean(result.lastErrorObject.upserted);
+}
+
+function transactionFromUpsertResult(result) {
+  return result?.value || result;
+}
+
 async function releaseProjectFunds({ project, amount, reason }) {
   const value = Math.round(Number(amount || 0));
   if (!project.designerId || value <= 0) return null;
@@ -37,31 +51,54 @@ async function releaseProjectFunds({ project, amount, reason }) {
   if (releaseAmount <= 0) return null;
   const platformFee = calculatePlatformFee(releaseAmount);
   const designerAmount = Math.max(releaseAmount - platformFee, 0);
+  const releaseKey = releaseKeyForReason(reason);
 
-  const transaction = await Transaction.create({
-    userId: project.designerId,
-    projectId: project._id,
-    type: 'release',
-    amount: designerAmount,
-    platformFee,
-    status: 'success',
-    paymentMethod: 'escrow',
-    metadata: {
-      grossAmount: releaseAmount,
-      reason,
-      feeCollectedAt: 'completion'
+  const transactionResult = await Transaction.findOneAndUpdate(
+    { projectId: project._id, type: 'release', 'metadata.releaseKey': releaseKey },
+    {
+      $setOnInsert: {
+        userId: project.designerId,
+        projectId: project._id,
+        type: 'release',
+        amount: designerAmount,
+        platformFee,
+        status: 'success',
+        paymentMethod: 'escrow',
+        metadata: {
+          grossAmount: releaseAmount,
+          reason,
+          releaseKey,
+          feeCollectedAt: 'completion'
+        }
+      }
+    },
+    {
+      upsert: true,
+      new: true,
+      setDefaultsOnInsert: true,
+      includeResultMetadata: true
     }
-  });
+  );
+  const transaction = transactionFromUpsertResult(transactionResult);
+  if (!transactionUpsertWasInserted(transactionResult)) return transaction;
+
   await Wallet.findOneAndUpdate(
     { userId: project.designerId },
     { $inc: { balance: designerAmount, totalEarned: designerAmount } },
     { upsert: true }
   );
-  await Wallet.findOneAndUpdate(
-    { userId: project.clientId },
+  const clientWallet = await Wallet.findOneAndUpdate(
+    { userId: project.clientId, escrowBalance: { $gte: releaseAmount } },
     { $inc: { escrowBalance: -releaseAmount } },
-    { upsert: true }
+    { new: true }
   );
+  if (!clientWallet) {
+    await Wallet.findOneAndUpdate(
+      { userId: project.clientId },
+      { $set: { escrowBalance: 0 } },
+      { upsert: true }
+    );
+  }
   return transaction;
 }
 
@@ -88,10 +125,10 @@ export async function syncCompletedProjectState(project) {
 
 export async function fundEscrow({ projectId, userId, paymentMethod = 'mock', discountCode }) {
   const project = await Project.findById(projectId);
-  if (!project) throw new ApiError(404, 'Khong tim thay du an');
-  if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client cua du an duoc thanh toan');
+  if (!project) throw new ApiError(404, 'Không tìm thấy dự án');
+  if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chỉ client của dự án được thanh toán');
   const amount = project.agreement?.price || project.budget?.agreed || project.budget?.max || 0;
-  if (amount <= 0) throw new ApiError(400, 'Du an chua co so tien hop le');
+  if (amount <= 0) throw new ApiError(400, 'Dự án chưa có số tiền hợp lệ');
   const { discount, discountAmount, finalAmount } = await validateDiscount({ code: discountCode, amount, appliesTo: 'project', role: 'client' });
   const escrowAmount = Math.round(finalAmount);
   const totalDue = escrowAmount;
@@ -104,7 +141,7 @@ export async function fundEscrow({ projectId, userId, paymentMethod = 'mock', di
     if (!wallet) {
       const currentWallet = await Wallet.findOne({ userId }).select('balance');
       const availableBalance = Number(currentWallet?.balance || 0);
-      throw new ApiError(402, 'So du vi khong du de thanh toan du an', {
+      throw new ApiError(402, 'Số dư ví không đủ để thanh toán dự án', {
         action: 'topup',
         requiredAmount: totalDue,
         availableBalance,
@@ -143,10 +180,10 @@ export async function fundEscrow({ projectId, userId, paymentMethod = 'mock', di
 }
 
 export async function approveMilestone({ project, milestoneId, userId }) {
-  if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client duoc duyet milestone');
-  if (project.status === 'disputed') throw new ApiError(400, 'Du an dang khieu nai, khong the duyet milestone');
+  if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chỉ client được duyệt milestone');
+  if (project.status === 'disputed') throw new ApiError(400, 'Dự án đang khiếu nại, không thể duyệt milestone');
   const milestone = project.milestones.id(milestoneId);
-  if (!milestone) throw new ApiError(404, 'Khong tim thay milestone');
+  if (!milestone) throw new ApiError(404, 'Không tìm thấy milestone');
   if (milestone.status === 'approved') return project;
   milestone.status = 'approved';
   milestone.approvedAt = new Date();
@@ -156,8 +193,8 @@ export async function approveMilestone({ project, milestoneId, userId }) {
 }
 
 export async function requestRevision({ project, userId, content }) {
-  if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client duoc yeu cau chinh sua');
-  if (project.revisionUsed >= project.revisionLimit) throw new ApiError(400, 'Da vuot gioi han so lan chinh sua');
+  if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chỉ client được yêu cầu chỉnh sửa');
+  if (project.revisionUsed >= project.revisionLimit) throw new ApiError(400, 'Đã vượt giới hạn số lần chỉnh sửa');
   project.revisionUsed += 1;
   project.status = 'revision_requested';
   await project.save();
@@ -166,7 +203,7 @@ export async function requestRevision({ project, userId, content }) {
 }
 
 export async function completeProject({ project, userId, allowMissingFiles = false }) {
-  if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chi client duoc hoan tat du an');
+  if (String(project.clientId) !== String(userId)) throw new ApiError(403, 'Chỉ client được hoàn tất dự án');
   if (project.status === 'completed') {
     return syncCompletedProjectState(project);
   }
@@ -192,10 +229,10 @@ export async function completeProject({ project, userId, allowMissingFiles = fal
 
 export async function refundProject({ projectId, adminId, amount, resolutionType = 'full_refund' }) {
   const project = await Project.findById(projectId);
-  if (!project) throw new ApiError(404, 'Khong tim thay du an');
+  if (!project) throw new ApiError(404, 'Không tìm thấy dự án');
   const { remaining } = await getProjectEscrowStats(projectId);
   const refundAmount = Math.min(Number(amount || remaining || 0), remaining);
-  if (refundAmount <= 0) throw new ApiError(400, 'Khong con so tien escrow de hoan');
+  if (refundAmount <= 0) throw new ApiError(400, 'Không còn số tiền escrow để hoàn');
   await Transaction.create({ userId: project.clientId, projectId, type: 'refund', amount: refundAmount, status: 'success', paymentMethod: 'escrow', metadata: { adminId, resolutionType } });
   await Wallet.findOneAndUpdate({ userId: project.clientId }, { $inc: { balance: refundAmount, escrowBalance: -refundAmount } }, { upsert: true });
   project.status = resolutionType === 'redo' ? 'in_progress' : 'cancelled';
@@ -205,11 +242,11 @@ export async function refundProject({ projectId, adminId, amount, resolutionType
 
 export async function resolveDispute({ disputeId, adminId, adminDecision, resolutionType, resolutionAmount }) {
   const dispute = await Dispute.findById(disputeId);
-  if (!dispute) throw new ApiError(404, 'Khong tim thay khieu nai');
-  if (dispute.status === 'resolved') throw new ApiError(400, 'Khieu nai da duoc giai quyet');
+  if (!dispute) throw new ApiError(404, 'Không tìm thấy khiếu nại');
+  if (dispute.status === 'resolved') throw new ApiError(400, 'Khiếu nại đã được giải quyết');
 
   const project = await Project.findById(dispute.projectId);
-  if (!project) throw new ApiError(404, 'Khong tim thay du an');
+  if (!project) throw new ApiError(404, 'Không tìm thấy dự án');
 
   const { remaining } = await getProjectEscrowStats(project._id);
 

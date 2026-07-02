@@ -14,7 +14,7 @@ function generateCassoReferenceId() {
 
 function normalizeAmount(amount) {
   const value = Number(amount);
-  if (!Number.isInteger(value) || value <= 0) throw new ApiError(400, 'So tien rut phai la so nguyen lon hon 0');
+  if (!Number.isInteger(value) || value <= 0) throw new ApiError(400, 'Số tiền rút phải là số nguyên lớn hơn 0');
   return value;
 }
 
@@ -23,9 +23,9 @@ function normalizeAccountInfo(accountInfo = {}) {
   const bankName = String(accountInfo.bankName || accountInfo.bank || '').trim();
   const toAccountNumber = String(accountInfo.toAccountNumber || accountInfo.accountNumber || '').trim();
   const toAccountName = String(accountInfo.toAccountName || accountInfo.accountName || '').trim();
-  if (!toBin && !bankName) throw new ApiError(400, 'Thieu ngan hang dich');
-  if (!toAccountNumber) throw new ApiError(400, 'Thieu so tai khoan dich');
-  if (!toAccountName) throw new ApiError(400, 'Thieu ten tai khoan dich');
+  if (!toBin && !bankName) throw new ApiError(400, 'Thiếu ngân hàng đích');
+  if (!toAccountNumber) throw new ApiError(400, 'Thiếu số tài khoản đích');
+  if (!toAccountName) throw new ApiError(400, 'Thiếu tên tài khoản đích');
   const qrImage = accountInfo.qrImage && typeof accountInfo.qrImage === 'object' ? accountInfo.qrImage : undefined;
   return { toBin, bankName, toAccountNumber, toAccountName, qrImage };
 }
@@ -114,7 +114,7 @@ export async function requestCassoWithdrawal({ userId, designerId, amount, accou
   const bankAccountId = accountInfo?.bankAccountId;
   if (bankAccountId) {
     const savedAccount = await SavedBankAccount.findOne({ _id: bankAccountId, userId: ownerId });
-    if (!savedAccount) throw new ApiError(404, 'Khong tim thay tai khoan ngan hang da luu');
+    if (!savedAccount) throw new ApiError(404, 'Không tìm thấy tài khoản ngân hàng đã lưu');
     normalizedAccount = normalizeAccountInfo({
       bankName: savedAccount.bankName,
       bankBin: savedAccount.bankBin,
@@ -130,7 +130,7 @@ export async function requestCassoWithdrawal({ userId, designerId, amount, accou
     { $inc: { balance: -value, pendingBalance: value } },
     { new: true }
   );
-  if (!wallet) throw new ApiError(400, 'So du vi khong du de rut tien');
+  if (!wallet) throw new ApiError(400, 'Số dư ví không đủ để rút tiền');
 
   const withdrawal = await Withdrawal.create({
     userId: ownerId,
@@ -215,7 +215,7 @@ export async function requestPayosWithdrawal({ userId, designerId, amount, accou
     { $inc: { balance: -value, pendingBalance: value } },
     { new: true }
   );
-  if (!wallet) throw new ApiError(400, 'So du vi khong du de rut tien');
+  if (!wallet) throw new ApiError(400, 'Số dư ví không đủ để rút tiền');
 
   const withdrawal = await Withdrawal.create({
     userId: ownerId,
@@ -276,10 +276,10 @@ export async function requestPayosWithdrawal({ userId, designerId, amount, accou
 
 export async function syncPayosWithdrawal({ withdrawalId, user }) {
   const withdrawal = await Withdrawal.findById(withdrawalId);
-  if (!withdrawal) throw new ApiError(404, 'Khong tim thay yeu cau rut tien');
-  if (!user.roles.includes('admin') && String(withdrawalOwnerId(withdrawal)) !== String(user._id)) throw new ApiError(403, 'Ban khong co quyen xem yeu cau rut tien nay');
-  if (withdrawal.method !== 'payos') throw new ApiError(400, 'Yeu cau rut tien nay dang cho Casso webhook xac nhan');
-  if (!withdrawal.payoutId) throw new ApiError(400, 'Yeu cau rut tien chua co ma payout payOS');
+  if (!withdrawal) throw new ApiError(404, 'Không tìm thấy yêu cầu rút tiền');
+  if (!user.roles.includes('admin') && String(withdrawalOwnerId(withdrawal)) !== String(user._id)) throw new ApiError(403, 'Bạn không có quyền xem yêu cầu rút tiền này');
+  if (withdrawal.method !== 'payos') throw new ApiError(400, 'Yêu cầu rút tiền này đang chờ Casso webhook xác nhận');
+  if (!withdrawal.payoutId) throw new ApiError(400, 'Yêu cầu rút tiền chưa có mã payout payOS');
 
   const payosResponse = await getPayosPayout(withdrawal.payoutId);
   await applyPayoutState(withdrawal, payosResponse.data);
@@ -338,7 +338,7 @@ async function markCassoWithdrawalPaid(withdrawal, cassoTransaction) {
 export async function handleCassoWithdrawalWebhook({ body, signature, secureToken }) {
   const hasSignature = Boolean(signature);
   const valid = hasSignature ? verifyCassoWebhookV2Signature(signature, body) : verifyCassoLegacySecureToken(secureToken);
-  if (!valid) throw new ApiError(401, 'Chu ky Casso webhook khong hop le');
+  if (!valid) throw new ApiError(401, 'Chữ ký Casso webhook không hợp lệ');
   if (Number(body?.error || 0) !== 0) return { success: true, ignored: true };
 
   const rawTransactions = Array.isArray(body?.data) ? body.data : [body?.data].filter(Boolean);

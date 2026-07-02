@@ -185,6 +185,16 @@ const transactionSchema = new Schema(
   { timestamps: true }
 );
 transactionSchema.index({ userId: 1, projectId: 1, createdAt: -1 });
+transactionSchema.index(
+  { projectId: 1, type: 1, 'metadata.releaseKey': 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      type: 'release',
+      'metadata.releaseKey': { $exists: true }
+    }
+  }
+);
 
 const walletSchema = new Schema(
   {

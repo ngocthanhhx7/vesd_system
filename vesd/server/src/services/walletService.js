@@ -6,7 +6,7 @@ export const PROJECT_PLATFORM_FEE_RATE = 0.05;
 
 export function normalizeWalletAmount(amount, { min = 1 } = {}) {
   const value = Number(amount);
-  if (!Number.isInteger(value) || value < min) throw new ApiError(400, `So tien toi thieu la ${min.toLocaleString('vi-VN')} VND`);
+  if (!Number.isInteger(value) || value < min) throw new ApiError(400, `Số tiền tối thiểu là ${min.toLocaleString('vi-VN')} VND`);
   return value;
 }
 
@@ -17,17 +17,17 @@ export function calculatePlatformFee(amount) {
 export async function transferWalletToDesigner({ sender, designerId, projectId, amount, note }) {
   const value = normalizeWalletAmount(amount, { min: 1 });
   const project = await Project.findById(projectId);
-  if (!project) throw new ApiError(404, 'Khong tim thay du an');
-  if (project.status !== 'completed') throw new ApiError(400, 'Chi duoc chuyen tien truc tiep khi du an da hoan thanh');
-  if (String(project.clientId) !== String(sender._id)) throw new ApiError(403, 'Chi client cua du an duoc chuyen tien cho designer');
-  if (!project.designerId || String(project.designerId) !== String(designerId)) throw new ApiError(400, 'Designer khong khop voi du an');
+  if (!project) throw new ApiError(404, 'Không tìm thấy dự án');
+  if (project.status !== 'completed') throw new ApiError(400, 'Chỉ được chuyển tiền trực tiếp khi dự án đã hoàn thành');
+  if (String(project.clientId) !== String(sender._id)) throw new ApiError(403, 'Chỉ client của dự án được chuyển tiền cho designer');
+  if (!project.designerId || String(project.designerId) !== String(designerId)) throw new ApiError(400, 'Designer không khớp với dự án');
 
   const senderWallet = await Wallet.findOneAndUpdate(
     { userId: sender._id, balance: { $gte: value } },
     { $inc: { balance: -value, totalSpent: value } },
     { new: true }
   );
-  if (!senderWallet) throw new ApiError(400, 'So du vi khong du de chuyen tien');
+  if (!senderWallet) throw new ApiError(400, 'Số dư ví không đủ để chuyển tiền');
 
   await Wallet.findOneAndUpdate(
     { userId: designerId },

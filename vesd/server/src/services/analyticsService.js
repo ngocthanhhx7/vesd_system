@@ -613,7 +613,7 @@ function parseGeminiJson(text) {
     return JSON.parse(trimmed);
   } catch {
     return {
-      overview: trimmed || 'Gemini khong tra ve noi dung phan tich.',
+      overview: trimmed || 'Gemini không trả về nội dung phân tích.',
       technical: [],
       behaviour: [],
       traffic: [],
@@ -632,10 +632,10 @@ export async function generateAnalyticsAiReport(user, range = '7d') {
     { upsert: true, new: true }
   );
   const quota = getAiQuotaState(usage.count);
-  if (!quota.allowed) throw new ApiError(429, 'Da het 3 luot AI phan tich trong ngay.');
+  if (!quota.allowed) throw new ApiError(429, 'Đã hết 3 lượt AI phân tích trong ngày.');
   const analytics = await getAdminAnalytics(range);
   if (!env.gemini.apiKey || !env.gemini.model) {
-    throw new ApiError(503, 'Gemini chua duoc cau hinh. Vui long kiem tra GEMINI_API_KEY va GEMINI_MODEL.');
+    throw new ApiError(503, 'Gemini chưa được cấu hình. Vui lòng kiểm tra GEMINI_API_KEY và GEMINI_MODEL.');
   }
 
   const prompt = [
@@ -650,7 +650,7 @@ export async function generateAnalyticsAiReport(user, range = '7d') {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
   });
-  if (!response.ok) throw new ApiError(502, 'Gemini khong phan hoi thanh cong.');
+  if (!response.ok) throw new ApiError(502, 'Gemini không phản hồi thành công.');
   const data = await response.json();
   const text = data?.candidates?.[0]?.content?.parts?.map((part) => part.text).join('\n') || '';
   usage.count += 1;

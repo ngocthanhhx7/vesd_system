@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DesignerCard, getHomeDesignerPageItems } from './PublicPages';
 import { AdminAnalyticsPage, ProjectCard } from './DashboardPages';
 import { boundedPercent, buildLinePoints, chartState, formatDuration } from './dashboard/AdminAnalyticsPage';
+import { projectWorkflowRefreshKeys } from './dashboard/ProjectWorkflowPages';
 import { getOrCreateAnalyticsSession } from '../services/analytics';
 
 describe('component contracts', () => {
@@ -35,6 +36,12 @@ describe('component contracts', () => {
     expect(boundedPercent(-10)).toBe(0);
     expect(boundedPercent(58.6)).toBe(58.6);
     expect(boundedPercent(858.91)).toBe(100);
+  });
+  it('refreshes money data after project workflow mutations', () => {
+    expect(projectWorkflowRefreshKeys('project-1')).toContainEqual(['wallet']);
+    expect(projectWorkflowRefreshKeys('project-1')).toContainEqual(['tx']);
+    expect(projectWorkflowRefreshKeys('project-1')).toContainEqual(['dashboard-summary']);
+    expect(projectWorkflowRefreshKeys('project-1')).toContainEqual(['project', 'project-1']);
   });
   it('keeps the same analytics session across reloads within 30 minutes', () => {
     const storage = new Map<string, string>();

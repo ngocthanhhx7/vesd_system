@@ -10,7 +10,7 @@ function requireConfig(kind = 'payment') {
   if (!config.clientId) missing.push(kind === 'payout' ? 'PAYOS_PAYOUT_CLIENT_ID/PAYOS_CLIENT_ID' : 'PAYOS_CLIENT_ID');
   if (!config.apiKey) missing.push(kind === 'payout' ? 'PAYOS_PAYOUT_API_KEY/PAYOS_API_KEY' : 'PAYOS_API_KEY');
   if (!config.checksumKey) missing.push(kind === 'payout' ? 'PAYOS_PAYOUT_CHECKSUM_KEY/PAYOS_CHECKSUM_KEY' : 'PAYOS_CHECKSUM_KEY');
-  if (missing.length) throw new ApiError(500, `Chua cau hinh payOS: ${missing.join(', ')}`);
+  if (missing.length) throw new ApiError(500, `Chưa cấu hình payOS: ${missing.join(', ')}`);
   return config;
 }
 
@@ -112,7 +112,7 @@ async function payosFetch(path, { method = 'GET', body, kind = 'payment', header
   });
   const data = await response.json().catch(() => null);
   if (!response.ok) throw new ApiError(response.status, data?.desc || data?.message || 'payOS request failed', data);
-  if (data?.code && data.code !== '00') throw new ApiError(400, data.desc || 'payOS tu choi request', data);
+  if (data?.code && data.code !== '00') throw new ApiError(400, data.desc || 'payOS từ chối request', data);
   return data;
 }
 

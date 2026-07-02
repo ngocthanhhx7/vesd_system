@@ -80,7 +80,7 @@ export function createSocketServer(httpServer) {
 
       try {
         if (!objectIdPattern.test(conversationId)) {
-          return respond({ ok: false, message: 'Cuoc tro chuyen khong hop le' });
+          return respond({ ok: false, message: 'Cuộc trò chuyện không hợp lệ' });
         }
 
         const conversation = await Conversation.findOne({
@@ -89,13 +89,13 @@ export function createSocketServer(httpServer) {
         }).select('_id participants');
 
         if (!canJoinConversation(conversation, socket.data.user._id)) {
-          return respond({ ok: false, message: 'Khong tim thay cuoc tro chuyen' });
+          return respond({ ok: false, message: 'Không tìm thấy cuộc trò chuyện' });
         }
 
         socket.join(conversationRoom(conversation._id));
         respond({ ok: true, conversationId: entityId(conversation._id) });
       } catch (_error) {
-        respond({ ok: false, message: 'Khong the tham gia cuoc tro chuyen' });
+        respond({ ok: false, message: 'Không thể tham gia cuộc trò chuyện' });
       }
     });
 
