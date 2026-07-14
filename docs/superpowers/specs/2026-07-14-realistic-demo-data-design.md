@@ -2,10 +2,9 @@
 
 ## Mục tiêu
 
-Bổ sung một bộ dữ liệu mô phỏng có thể nhận biết rõ ràng vào database hiện tại,
-không sửa hoặc xóa các bản ghi đang có. Bộ dữ liệu phục vụ trình diễn gồm tài
-khoản hư cấu, 12 dự án đã hoàn thành có tổng doanh thu gộp 8.000.000đ và 20 dự
-án đang tuyển designer.
+Bổ sung một bộ dữ liệu trình diễn vào database hiện tại, không sửa hoặc xóa các
+bản ghi đang có. Bộ dữ liệu gồm tài khoản hư cấu có thể đăng nhập, 12 dự án đã
+hoàn thành có tổng doanh thu gộp 8.000.000đ và 20 dự án đang tuyển designer.
 
 Trong thiết kế này:
 
@@ -18,8 +17,8 @@ Trong thiết kế này:
 
 Script bổ sung sẽ tạo theo cách idempotent:
 
-- 12 tài khoản client hư cấu;
-- 12 tài khoản designer hư cấu;
+- 12 tài khoản client hư cấu có thể đăng nhập;
+- 12 tài khoản designer hư cấu có thể đăng nhập;
 - 12 dự án mô phỏng ở trạng thái `completed`;
 - 12 giao dịch nạp escrow thành công và 12 giao dịch release thành công tương
   ứng với các dự án đã hoàn thành;
@@ -30,30 +29,10 @@ Script bổ sung sẽ tạo theo cách idempotent:
 Tổng giá trị gộp của 12 dự án hoàn thành là chính xác 8.000.000đ. Ngày hoàn
 thành và giao dịch được phân bổ xác định từ 30/06/2026 đến 14/07/2026.
 
-## Nhận diện dữ liệu mô phỏng
-
-Các schema User, Project và Transaction được bổ sung ba trường:
-
-```js
-isDemo: { type: Boolean, default: false, index: true },
-demoLabel: String,
-demoSeedKey: { type: String, sparse: true }
-```
-
-`demoSeedKey` có unique index phù hợp để mỗi thực thể chỉ được tạo một lần.
-Mọi bản ghi do script tạo dùng:
-
-```js
-{
-  isDemo: true,
-  demoLabel: 'Dữ liệu mô phỏng phục vụ đồ án'
-}
-```
-
-Email tài khoản mô phỏng dùng miền dành riêng `example.com`. UI hiển thị banner
-ở trang tổng quan và badge `Mô phỏng` tại từng tài khoản/dự án mô phỏng. Các
-thao tác quản trị hoặc nhận việc đối với bản ghi mô phỏng bị vô hiệu hóa để
-không biến dữ liệu trình diễn thành giao dịch vận hành thật.
+Tài khoản dùng tên tiếng Việt hư cấu, email cố định thuộc miền `.test` và mật
+khẩu chung `12345678`, đồng nhất với các tài khoản demo hiện có. Dữ liệu mới
+không có `isDemo`, `demoLabel`, badge, banner hoặc nội dung nhận diện riêng trên
+UI. Không bổ sung trường nhận diện vào schema.
 
 ## Script bổ sung
 
@@ -64,16 +43,16 @@ Tạo script riêng `server/src/seed/seed-demo-data.js` và npm script
 Quy trình của script:
 
 1. Kết nối bằng cấu hình MongoDB hiện có.
-2. Upsert tài khoản và hồ sơ theo `demoSeedKey`/email cố định.
-3. Upsert 12 dự án hoàn thành và 20 dự án mở theo khóa cố định.
+2. Upsert tài khoản và hồ sơ theo email và `_id` cố định.
+3. Upsert 12 dự án hoàn thành và 20 dự án mở theo `_id` cố định.
 4. Upsert cặp giao dịch deposit/release cho từng dự án hoàn thành.
 5. Đồng bộ ví mô phỏng bằng giá trị tuyệt đối được tính lại từ fixture, không
    dùng `$inc`, để chạy lại không cộng tiền lần nữa.
 6. Kiểm tra hậu điều kiện và dừng với mã lỗi khác 0 nếu số lượng hoặc tổng tiền
    không đúng.
 
-Script chỉ truy vấn và ghi các bản ghi có `isDemo: true` cùng seed key thuộc bộ
-dữ liệu này. Nó không cập nhật dự án, tài khoản, giao dịch hoặc ví hiện có.
+Script chỉ truy vấn và ghi đúng tập `_id` và email cố định do chính script khai
+báo. Nó không cập nhật dự án, tài khoản, giao dịch hoặc ví có sẵn ngoài tập đó.
 
 ## Sổ cái và cách tính doanh thu
 
@@ -113,17 +92,17 @@ Mỗi dự án mở có:
 - client mô phỏng hợp lệ;
 - tiêu đề, mô tả, danh mục, ngân sách, deadline, phong cách và deliverables đa
   dạng;
-- badge `Mô phỏng` và nút nhận dự án bị vô hiệu hóa.
+- nút nhận dự án hoạt động theo luồng hiện tại.
 
 Các dự án này xuất hiện qua endpoint `/projects/open` hiện có và tuân theo bộ
 lọc tìm kiếm. Chúng không thay đổi năm dự án mở đang có trong database.
 
 ## Xử lý lỗi và tính lặp lại
 
-- Nếu chạy lại, script cập nhật chính bộ fixture theo seed key thay vì tạo bản
-  ghi mới.
-- Nếu phát hiện seed key trùng với bản ghi không mang `isDemo: true`, script
-  dừng ngay và không ghi đè.
+- Nếu chạy lại, script cập nhật chính bộ fixture theo `_id` và email cố định
+  thay vì tạo bản ghi mới.
+- Nếu một `_id` cố định đã thuộc về bản ghi có email hoặc quan hệ khác với
+  fixture dự kiến, script dừng ngay và không ghi đè.
 - Nếu tổng doanh thu khác 8.000.000đ, tổng phí khác 400.000đ, số dự án hoàn
   thành khác 12 hoặc số dự án mở khác 20, script trả lỗi.
 - Nếu một bước ghi thất bại, các thao tác chạy trong MongoDB transaction khi
@@ -142,7 +121,8 @@ Triển khai tuân theo TDD. Test tự động phải chứng minh:
 - dự án mở không có designer và có trạng thái đúng;
 - chạy seed hai lần không làm tăng số lượng hoặc số dư ví;
 - admin summary không đếm deposit hai lần;
-- dữ liệu mô phỏng có nhãn và các nút mutation bị vô hiệu hóa;
+- 24 tài khoản mới đăng nhập được và phân quyền đúng;
+- dự án mở có thể được nhận qua luồng hiện tại;
 - dữ liệu hiện có không bị thay đổi.
 
 Sau triển khai sẽ chạy test server, test client, build production và xác minh
@@ -150,8 +130,9 @@ trực tiếp trên `http://localhost:5173/`.
 
 ## Tiêu chí nghiệm thu
 
-Tính năng hoàn tất khi database hiện tại có đúng bộ fixture được gắn nhãn, 12
-dự án hoàn thành tạo tổng doanh thu gộp 8.000.000đ và phí nền tảng 400.000đ,
-20 dự án mô phỏng chưa có người nhận xuất hiện ở trang Tìm việc, dashboard phân
-biệt doanh thu với phí nền tảng, chạy seed lặp lại không nhân bản dữ liệu, và
-toàn bộ bản ghi có trước thời điểm seed giữ nguyên.
+Tính năng hoàn tất khi database hiện tại có 12 tài khoản client và 12 tài khoản
+designer mới có thể đăng nhập, 12 dự án hoàn thành tạo tổng doanh thu gộp
+8.000.000đ và phí nền tảng 400.000đ, 20 dự án chưa có người nhận xuất hiện ở
+trang Tìm việc, dashboard phân biệt doanh thu với phí nền tảng, chạy seed lặp
+lại không nhân bản dữ liệu, và toàn bộ bản ghi có trước thời điểm seed giữ
+nguyên.
