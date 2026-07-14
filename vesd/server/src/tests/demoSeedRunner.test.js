@@ -173,3 +173,36 @@ test('transaction upserts preserve the fixture createdAt backdate', async () => 
     fixture.transactions.map(({ createdAt }) => createdAt)
   );
 });
+
+test('runner uses injected connection lifecycle and logger', async () => {
+  const dependencies = makeDependencies();
+  const events = [];
+  Object.assign(dependencies, {
+    connect: async () => events.push('connect'),
+    disconnect: async () => events.push('disconnect'),
+    log: (...args) => events.push(['log', ...args])
+  });
+
+  const summary = await seedDemoData(dependencies);
+
+  assert.equal(events[0], 'connect');
+  assert.deepEqual(events.at(-2), ['log', 'Demo seed completed:', summary.counts]);
+  assert.equal(events.at(-1), 'disconnect');
+});
+
+test('runner always calls injected disconnect when seeding fails', async () => {
+  const fixture = buildDemoSeedData();
+  const dependencies = makeDependencies({
+    Project: makeModel([{ _id: fixture.projects[0]._id, clientId: fixture.projects[0].clientId, title: 'Unrelated project' }])
+  });
+  const events = [];
+  Object.assign(dependencies, {
+    connect: async () => events.push('connect'),
+    disconnect: async () => events.push('disconnect'),
+    log: (...args) => events.push(['log', ...args])
+  });
+
+  await assert.rejects(seedDemoData(dependencies), /Project.+collision/i);
+
+  assert.deepEqual(events, ['connect', 'disconnect']);
+});

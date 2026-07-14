@@ -131,43 +131,51 @@ async function writeFixture(model, operations) {
 
 export async function seedDemoData({
   models = DEFAULT_MODELS,
+  connect = async () => {},
+  disconnect = async () => {},
   hashPassword = bcrypt.hash,
+  log = () => {},
   buildFixture = buildDemoSeedData
 } = {}) {
-  const fixture = buildFixture();
-  await preflightCollisions(models, fixture);
+  try {
+    await connect();
+    const fixture = buildFixture();
+    await preflightCollisions(models, fixture);
 
-  const passwordHash = await hashPassword(fixture.password, 12);
-  const users = fixture.users.map((user) => ({ ...user, passwordHash }));
-  const projects = fixture.projects.map(({ grossAmount: _grossAmount, ...project }) => project);
+    const passwordHash = await hashPassword(fixture.password, 12);
+    const users = fixture.users.map((user) => ({ ...user, passwordHash }));
+    const projects = fixture.projects.map(({ grossAmount: _grossAmount, ...project }) => project);
 
-  await writeFixture(models.User, insertOnlyOperations(users));
-  await writeFixture(models.ClientProfile, insertOnlyOperations(fixture.clientProfiles));
-  await writeFixture(models.DesignerProfile, insertOnlyOperations(fixture.designerProfiles));
-  await writeFixture(models.Project, insertOnlyOperations(projects));
-  await writeFixture(models.Transaction, insertOnlyOperations(fixture.transactions));
-  await writeFixture(models.Wallet, walletOperations(fixture.wallets));
+    await writeFixture(models.User, insertOnlyOperations(users));
+    await writeFixture(models.ClientProfile, insertOnlyOperations(fixture.clientProfiles));
+    await writeFixture(models.DesignerProfile, insertOnlyOperations(fixture.designerProfiles));
+    await writeFixture(models.Project, insertOnlyOperations(projects));
+    await writeFixture(models.Transaction, insertOnlyOperations(fixture.transactions));
+    await writeFixture(models.Wallet, walletOperations(fixture.wallets));
 
-  return {
-    counts: {
-      users: fixture.users.length,
-      clientProfiles: fixture.clientProfiles.length,
-      designerProfiles: fixture.designerProfiles.length,
-      wallets: fixture.wallets.length,
-      projects: fixture.projects.length,
-      transactions: fixture.transactions.length
-    }
-  };
+    const summary = {
+      counts: {
+        users: fixture.users.length,
+        clientProfiles: fixture.clientProfiles.length,
+        designerProfiles: fixture.designerProfiles.length,
+        wallets: fixture.wallets.length,
+        projects: fixture.projects.length,
+        transactions: fixture.transactions.length
+      }
+    };
+    log('Demo seed completed:', summary.counts);
+    return summary;
+  } finally {
+    await disconnect();
+  }
 }
 
 async function runDirectly() {
-  try {
-    await connectDb();
-    const summary = await seedDemoData();
-    console.log('Demo seed completed:', summary.counts);
-  } finally {
-    await mongoose.disconnect();
-  }
+  return seedDemoData({
+    connect: connectDb,
+    disconnect: () => mongoose.disconnect(),
+    log: console.log
+  });
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
