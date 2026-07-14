@@ -41,8 +41,12 @@ function normalized(value) {
 }
 
 function sameFields(left, right, fields) {
+  const fieldValue = (document, field) => {
+    const value = getPath(document, field);
+    return field === 'agreement.deliverables' && value == null ? [] : normalized(value);
+  };
   return fields.every((field) => (
-    JSON.stringify(normalized(getPath(left, field))) === JSON.stringify(normalized(getPath(right, field)))
+    JSON.stringify(fieldValue(left, field)) === JSON.stringify(fieldValue(right, field))
   ));
 }
 
@@ -83,7 +87,13 @@ function collisionSpecs(models, fixture) {
       name: 'Project',
       model: models.Project,
       fixtures: fixture.projects,
-      identityFields: ['clientId', 'designerId', 'title', 'status', 'budget', 'agreement'],
+      identityFields: [
+        'clientId', 'designerId', 'title', 'status',
+        'budget.min', 'budget.max', 'budget.agreed',
+        'agreement.scope', 'agreement.price', 'agreement.deadline',
+        'agreement.revisionLimit', 'agreement.deliverables', 'agreement.ipTerms',
+        'agreement.refundTerms', 'agreement.confirmedAt'
+      ],
       uniqueKeys: []
     },
     {

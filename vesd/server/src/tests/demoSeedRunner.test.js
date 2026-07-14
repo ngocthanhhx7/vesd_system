@@ -143,6 +143,16 @@ test('runner inserts the additive fixture once and remains idempotent on a secon
   ]);
 });
 
+test('runner accepts Mongoose-normalized project defaults on a repeat run', async () => {
+  const fixture = buildDemoSeedData();
+  const normalizedProject = structuredClone(fixture.openProjects[0]);
+  normalizedProject.agreement = { deliverables: [] };
+  const dependencies = makeDependencies({ Project: makeModel([normalizedProject]) });
+
+  await assert.doesNotReject(seedDemoData(dependencies));
+  assert.equal(dependencies.models.Project.documents.size, 32);
+});
+
 test('runner rejects every collision during preflight before hashing or writing', async () => {
   const fixture = buildDemoSeedData();
   const conflictingUser = {
