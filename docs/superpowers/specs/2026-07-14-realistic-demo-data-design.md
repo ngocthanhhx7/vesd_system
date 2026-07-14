@@ -29,10 +29,47 @@ Script bổ sung sẽ tạo theo cách idempotent:
 Tổng giá trị gộp của 12 dự án hoàn thành là chính xác 8.000.000đ. Ngày hoàn
 thành và giao dịch được phân bổ xác định từ 30/06/2026 đến 14/07/2026.
 
-Tài khoản dùng tên tiếng Việt hư cấu, email cố định thuộc miền `.test` và mật
-khẩu chung `12345678`, đồng nhất với các tài khoản demo hiện có. Dữ liệu mới
-không có `isDemo`, `demoLabel`, badge, banner hoặc nội dung nhận diện riêng trên
-UI. Không bổ sung trường nhận diện vào schema.
+Tài khoản dùng tên tiếng Việt tự nhiên, email theo tên hoặc thương hiệu và mật
+khẩu chung `12345678`, đồng nhất với các tài khoản demo hiện có. Không dùng tên
+hoặc email dạng đánh số như `Client 01`, `Designer 01`, `user01@...`. Miền
+`.test` được dùng để địa chỉ không trùng hộp thư thật, nhưng local-part và tên
+miền được viết như email cá nhân/doanh nghiệp bình thường. Dữ liệu mới không có
+`isDemo`, `demoLabel`, badge, banner hoặc nội dung nhận diện riêng trên UI. Không
+bổ sung trường nhận diện vào schema.
+
+### Danh tính tài khoản khách hàng
+
+| Tên hiển thị | Email |
+| --- | --- |
+| Nguyễn Minh Anh | `minh.anh@lumina-studio.test` |
+| Trần Quốc Huy | `quoc.huy@maycoffee.test` |
+| Lê Thu Hà | `thu.ha@anvien-herbal.test` |
+| Phạm Gia Bảo | `gia.bao@pawhouse.test` |
+| Võ Ngọc Lan | `ngoc.lan@lumi-spa.test` |
+| Đặng Hoàng Nam | `hoang.nam@hatnha.test` |
+| Bùi Thanh Trúc | `thanh.truc@banmai-coffee.test` |
+| Đỗ Khánh Linh | `khanh.linh@suongdem.test` |
+| Hồ Đức Anh | `duc.anh@jobmate.test` |
+| Ngô Phương Thảo | `phuong.thao@freshday.test` |
+| Dương Tuấn Kiệt | `tuan.kiet@doigio.test` |
+| Mai Nhật Vy | `nhat.vy@linenlab.test` |
+
+### Danh tính tài khoản designer
+
+| Tên hiển thị | Email |
+| --- | --- |
+| Lâm Hoài An | `hoai.an@atelier-an.test` |
+| Phan Minh Khang | `minh.khang@khangvisual.test` |
+| Trịnh Bảo Ngọc | `bao.ngoc@ngocbrand.test` |
+| Vũ Anh Quân | `anh.quan@quanui.test` |
+| Tạ Quỳnh Chi | `quynh.chi@chistudio.test` |
+| Cao Nhật Minh | `nhat.minh@minhworks.test` |
+| Đinh Thảo My | `thao.my@mypackaging.test` |
+| Lý Hoàng Phúc | `hoang.phuc@phucmotion.test` |
+| Chu Gia Hân | `gia.han@hancreative.test` |
+| Huỳnh Tuấn Vũ | `tuan.vu@vudesign.test` |
+| Nguyễn Hải Yến | `hai.yen@yenillustration.test` |
+| Trần Khôi Nguyên | `khoi.nguyen@nguyenproduct.test` |
 
 ## Script bổ sung
 
