@@ -596,29 +596,6 @@ export function DesignerProfilePage() {
                       alt={user.name}
                     />
                   </div>
-                  {/* Social Icons */}
-                  <div className="flex items-center gap-3 mt-1">
-                    <a href={profile.socialLinks?.facebook || "#"} target="_blank" rel="noreferrer" title="Facebook">
-                      <svg className="w-5 h-5 fill-current text-slate-400 hover:text-blue-600 transition" viewBox="0 0 24 24">
-                        <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12c0 4.84 3.44 8.87 8 9.8V15H8v-3h2V9.5C10 7.57 11.57 6 13.5 6H16v3h-2c-.55 0-1 .45-1 1v2h3v3h-3v6.95c4.56-.93 8-4.96 8-9.8z" />
-                      </svg>
-                    </a>
-                    <a href={profile.socialLinks?.linkedin || "#"} target="_blank" rel="noreferrer" title="LinkedIn">
-                      <svg className="w-5 h-5 fill-current text-slate-400 hover:text-blue-700 transition" viewBox="0 0 24 24">
-                        <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z" />
-                      </svg>
-                    </a>
-                    <a href={profile.socialLinks?.twitter || "#"} target="_blank" rel="noreferrer" title="Twitter">
-                      <svg className="w-5 h-5 fill-current text-slate-400 hover:text-sky-500 transition" viewBox="0 0 24 24">
-                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                      </svg>
-                    </a>
-                    <a href={profile.socialLinks?.tiktok || "#"} target="_blank" rel="noreferrer" title="TikTok">
-                      <svg className="w-5 h-5 fill-current text-slate-400 hover:text-black transition" viewBox="0 0 24 24">
-                        <path d="M12.53.02C13.84 0 15.14.01 16.44 0c.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.86-.74-3.94-1.72-.8-.72-1.39-1.63-1.75-2.62-.01 1.7-.01 3.4-.01 5.11 0 2.24-.46 4.57-1.8 6.23-1.57 2.01-4.26 2.9-6.74 2.5-2.61-.41-4.83-2.39-5.46-4.97-.73-2.92.51-6.19 3.02-7.53 1.25-.66 2.69-.93 4.09-.8V12c-1.37.07-2.72.76-3.41 1.95-.74 1.25-.63 2.98.26 4.09 1.03 1.3 3.05 1.59 4.38.65 1.05-.72 1.48-2.09 1.48-3.33.01-4.81.01-9.61.01-14.42-.03-.31-.05-.62-.07-.92z" />
-                      </svg>
-                    </a>
-                  </div>
                 </div>
 
                 {/* Details */}

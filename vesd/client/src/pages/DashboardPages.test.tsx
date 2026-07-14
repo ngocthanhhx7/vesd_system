@@ -1,15 +1,67 @@
 import { describe, expect, it } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { DesignerCard, getHomeDesignerPageItems } from './PublicPages';
+import { HelmetProvider } from 'react-helmet-async';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { DesignerCard, DesignerProfilePage, getHomeDesignerPageItems } from './PublicPages';
 import { AdminAnalyticsPage, ProjectCard } from './DashboardPages';
 import { boundedPercent, buildLinePoints, chartState, formatDuration } from './dashboard/AdminAnalyticsPage';
 import { projectWorkflowRefreshKeys } from './dashboard/ProjectWorkflowPages';
 import { Metric } from './dashboard/shared/Metric';
 import { getOrCreateAnalyticsSession } from '../services/analytics';
+import { AuthProvider } from '../hooks/useAuth';
+
+function renderDesignerProfile() {
+  const queryClient = new QueryClient();
+  queryClient.setQueryData(['designer', 'khang'], {
+    profile: {
+      _id: 'designer-profile-1',
+      userId: { _id: 'designer-1', name: 'Khang', avatar: '/avatar.png' },
+      title: 'Brand Designer',
+      categories: ['brand-identity'],
+      skills: ['Branding'],
+      startingPrice: 1_000_000,
+      socialLinks: {
+        facebook: 'https://facebook.com/khang',
+        linkedin: 'https://linkedin.com/in/khang',
+        twitter: 'https://x.com/khang',
+        tiktok: 'https://tiktok.com/@khang'
+      }
+    },
+    portfolio: [],
+    reviews: []
+  });
+  Object.defineProperty(globalThis, 'window', {
+    configurable: true,
+    value: { location: { href: 'http://localhost/designers/khang' } }
+  });
+
+  return renderToStaticMarkup(
+    <HelmetProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <MemoryRouter initialEntries={['/designers/khang']}>
+            <Routes>
+              <Route path="/designers/:slug" element={<DesignerProfilePage />} />
+            </Routes>
+          </MemoryRouter>
+        </AuthProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
+  );
+}
 
 describe('component contracts', () => {
   it('DesignerCard exists', () => {
     expect(typeof DesignerCard).toBe('function');
+  });
+  it('does not render social link icons on public designer profiles', () => {
+    const html = renderDesignerProfile();
+
+    expect(html).not.toContain('title="Facebook"');
+    expect(html).not.toContain('title="LinkedIn"');
+    expect(html).not.toContain('title="Twitter"');
+    expect(html).not.toContain('title="TikTok"');
   });
   it('ProjectCard exists', () => {
     expect(typeof ProjectCard).toBe('function');
