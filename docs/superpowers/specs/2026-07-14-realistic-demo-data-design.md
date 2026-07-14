@@ -29,49 +29,46 @@ Script bổ sung sẽ tạo theo cách idempotent:
 Tổng giá trị gộp của 12 dự án hoàn thành là chính xác 8.000.000đ. Ngày hoàn
 thành và giao dịch được phân bổ xác định từ 30/06/2026 đến 14/07/2026.
 
-Tài khoản dùng đúng tên, username và email do người dùng cung cấp; mật khẩu
-chung là `12345678`. Mười hai dòng đầu mang role `client`, mười hai dòng sau
-mang role `designer`. Dữ liệu mới không có `isDemo`, `demoLabel`, badge, banner
-hoặc nội dung nhận diện riêng trên UI.
-
-Schema User được bổ sung `username` dạng chuỗi chữ thường, trim, unique và
-sparse để không phá vỡ các tài khoản hiện có chưa có username. Luồng đăng nhập
-hiện tại vẫn dùng email; username được hiển thị trong hồ sơ và danh sách quản
-trị. Mật khẩu chỉ được lưu dưới dạng bcrypt hash.
+Tài khoản dùng đúng tên và email do người dùng cung cấp; mật khẩu chung là
+`12345678`. Mười hai dòng đầu mang role `client`, mười hai dòng sau mang role
+`designer`. Cột Username trong bảng nguồn chỉ dùng làm tham khảo và không được
+lưu vào database. Dữ liệu mới không có `isDemo`, `demoLabel`, badge, banner
+hoặc nội dung nhận diện riêng trên UI. Schema User không thay đổi. Mật khẩu chỉ
+được lưu dưới dạng bcrypt hash.
 
 ### Danh tính tài khoản khách hàng
 
 | Tên hiển thị | Email |
 | --- | --- |
-| Nguyễn Thùy Linh (`linhcute`) | `linh.nguyen1998@gmail.com` |
-| Trần Minh Khang (`minhheo`) | `minh.tran2000@gmail.com` |
-| Lê Hoài An (`bunnyan`) | `an.le1999@gmail.com` |
-| Phạm Ngọc Thảo (`thucao`) | `thao.pham2001@gmail.com` |
-| Mai Ngọc Khánh (`kemdau`) | `ngoc.mai2002@gmail.com` |
-| Võ Hoàng Nam (`hoangbeo`) | `hoang.vo1997@gmail.com` |
-| Đặng Thu Hương (`moonie`) | `huong.dang2000@gmail.com` |
-| Nguyễn Quốc Tuấn (`tinytom`) | `tuan.nguyen2003@gmail.com` |
-| Bùi Khánh Ngân (`cherryng`) | `ngan.bui1999@gmail.com` |
-| Đỗ Diệu Linh (`miumiu`) | `dieu.linh2001@gmail.com` |
-| Trần Bảo Chi (`bochip`) | `bao.chi2002@gmail.com` |
-| Nguyễn Anh Thư (`sunbeam`) | `anh.thu1998@gmail.com` |
+| Nguyễn Thùy Linh | `linh.nguyen1998@gmail.com` |
+| Trần Minh Khang | `minh.tran2000@gmail.com` |
+| Lê Hoài An | `an.le1999@gmail.com` |
+| Phạm Ngọc Thảo | `thao.pham2001@gmail.com` |
+| Mai Ngọc Khánh | `ngoc.mai2002@gmail.com` |
+| Võ Hoàng Nam | `hoang.vo1997@gmail.com` |
+| Đặng Thu Hương | `huong.dang2000@gmail.com` |
+| Nguyễn Quốc Tuấn | `tuan.nguyen2003@gmail.com` |
+| Bùi Khánh Ngân | `ngan.bui1999@gmail.com` |
+| Đỗ Diệu Linh | `dieu.linh2001@gmail.com` |
+| Trần Bảo Chi | `bao.chi2002@gmail.com` |
+| Nguyễn Anh Thư | `anh.thu1998@gmail.com` |
 
 ### Danh tính tài khoản designer
 
 | Tên hiển thị | Email |
 | --- | --- |
-| Lê Thanh Phương (`peobong`) | `phuong.le2000@gmail.com` |
-| Nguyễn Gia Hân (`kittyhan`) | `han.nguyen2001@gmail.com` |
-| Trần Yến Nhi (`milktea`) | `yen.nhi2003@gmail.com` |
-| Trương Quốc Bình (`nhocbin`) | `binh.truong1999@gmail.com` |
-| Vũ Quỳnh Anh (`pandaqt`) | `quynh.anh2002@gmail.com` |
-| Phạm Ngọc Hà (`sugarpie`) | `ngoc.ha2000@gmail.com` |
-| Nguyễn Gia Huy (`cutegau`) | `gia.huy2001@gmail.com` |
-| Lê Minh Châu (`peachy`) | `minh.chau2002@gmail.com` |
-| Phan Mai Phương (`bunnymai`) | `mai.phuong1998@gmail.com` |
-| Vũ Hoàng Long (`teddyvu`) | `vu.hoang2000@gmail.com` |
-| Nguyễn Bảo Ngọc (`bobocute`) | `bao.ngoc2003@gmail.com` |
-| Trần Như Ý (`cloudyn`) | `nhu.y2001@gmail.com` |
+| Lê Thanh Phương | `phuong.le2000@gmail.com` |
+| Nguyễn Gia Hân | `han.nguyen2001@gmail.com` |
+| Trần Yến Nhi | `yen.nhi2003@gmail.com` |
+| Trương Quốc Bình | `binh.truong1999@gmail.com` |
+| Vũ Quỳnh Anh | `quynh.anh2002@gmail.com` |
+| Phạm Ngọc Hà | `ngoc.ha2000@gmail.com` |
+| Nguyễn Gia Huy | `gia.huy2001@gmail.com` |
+| Lê Minh Châu | `minh.chau2002@gmail.com` |
+| Phan Mai Phương | `mai.phuong1998@gmail.com` |
+| Vũ Hoàng Long | `vu.hoang2000@gmail.com` |
+| Nguyễn Bảo Ngọc | `bao.ngoc2003@gmail.com` |
+| Trần Như Ý | `nhu.y2001@gmail.com` |
 
 ## Script bổ sung
 
@@ -82,8 +79,8 @@ Tạo script riêng `server/src/seed/seed-demo-data.js` và npm script
 Quy trình của script:
 
 1. Kết nối bằng cấu hình MongoDB hiện có.
-2. Kiểm tra va chạm email/username, sau đó upsert tài khoản và hồ sơ theo email,
-   username và `_id` cố định.
+2. Kiểm tra va chạm email, sau đó upsert tài khoản và hồ sơ theo email và `_id`
+   cố định.
 3. Upsert 12 dự án hoàn thành và 20 dự án mở theo `_id` cố định.
 4. Upsert cặp giao dịch deposit/release cho từng dự án hoàn thành.
 5. Đồng bộ ví mô phỏng bằng giá trị tuyệt đối được tính lại từ fixture, không
@@ -141,8 +138,8 @@ lọc tìm kiếm. Chúng không thay đổi năm dự án mở đang có trong 
 
 - Nếu chạy lại, script cập nhật chính bộ fixture theo `_id` và email cố định
   thay vì tạo bản ghi mới.
-- Nếu một `_id`, email hoặc username cố định đã thuộc về bản ghi khác với
-  fixture dự kiến, script dừng ngay và không ghi đè.
+- Nếu một `_id` hoặc email cố định đã thuộc về bản ghi khác với fixture dự
+  kiến, script dừng ngay và không ghi đè.
 - Nếu tổng doanh thu khác 8.000.000đ, tổng phí khác 400.000đ, số dự án hoàn
   thành khác 12 hoặc số dự án mở khác 20, script trả lỗi.
 - Nếu một bước ghi thất bại, các thao tác chạy trong MongoDB transaction khi
@@ -162,8 +159,6 @@ Triển khai tuân theo TDD. Test tự động phải chứng minh:
 - chạy seed hai lần không làm tăng số lượng hoặc số dư ví;
 - admin summary không đếm deposit hai lần;
 - 24 tài khoản mới đăng nhập được và phân quyền đúng;
-- 24 username là duy nhất, được chuẩn hóa chữ thường và xuất hiện đúng trong
-  API quản trị;
 - dự án mở có thể được nhận qua luồng hiện tại;
 - dữ liệu hiện có không bị thay đổi.
 
