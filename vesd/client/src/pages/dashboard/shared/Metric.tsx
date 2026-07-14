@@ -1,6 +1,16 @@
 import { Card } from '../../../components/ui/Primitives';
 
-export function Metric({ label, value, icon: Icon }: { label: string; value: string | number; icon: any }) {
+export function Metric({
+  label,
+  value,
+  description,
+  icon: Icon
+}: {
+  label: string;
+  value: string | number;
+  description?: string;
+  icon: any;
+}) {
   return (
     <Card className="dashboard-metric relative overflow-hidden">
       <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-brand/10" />
@@ -9,6 +19,7 @@ export function Metric({ label, value, icon: Icon }: { label: string; value: str
       </div>
       <p className="relative mt-4 text-sm font-semibold uppercase text-muted">{label}</p>
       <p className="relative mt-1 text-3xl font-black">{value}</p>
+      {description && <p className="relative mt-2 text-sm text-muted">{description}</p>}
     </Card>
   );
 }

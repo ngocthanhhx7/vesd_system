@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { DesignerCard, getHomeDesignerPageItems } from './PublicPages';
 import { AdminAnalyticsPage, ProjectCard } from './DashboardPages';
 import { boundedPercent, buildLinePoints, chartState, formatDuration } from './dashboard/AdminAnalyticsPage';
 import { projectWorkflowRefreshKeys } from './dashboard/ProjectWorkflowPages';
+import { Metric } from './dashboard/shared/Metric';
 import { getOrCreateAnalyticsSession } from '../services/analytics';
 
 describe('component contracts', () => {
@@ -42,6 +44,14 @@ describe('component contracts', () => {
     expect(projectWorkflowRefreshKeys('project-1')).toContainEqual(['tx']);
     expect(projectWorkflowRefreshKeys('project-1')).toContainEqual(['dashboard-summary']);
     expect(projectWorkflowRefreshKeys('project-1')).toContainEqual(['project', 'project-1']);
+  });
+  it('renders an optional metric description below the value', () => {
+    const Icon = () => null;
+    const html = renderToStaticMarkup(
+      <Metric label="Doanh thu" value="8.000.000đ" description="Phí nền tảng: 400.000đ" icon={Icon} />
+    );
+    expect(html).toContain('8.000.000đ');
+    expect(html).toContain('Phí nền tảng: 400.000đ');
   });
   it('keeps the same analytics session across reloads within 30 minutes', () => {
     const storage = new Map<string, string>();

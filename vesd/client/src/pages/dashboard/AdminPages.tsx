@@ -34,7 +34,12 @@ export function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-4">
         <Metric label="Người dùng" value={data?.users ?? 0} icon={Users} />
         <Metric label="Dự án đang chạy" value={data?.activeProjects ?? 0} icon={FolderKanban} />
-        <Metric label="Doanh thu" value={(data?.revenue || 0).toLocaleString('vi-VN')} icon={CreditCard} />
+        <Metric
+          label="Doanh thu"
+          value={`${(data?.revenue || 0).toLocaleString('vi-VN')}đ`}
+          description={`Phí nền tảng: ${(data?.platformProfit || 0).toLocaleString('vi-VN')}đ`}
+          icon={CreditCard}
+        />
         <Metric label="Khiếu nại" value={data?.disputes ?? 0} icon={ShieldAlert} />
       </div>
       <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_360px]">
