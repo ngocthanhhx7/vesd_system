@@ -110,6 +110,26 @@ Lưu ý: package này khá cũ và kéo theo một số dependency có cảnh b�
 - Client: `client@vesd.vn` / `12345678`
 - Designer: `designer@vesd.vn` / `12345678`
 
+## Seed dữ liệu trình diễn bổ sung
+
+Để bổ sung dữ liệu vào database hiện tại mà không chạy seed nền có
+`dropDatabase()`, dùng:
+
+```bash
+npm run seed:demo --prefix server
+```
+
+Script bổ sung theo cách idempotent:
+
+- 12 tài khoản khách hàng và 12 tài khoản designer với tên, email riêng;
+- mật khẩu chung `12345678`;
+- 12 dự án hoàn thành có tổng doanh thu gộp `8.000.000đ` và phí nền tảng
+  `400.000đ`;
+- 20 dự án mới ở trạng thái chờ designer, chưa có người nhận.
+
+Có thể chạy lại cùng lệnh mà không tạo bản ghi trùng hoặc cộng lại số dư ví.
+Script kiểm tra va chạm email/ID trước khi ghi và không gọi seed nền hiện có.
+
 ## Features Implemented
 
 - Public SEO pages: Home, designer listing, designer profile, category page, pricing, help center.
