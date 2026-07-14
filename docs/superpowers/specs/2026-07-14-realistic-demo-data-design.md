@@ -1,159 +1,157 @@
-# Realistic Demo Data Mode Design
+# Thiết kế dữ liệu mô phỏng trực tiếp cho VESD
 
-## Purpose
+## Mục tiêu
 
-Add a deterministic presentation mode to the existing VESD application so a
-course demonstration can show realistic Vietnamese users, projects, jobs, and
-revenue without writing synthetic records to the production MongoDB database.
-Every synthetic record and every aggregate influenced by synthetic records must
-be visibly identified as simulated course-project data.
+Bổ sung một bộ dữ liệu mô phỏng có thể nhận biết rõ ràng vào database hiện tại,
+không sửa hoặc xóa các bản ghi đang có. Bộ dữ liệu phục vụ trình diễn gồm tài
+khoản hư cấu, 12 dự án đã hoàn thành có tổng doanh thu gộp 8.000.000đ và 20 dự
+án đang tuyển designer.
 
-## Scope
+Trong thiết kế này:
 
-The demo mode will provide:
+- **Doanh thu** là tổng giá trị gộp của dự án trước khi trừ phí nền tảng.
+- **Lợi nhuận/phí nền tảng** là 5% doanh thu.
+- Với doanh thu 8.000.000đ, phí nền tảng là 400.000đ và thu nhập ròng của
+  designer là 7.600.000đ.
 
-- realistic but fictional Vietnamese client and designer accounts;
-- completed demo projects and matching demo transactions dated from
-  30 June 2026 through 14 July 2026;
-- exactly VND 8,000,000 of clearly labelled simulated platform revenue;
-- 20 open demo projects with no assigned designer;
-- consistent display across the admin overview, admin user/project views, and
-  the designer job-search view;
-- a persistent label reading `Dữ liệu mô phỏng phục vụ đồ án` wherever demo
-  data or a demo-influenced aggregate is displayed.
+## Phạm vi dữ liệu
 
-The work will not connect to, seed, update, delete, or otherwise mutate the
-`vesd1` production database. It will not use the MongoDB URI posted in chat.
+Script bổ sung sẽ tạo theo cách idempotent:
 
-## Selected Approach
+- 12 tài khoản client hư cấu;
+- 12 tài khoản designer hư cấu;
+- 12 dự án mô phỏng ở trạng thái `completed`;
+- 12 giao dịch nạp escrow thành công và 12 giao dịch release thành công tương
+  ứng với các dự án đã hoàn thành;
+- 20 dự án mở ở trạng thái `pending_designer`, không có `designerId`;
+- hồ sơ client/designer và ví cần thiết để dữ liệu nhất quán với các màn hình
+  hiện có.
 
-Use a client-side demo overlay controlled by `VITE_DEMO_MODE=true`. A focused
-fixture module will generate deterministic demo entities. A focused overlay
-module will merge those entities into selected API responses only while demo
-mode is enabled. With the flag absent or false, all API behavior and displayed
-production data remain unchanged.
+Tổng giá trị gộp của 12 dự án hoàn thành là chính xác 8.000.000đ. Ngày hoàn
+thành và giao dịch được phân bổ xác định từ 30/06/2026 đến 14/07/2026.
 
-This approach was selected over seeding MongoDB or building a standalone report
-because it preserves the current application's full presentation flow while
-keeping synthetic and production data physically separate.
+## Nhận diện dữ liệu mô phỏng
 
-## Data Model
+Các schema User, Project và Transaction được bổ sung ba trường:
 
-All simulated entities will include:
+```js
+isDemo: { type: Boolean, default: false, index: true },
+demoLabel: String,
+demoSeedKey: { type: String, sparse: true }
+```
 
-```ts
+`demoSeedKey` có unique index phù hợp để mỗi thực thể chỉ được tạo một lần.
+Mọi bản ghi do script tạo dùng:
+
+```js
 {
   isDemo: true,
   demoLabel: 'Dữ liệu mô phỏng phục vụ đồ án'
 }
 ```
 
-Identifiers will use a reserved, recognizable prefix such as `demo-user-` and
-`demo-project-`. Email addresses will use the reserved `example.com` domain.
-Names will sound natural in Vietnamese but will be fictional combinations and
-will never include a claim that they represent an actual customer.
+Email tài khoản mô phỏng dùng miền dành riêng `example.com`. UI hiển thị banner
+ở trang tổng quan và badge `Mô phỏng` tại từng tài khoản/dự án mô phỏng. Các
+thao tác quản trị hoặc nhận việc đối với bản ghi mô phỏng bị vô hiệu hóa để
+không biến dữ liệu trình diễn thành giao dịch vận hành thật.
 
-The deterministic dataset will contain:
+## Script bổ sung
 
-- 12 fictional clients;
-- 10 fictional designers;
-- 8 completed projects with corresponding successful transactions;
-- 20 open projects in `pending_designer` state with `designerId: null`;
-- successful transaction dates distributed across 30 June 2026 to 14 July
-  2026;
-- transaction `platformFee` values summing to exactly VND 8,000,000.
+Tạo script riêng `server/src/seed/seed-demo-data.js` và npm script
+`seed:demo`. Script này không import hoặc gọi seed hiện tại vì
+`server/src/seed/seed.js` có `dropDatabase()`.
 
-Project budgets, categories, descriptions, deadlines, skills, and company names
-will vary to avoid repetitive placeholder content. The fixture generator will
-not use randomness, ensuring screenshots and tests are reproducible.
+Quy trình của script:
 
-## Application Behavior
+1. Kết nối bằng cấu hình MongoDB hiện có.
+2. Upsert tài khoản và hồ sơ theo `demoSeedKey`/email cố định.
+3. Upsert 12 dự án hoàn thành và 20 dự án mở theo khóa cố định.
+4. Upsert cặp giao dịch deposit/release cho từng dự án hoàn thành.
+5. Đồng bộ ví mô phỏng bằng giá trị tuyệt đối được tính lại từ fixture, không
+   dùng `$inc`, để chạy lại không cộng tiền lần nữa.
+6. Kiểm tra hậu điều kiện và dừng với mã lỗi khác 0 nếu số lượng hoặc tổng tiền
+   không đúng.
 
-### Feature flag
+Script chỉ truy vấn và ghi các bản ghi có `isDemo: true` cùng seed key thuộc bộ
+dữ liệu này. Nó không cập nhật dự án, tài khoản, giao dịch hoặc ví hiện có.
 
-`VITE_DEMO_MODE=true` enables the overlay. Any other value disables it. The
-client environment example and README will document the flag and state that it
-must only be used for coursework/demo presentations.
+## Sổ cái và cách tính doanh thu
 
-### Admin overview
+Mỗi dự án hoàn thành có một deposit bằng giá trị gộp và một release gồm:
 
-When demo mode is enabled:
+```js
+{
+  amount: grossAmount - platformFee,
+  platformFee: Math.round(grossAmount * 0.05),
+  metadata: {
+    grossAmount,
+    releaseKey: 'demo-project-completed',
+    feeCollectedAt: 'completion'
+  }
+}
+```
 
-- the page shows a persistent demo-data banner;
-- the revenue card is titled `DOANH THU MÔ PHỎNG` and displays
-  `8.000.000đ`;
-- user and project counts that include fixtures are visually marked as
-  containing simulated data;
-- real API values are not overwritten in storage or sent back to the server.
+Giá trị từng dự án được chọn theo đơn vị cho phép 5% là số nguyên; tổng
+`metadata.grossAmount` là 8.000.000đ, tổng `platformFee` là 400.000đ và tổng
+`amount` release là 7.600.000đ.
 
-### Admin lists
+Endpoint admin summary thay cách đặt tên rõ ràng:
 
-Admin user and project lists will append the deterministic fixtures to the real
-API response for presentation. Each demo row or card will show a `Mô phỏng`
-badge. Actions that would mutate a demo record will be disabled.
+- `revenue`: tổng `metadata.grossAmount` của giao dịch `release` thành công;
+- `platformProfit`: tổng `platformFee` của giao dịch `release` thành công.
 
-### Designer job search
+Chỉ tính giao dịch release để deposit và release của cùng một dự án không bị
+đếm hai lần. Thẻ `DOANH THU` hiển thị 8.000.000đ; phần mô tả phụ hiển thị
+`Phí nền tảng: 400.000đ`.
 
-The 20 open demo projects will be appended to the open-project API response.
-Each card will show a `Mô phỏng` badge. Claiming a demo project will be disabled
-with an explanation that simulated projects cannot create real agreements or
-payments.
+## Hai mươi dự án đang tuyển
 
-### Production behavior
+Mỗi dự án mở có:
 
-When demo mode is disabled, no fixtures are imported into response data, no
-demo banner or badges appear, and existing API calls behave as before.
+- `status: 'pending_designer'`;
+- không có `designerId`;
+- client mô phỏng hợp lệ;
+- tiêu đề, mô tả, danh mục, ngân sách, deadline, phong cách và deliverables đa
+  dạng;
+- badge `Mô phỏng` và nút nhận dự án bị vô hiệu hóa.
 
-## Boundaries and Failure Handling
+Các dự án này xuất hiện qua endpoint `/projects/open` hiện có và tuân theo bộ
+lọc tìm kiếm. Chúng không thay đổi năm dự án mở đang có trong database.
 
-- Demo-mode code must never send an identifier beginning with `demo-` to a
-  mutation endpoint.
-- The overlay must tolerate missing or differently shaped optional list data
-  and retain the server response's pagination metadata.
-- A malformed or unavailable real API response remains an API error; demo data
-  must not conceal backend failure.
-- The UI must not imply that simulated accounts are verified customers or that
-  simulated revenue was collected.
+## Xử lý lỗi và tính lặp lại
 
-## Testing Strategy
+- Nếu chạy lại, script cập nhật chính bộ fixture theo seed key thay vì tạo bản
+  ghi mới.
+- Nếu phát hiện seed key trùng với bản ghi không mang `isDemo: true`, script
+  dừng ngay và không ghi đè.
+- Nếu tổng doanh thu khác 8.000.000đ, tổng phí khác 400.000đ, số dự án hoàn
+  thành khác 12 hoặc số dự án mở khác 20, script trả lỗi.
+- Nếu một bước ghi thất bại, các thao tác chạy trong MongoDB transaction khi
+  deployment hỗ trợ transaction; nếu không hỗ trợ, tính idempotent cho phép
+  chạy lại an toàn để hoàn tất.
 
-Implementation will follow test-driven development.
+## Kiểm thử
 
-Unit tests will verify:
+Triển khai tuân theo TDD. Test tự động phải chứng minh:
 
-- fixture counts are 12 clients, 10 designers, 8 completed projects, and 20
-  open projects;
-- all fixtures carry `isDemo: true` and reserved identifiers;
-- open projects have no designer and use `pending_designer`;
-- completed demo transaction dates fall within the required date range;
-- simulated `platformFee` values total exactly VND 8,000,000;
-- overlay helpers append fixtures only when demo mode is enabled;
-- overlay helpers retain existing API data and pagination metadata;
-- demo identifiers are rejected by mutation guards.
+- fixture có đúng 12 dự án hoàn thành và 20 dự án mở;
+- tổng doanh thu gộp là 8.000.000đ;
+- tổng phí nền tảng là 400.000đ;
+- tổng thu nhập ròng designer là 7.600.000đ;
+- ngày giao dịch nằm trong 30/06/2026–14/07/2026;
+- dự án mở không có designer và có trạng thái đúng;
+- chạy seed hai lần không làm tăng số lượng hoặc số dư ví;
+- admin summary không đếm deposit hai lần;
+- dữ liệu mô phỏng có nhãn và các nút mutation bị vô hiệu hóa;
+- dữ liệu hiện có không bị thay đổi.
 
-Component tests will verify:
+Sau triển khai sẽ chạy test server, test client, build production và xác minh
+trực tiếp trên `http://localhost:5173/`.
 
-- the admin overview shows the banner and labelled VND 8,000,000 value in demo
-  mode;
-- demo badges appear on fixture rows/cards;
-- demo project claim and mutation controls are disabled;
-- normal mode does not show or append demo content.
+## Tiêu chí nghiệm thu
 
-The final verification will run the complete client test suite and production
-client build. Server tests may also be run as a regression check even though the
-design does not modify server code.
-
-## Security and Privacy
-
-The exposed MongoDB password must be rotated separately. No database credential
-will be added to source, logs, documentation, tests, or commands. Demo emails
-will use non-deliverable reserved domains, and avatars will use existing generic
-assets or deterministic placeholder URLs.
-
-## Acceptance Criteria
-
-The feature is accepted when enabling `VITE_DEMO_MODE=true` produces a
-repeatable, visibly labelled coursework dataset across the required pages,
-shows exactly VND 8,000,000 simulated revenue for the specified date range,
-shows 20 unclaimed demo jobs, prevents all demo-record mutations, and leaves
-MongoDB and normal-mode behavior unchanged.
+Tính năng hoàn tất khi database hiện tại có đúng bộ fixture được gắn nhãn, 12
+dự án hoàn thành tạo tổng doanh thu gộp 8.000.000đ và phí nền tảng 400.000đ,
+20 dự án mô phỏng chưa có người nhận xuất hiện ở trang Tìm việc, dashboard phân
+biệt doanh thu với phí nền tảng, chạy seed lặp lại không nhân bản dữ liệu, và
+toàn bộ bản ghi có trước thời điểm seed giữ nguyên.
