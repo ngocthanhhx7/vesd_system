@@ -371,7 +371,8 @@ test('preflight rejects same-id records when any immutable identity field differ
     ['Transaction', fixture.releases[0], (item) => { item.platformFee += 1; }],
     ['Transaction', fixture.releases[0], (item) => { item.status = 'pending'; }],
     ['Transaction', fixture.releases[0], (item) => { item.metadata.releaseKey = 'different-release'; }],
-    ['Transaction', fixture.releases[0], (item) => { item.metadata.grossAmount += 1; }]
+    ['Transaction', fixture.releases[0], (item) => { item.metadata.grossAmount += 1; }],
+    ['Transaction', fixture.deposits[0], (item) => { item.metadata.escrowAmount += 1; }]
   ];
 
   for (const [modelName, source, mutate] of cases) {
@@ -392,6 +393,7 @@ test('runner validates approved fixture counts and money invariants before hashi
     (fixture) => { fixture.users[12].roles = ['client']; },
     (fixture) => { fixture.completedProjects[0].status = 'in_progress'; },
     (fixture) => { fixture.openProjects[0].status = 'draft'; },
+    (fixture) => { fixture.openProjects[0].designerId = fixture.designers[0]._id; },
     (fixture) => { fixture.completedProjects[0].grossAmount += 1; },
     (fixture) => { fixture.releases[0].platformFee += 1; },
     (fixture) => { fixture.releases[0].amount += 1; }

@@ -92,7 +92,7 @@ function collisionSpecs(models, fixture) {
       fixtures: fixture.transactions,
       identityFields: [
         'userId', 'projectId', 'type', 'amount', 'platformFee', 'status',
-        'metadata.releaseKey', 'metadata.grossAmount'
+        'metadata.releaseKey', 'metadata.grossAmount', 'metadata.escrowAmount'
       ],
       uniqueKeys: [{
         label: 'release tuple',
@@ -203,7 +203,9 @@ function validateFixture(fixture) {
   );
   invariant(
     fixture.openProjects.length === 20
-      && fixture.openProjects.every((project) => project.status === 'pending_designer'),
+      && fixture.openProjects.every((project) => (
+        project.status === 'pending_designer' && project.designerId == null
+      )),
     'expected 20 open projects'
   );
   invariant(
