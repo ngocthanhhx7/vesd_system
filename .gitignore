@@ -35,8 +35,8 @@ coverage/
 *.log
 
 # Project specific folders
+.worktrees/
 skills/
 figma/
 uploads/
 figma_extract/
-
