@@ -34,6 +34,7 @@ import { confirmPayosWebhook, getPayosPayoutBalance } from '../services/payosSer
 import { transferWalletToDesigner } from '../services/walletService.js';
 import { addSSEClient } from '../services/notificationService.js';
 import { ensureAnalyticsBackfill, generateAnalyticsAiReport, getAdminAnalytics, getAnalyticsAiQuota, recordAnalyticsEvent, recordConversion, recordPerformanceEvent } from '../services/analyticsService.js';
+import { getAdminRevenueSummary } from '../services/revenueService.js';
 import { emitToConversation, emitToUsers } from '../realtime/socket.js';
 
 export const mainRoutes = Router();
@@ -138,13 +139,13 @@ mainRoutes.get('/users/me', requireAuth, asyncHandler(async (req, res) => {
 
 mainRoutes.get('/dashboard/summary', requireAuth, asyncHandler(async (req, res) => {
   if (req.user.roles.includes('admin')) {
-    const [users, activeProjects, disputes, revenue] = await Promise.all([
+    const [users, activeProjects, disputes, revenueSummary] = await Promise.all([
       User.countDocuments(),
       Project.countDocuments({ status: { $nin: ['draft', 'completed', 'cancelled'] } }),
       Dispute.countDocuments({ status: { $in: ['open', 'under_review'] } }),
-      Transaction.aggregate([{ $match: { status: 'success' } }, { $group: { _id: null, total: { $sum: '$platformFee' } } }])
+      getAdminRevenueSummary()
     ]);
-    return res.json({ users, activeProjects, disputes, revenue: revenue[0]?.total || 0 });
+    return res.json({ users, activeProjects, disputes, ...revenueSummary });
   }
 
   const projectQuery = req.user.roles.includes('designer') ? { designerId: req.user._id } : { clientId: req.user._id };
