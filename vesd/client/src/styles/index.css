@@ -194,6 +194,25 @@ img {
   margin: 0 auto;
 }
 
+.public-hot-menu-panel {
+  position: absolute;
+  top: 4rem;
+  left: 0;
+  width: 100%;
+  min-height: calc(100vh - 4rem);
+  background: #fff;
+  color: #1f1f1f;
+}
+
+.public-hot-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  width: 82%;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding-top: 24px;
+}
+
 .focus-ring {
   @apply focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2;
 }

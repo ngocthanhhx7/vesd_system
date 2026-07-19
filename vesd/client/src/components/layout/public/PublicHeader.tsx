@@ -47,16 +47,16 @@ export function PublicHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-brand text-white shadow-sm">
+    <header className="sticky top-0 z-30 bg-brand text-white">
       <div className="container-page flex h-16 items-center justify-between gap-4">
         <Link to="/" className="flex h-full items-center" onClick={() => setMobileOpen(false)}>
-          <img src="/assets/vesd-logo-header-white.svg" alt="VESD" className="h-[33px] w-auto" />
+          <img src="/assets/vesd-logo-header-white.svg" alt="VESD" className="h-7 w-auto" />
         </Link>
-        <nav className="hidden h-full items-center gap-[65px] text-base font-normal tracking-[.02em] md:flex">
+        <nav className="hidden h-full items-center gap-14 text-sm font-normal tracking-[.02em] md:flex">
           <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/designers">Thuê Freelancer</NavLink>
           <NavLink className="flex h-full items-center text-white/95 hover:text-white" to={jobsPath}>Tìm việc</NavLink>
           <div
-            className="relative flex h-full items-center"
+            className="flex h-full items-center"
             onMouseEnter={() => setHotMenuOpen(true)}
             onMouseLeave={(event) => {
               const nextTarget = event.relatedTarget;
@@ -80,7 +80,7 @@ export function PublicHeader() {
             <button
               ref={hotMenuTriggerRef}
               type="button"
-              className="flex items-center gap-2 text-white/95 hover:text-white"
+              className="flex items-center gap-1.5 text-white/95 hover:text-white"
               aria-expanded={hotMenuOpen}
               aria-controls="public-hot-menu"
               aria-haspopup="true"
@@ -93,15 +93,15 @@ export function PublicHeader() {
               }}
               onClick={() => setHotMenuOpen(true)}
             >
-              Đang Hot <ChevronDown size={22} />
+              Đang Hot <ChevronDown size={16} strokeWidth={2.25} />
             </button>
             {hotMenuOpen && (
-              <div id="public-hot-menu" role="region" aria-label="Đang Hot" className="absolute left-1/2 top-16 w-[min(1176px,calc(100vw-32px))] -translate-x-1/2 bg-white px-[96px] py-8 text-ink">
-                <div className="grid grid-cols-4 gap-x-[92px]">
+              <div id="public-hot-menu" role="region" aria-label="Đang Hot" className="public-hot-menu-panel">
+                <div className="public-hot-menu-grid">
                   {desktopHotMenuColumns.map((column) => (
                     <div key={column.title} data-hot-menu-column>
-                      <h3 className="mb-3 text-base font-bold leading-snug text-brand">{column.title}</h3>
-                    <ul className="space-y-2 text-base leading-6 text-ink">
+                      <h3 className="mb-2 max-w-[220px] text-[15px] font-medium leading-[1.3] text-brand">{column.title}</h3>
+                    <ul className="space-y-1 text-[13px] leading-5 text-ink">
                         {column.items.map((item) => (
                           <li key={item.slug}>
                             <Link className="hover:text-brand" to={`/services/${item.slug}`} onClick={() => closeHotMenu()}>{item.label}</Link>
@@ -109,9 +109,9 @@ export function PublicHeader() {
                         ))}
                       </ul>
                       {column.secondary && (
-                        <div className="mt-11">
-                          <h3 className="mb-3 text-base font-bold leading-snug text-brand">{column.secondary.title}</h3>
-                          <ul className="space-y-2 text-base leading-6 text-ink">
+                        <div className="mt-3">
+                          <h3 className="mb-2 text-[15px] font-medium leading-[1.3] text-brand">{column.secondary.title}</h3>
+                          <ul className="space-y-1 text-[13px] leading-5 text-brand">
                             {column.secondary.items.map((item) => (
                               <li key={item.slug}>
                                 <Link className="hover:text-brand" to={`/services/${item.slug}`} onClick={() => closeHotMenu()}>{item.label}</Link>
@@ -128,12 +128,12 @@ export function PublicHeader() {
           </div>
           <NavLink className="flex h-full items-center text-white/95 hover:text-white" to={projectsPath}>Dự án</NavLink>
         </nav>
-        <div className="flex items-center gap-6">
-          <button aria-label="Tìm kiếm" className="text-white/95 hover:text-white" onClick={() => goTo('/designers')}><Search size={24} /></button>
-          <button aria-label="Tin nhắn" className="hidden text-white/95 hover:text-white sm:block" onClick={() => goTo(user ? messagesPath : '/login')}><Mail size={23} /></button>
+        <div className="flex items-center gap-5">
+          <button aria-label="Tìm kiếm" className="text-white/95 hover:text-white" onClick={() => goTo('/designers')}><Search size={20} /></button>
+          <button aria-label="Tin nhắn" className="hidden text-white/95 hover:text-white sm:block" onClick={() => goTo(user ? messagesPath : '/login')}><Mail size={19} /></button>
           {user ? (
             <div className="group relative flex h-16 items-center">
-              <button aria-label="Tài khoản" className="h-9 w-9 overflow-hidden rounded-full border border-white/30 bg-white/10">
+              <button aria-label="Tài khoản" className="h-7 w-7 overflow-hidden rounded-full border border-white/30 bg-white/10">
                 <Avatar className="h-full w-full bg-white/10 text-white" src={user.avatar} name={user.name} fallbackClassName="text-white" />
               </button>
               <div className="invisible absolute right-0 top-14 w-56 rounded-lg border border-line bg-white py-2 text-ink opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100">
@@ -145,7 +145,7 @@ export function PublicHeader() {
             </div>
           ) : (
             <button aria-label="Đăng nhập" className="text-white/95 hover:text-white" onClick={() => goTo('/login')}>
-              <UserRound size={24} />
+              <UserRound size={20} />
             </button>
           )}
           <button className="md:hidden" type="button" aria-label={mobileOpen ? 'Đóng menu' : 'Mở menu'} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)}>

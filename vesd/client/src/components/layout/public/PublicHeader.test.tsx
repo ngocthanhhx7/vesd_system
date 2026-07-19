@@ -101,6 +101,16 @@ describe('PublicHeader', () => {
     }
   });
 
+  test('uses the approved full-width panel and four-column visual hooks', async () => {
+    const user = userEvent.setup();
+    renderHeader();
+    await user.click(screen.getByRole('button', { name: 'Đang Hot' }));
+
+    const panel = screen.getByRole('region', { name: 'Đang Hot' });
+    expect(panel.classList.contains('public-hot-menu-panel')).toBe(true);
+    expect(panel.querySelector('.public-hot-menu-grid')).not.toBeNull();
+  });
+
   test.each(['Thiết kế Website UI', 'Khám phá thêm'])('closes the desktop menu after selecting %s', async (linkName) => {
     const user = userEvent.setup();
     renderHeader();
