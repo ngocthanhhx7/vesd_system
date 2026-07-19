@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { ChevronDown, KeyRound, LayoutDashboard, LogOut, Mail, Menu, Search, Settings, UserRound, X } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
-import { hotMenu, serviceSlug } from './publicNavigation';
+import { desktopHotMenuColumns, hotMenu, serviceSlug } from './publicNavigation';
 import { Avatar } from '../../ui/Avatar';
 
 export function PublicHeader() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [hotMenuOpen, setHotMenuOpen] = useState(false);
+  const hotMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const suppressNextFocusRef = useRef(false);
   const dashboardPath = user?.roles.includes('admin') ? '/admin' : user?.roles.includes('designer') ? '/designer' : '/client';
   const jobsPath = user?.roles.includes('designer') ? '/designer/jobs' : user ? dashboardPath : '/register';
   const projectsPath = !user
@@ -33,6 +36,16 @@ export function PublicHeader() {
     navigate(path);
   }
 
+  function closeHotMenu(returnFocus = false) {
+    setHotMenuOpen(false);
+    if (returnFocus && document.activeElement !== hotMenuTriggerRef.current) {
+      suppressNextFocusRef.current = true;
+      hotMenuTriggerRef.current?.focus();
+    } else {
+      suppressNextFocusRef.current = false;
+    }
+  }
+
   return (
     <header className="sticky top-0 z-30 bg-brand text-white shadow-sm">
       <div className="container-page flex h-16 items-center justify-between gap-4">
@@ -42,26 +55,76 @@ export function PublicHeader() {
         <nav className="hidden h-full items-center gap-[65px] text-base font-normal tracking-[.02em] md:flex">
           <NavLink className="flex h-full items-center text-white/95 hover:text-white" to="/designers">Thuê Freelancer</NavLink>
           <NavLink className="flex h-full items-center text-white/95 hover:text-white" to={jobsPath}>Tìm việc</NavLink>
-          <div className="group flex h-full items-center">
-            <button className="flex items-center gap-2 text-white/95 hover:text-white">
-              Danh mục <ChevronDown size={22} />
+          <div
+            className="relative flex h-full items-center"
+            onMouseEnter={() => setHotMenuOpen(true)}
+            onMouseLeave={(event) => {
+              const nextTarget = event.relatedTarget;
+              if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+                closeHotMenu();
+              }
+            }}
+            onBlurCapture={(event) => {
+              const nextTarget = event.relatedTarget;
+              if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+                closeHotMenu();
+              }
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                closeHotMenu(true);
+              }
+            }}
+          >
+            <button
+              ref={hotMenuTriggerRef}
+              type="button"
+              className="flex items-center gap-2 text-white/95 hover:text-white"
+              aria-expanded={hotMenuOpen}
+              aria-controls="public-hot-menu"
+              aria-haspopup="true"
+              onFocus={() => {
+                if (suppressNextFocusRef.current) {
+                  suppressNextFocusRef.current = false;
+                  return;
+                }
+                setHotMenuOpen(true);
+              }}
+              onClick={() => setHotMenuOpen(true)}
+            >
+              Đang Hot <ChevronDown size={22} />
             </button>
-            <div className="invisible absolute left-1/2 top-16 w-[min(1176px,calc(100vw-32px))] -translate-x-1/2 border border-line bg-white px-[96px] py-8 text-ink opacity-0 shadow-2xl transition group-hover:visible group-hover:opacity-100">
-              <div className="grid grid-cols-4 gap-x-[92px] gap-y-11">
-                {hotMenu.map((group) => (
-                  <div key={group.title}>
-                    <h3 className="mb-3 text-base font-bold leading-snug text-brand">{group.title}</h3>
+            {hotMenuOpen && (
+              <div id="public-hot-menu" role="region" aria-label="Đang Hot" className="absolute left-1/2 top-16 w-[min(1176px,calc(100vw-32px))] -translate-x-1/2 bg-white px-[96px] py-8 text-ink">
+                <div className="grid grid-cols-4 gap-x-[92px]">
+                  {desktopHotMenuColumns.map((column) => (
+                    <div key={column.title} data-hot-menu-column>
+                      <h3 className="mb-3 text-base font-bold leading-snug text-brand">{column.title}</h3>
                     <ul className="space-y-2 text-base leading-6 text-ink">
-                      {group.items.map((item) => (
-                        <li key={item}>
-                          <Link className="hover:text-brand" to={`/services/${serviceSlug(item)}`}>{item}</Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
+                        {column.items.map((item) => (
+                          <li key={item.slug}>
+                            <Link className="hover:text-brand" to={`/services/${item.slug}`} onClick={() => closeHotMenu()}>{item.label}</Link>
+                          </li>
+                        ))}
+                      </ul>
+                      {column.secondary && (
+                        <div className="mt-11">
+                          <h3 className="mb-3 text-base font-bold leading-snug text-brand">{column.secondary.title}</h3>
+                          <ul className="space-y-2 text-base leading-6 text-ink">
+                            {column.secondary.items.map((item) => (
+                              <li key={item.slug}>
+                                <Link className="hover:text-brand" to={`/services/${item.slug}`} onClick={() => closeHotMenu()}>{item.label}</Link>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <NavLink className="flex h-full items-center text-white/95 hover:text-white" to={projectsPath}>Dự án</NavLink>
         </nav>
@@ -97,7 +160,7 @@ export function PublicHeader() {
             <button className="rounded-lg px-1 py-3 text-left text-white/95" onClick={() => goTo(jobsPath)}>Tìm việc</button>
             <button className="rounded-lg px-1 py-3 text-left text-white/95" onClick={() => goTo(projectsPath)}>Dự án</button>
             <div className="mt-2 border-t border-white/15 pt-3">
-              <p className="mb-2 text-sm font-bold uppercase text-white/70">Danh mục</p>
+              <p className="mb-2 text-sm font-bold uppercase text-white/70">Đang Hot</p>
               <div className="grid gap-2 text-sm font-medium text-white/90">
                 {hotMenu.slice(0, 2).flatMap((group) => group.items.slice(0, 3)).map((item) => (
                   <button key={item} className="rounded-lg px-1 py-2 text-left" onClick={() => goTo(`/services/${serviceSlug(item)}`)}>{item}</button>

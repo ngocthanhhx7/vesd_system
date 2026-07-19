@@ -33,6 +33,72 @@ export const hotMenu = [
   }
 ];
 
+type HotMenuItem = {
+  label: string;
+  slug: string;
+};
+
+type DesktopHotMenuColumn = {
+  title: string;
+  items: HotMenuItem[];
+  secondary?: {
+    title: string;
+    items: HotMenuItem[];
+  };
+};
+
+export const desktopHotMenuColumns: DesktopHotMenuColumn[] = [
+  {
+    title: 'Thiết kế thương hiệu (Branding)',
+    items: [
+      { label: 'Thiết kế Logo', slug: 'thiet-ke-logo' },
+      { label: 'Thiết kế Brand Identity', slug: 'bo-nhan-dien-thuong-hieu' },
+      { label: 'Thiết kế Brand Guidelines', slug: 'quy-chuan-thuong-hieu' },
+      { label: 'Thiết kế Logo animation', slug: 'hoat-anh-logo' },
+      { label: 'Thiết kế Business card', slug: 'danh-thiep' },
+      { label: 'Thiết kế Brand kit', slug: 'bo-tai-san-thuong-hieu' },
+      { label: 'Thiết kế Letterhead', slug: 'tieu-de-thu' }
+    ],
+    secondary: {
+      title: 'Khác',
+      items: [
+        { label: 'Khám phá thêm', slug: 'kham-pha-them' },
+        { label: 'Yêu cầu thêm danh mục', slug: 'yeu-cau-them-danh-muc' }
+      ]
+    }
+  },
+  {
+    title: 'Thiết kế UI / UX',
+    items: [
+      { label: 'Thiết kế Website UI', slug: 'thiet-ke-giao-dien-website' },
+      { label: 'Thiết kế Mobile App UI', slug: 'thiet-ke-giao-dien-ung-dung' },
+      { label: 'Thiết kế Landing Page', slug: 'thiet-ke-landing-page' },
+      { label: 'Thiết kế Dashboard / SaaS', slug: 'thiet-ke-dashboard-saas' },
+      { label: 'Thiết kế Design System', slug: 'thiet-ke-he-thong-giao-dien' },
+      { label: 'Wireframe', slug: 'wireframe' }
+    ]
+  },
+  {
+    title: 'Thiết kế đồ họa (Graphic Design)',
+    items: [
+      { label: 'Poster', slug: 'poster' },
+      { label: 'Banner quảng cáo', slug: 'banner-quang-cao' },
+      { label: 'Infographic', slug: 'infographic' },
+      { label: 'Brochure', slug: 'brochure' },
+      { label: 'Billboard quảng cáo', slug: 'billboard-quang-cao' },
+      { label: 'Social media post', slug: 'bai-dang-mang-xa-hoi' }
+    ]
+  },
+  {
+    title: 'Thiết kế 3D',
+    items: [
+      { label: 'Thiết kế 3D', slug: 'thiet-ke-3d' },
+      { label: '3D Product Render', slug: 'render-san-pham-3d' },
+      { label: '3D Game Asset', slug: 'asset-game-3d' }
+    ]
+  }
+];
+
 export const footerColumns = [
   {
     title: 'Dành cho khách hàng',
