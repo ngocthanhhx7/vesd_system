@@ -207,8 +207,8 @@ img {
 .public-hot-menu-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  width: 82%;
-  max-width: 1560px;
+  width: calc(100% - 32px);
+  max-width: 1200px;
   margin: 0 auto;
   padding-top: 24px;
 }

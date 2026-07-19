@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { PublicHeader } from './PublicHeader';
 import { desktopHotMenuColumns } from './publicNavigation';
@@ -67,7 +67,17 @@ const expectedDesktopColumns = [
 
 function renderHeader(user: typeof mockedAuth.user = null) {
   mockedAuth.user = user;
-  return render(<MemoryRouter><PublicHeader /></MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <PublicHeader />
+      <LocationProbe />
+    </MemoryRouter>
+  );
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return <output data-testid="current-location">{location.pathname}</output>;
 }
 
 afterEach(() => {
@@ -181,5 +191,26 @@ describe('PublicHeader', () => {
     fireEvent.blur(hotMenuArea, { relatedTarget: outside });
     expect(trigger.getAttribute('aria-expanded')).toBe('false');
     outside.remove();
+  });
+
+  test.each([
+    ['guest', null, '/login', '/login'],
+    ['designer', { name: 'Designer', roles: ['designer'] }, '/designer/messages', '/designer'],
+    ['client', { name: 'Client', roles: ['client'] }, '/client/messages', '/client'],
+    ['admin', { name: 'Admin', roles: ['admin'] }, '/admin', '/admin']
+  ])('preserves mobile menu, message, and account routes for %s', async (_role, authUser, messagesPath, accountPath) => {
+    const user = userEvent.setup();
+    renderHeader(authUser);
+
+    await user.click(screen.getByRole('button', { name: 'Mở menu' }));
+    expect(screen.getByText('Đang Hot', { selector: 'p' })).toBeTruthy();
+    const messageButtons = screen.getAllByRole('button', { name: 'Tin nhắn' });
+    await user.click(messageButtons[messageButtons.length - 1]);
+    expect(screen.getByTestId('current-location').textContent).toBe(messagesPath);
+
+    await user.click(screen.getByRole('button', { name: 'Mở menu' }));
+    const accountButtons = screen.getAllByRole('button', { name: authUser ? 'Tài khoản' : 'Đăng nhập' });
+    await user.click(accountButtons[accountButtons.length - 1]);
+    expect(screen.getByTestId('current-location').textContent).toBe(accountPath);
   });
 });
