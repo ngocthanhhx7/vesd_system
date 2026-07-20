@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import * as analyticsService from '../services/analyticsService.js';
 import {
   ANALYTICS_START_DATE,
   buildAnalyticsSummary,
@@ -17,8 +18,33 @@ test('analytics all range starts at project launch date', () => {
   const now = new Date('2026-06-20T10:00:00.000Z');
   const window = getRangeWindow('all', now);
   assert.equal(ANALYTICS_START_DATE, '2026-06-01');
-  assert.equal(window.start.toISOString().slice(0, 10), '2026-06-01');
+  assert.equal(window.start.toISOString(), '2026-05-31T17:00:00.000Z');
+  assert.deepEqual(window.dateKeys, { start: '2026-06-01', end: '2026-06-20' });
   assert.equal(window.end.toISOString(), now.toISOString());
+});
+
+test('analytics ranges use Vietnam calendar days and UTC ISO day boundaries', () => {
+  const now = new Date('2026-07-20T18:30:00.000Z'); // 01:30 on 21 July in Vietnam
+  const expected = {
+    '1d': { start: '2026-07-20T17:00:00.000Z', dateKeys: { start: '2026-07-21', end: '2026-07-21' } },
+    '7d': { start: '2026-07-14T17:00:00.000Z', dateKeys: { start: '2026-07-15', end: '2026-07-21' } },
+    '30d': { start: '2026-06-21T17:00:00.000Z', dateKeys: { start: '2026-06-22', end: '2026-07-21' } }
+  };
+
+  for (const [range, assertion] of Object.entries(expected)) {
+    const window = getRangeWindow(range, now);
+    assert.equal(window.start.toISOString(), assertion.start, range);
+    assert.deepEqual(window.dateKeys, assertion.dateKeys, range);
+    assert.equal(window.end.toISOString(), now.toISOString(), range);
+  }
+});
+
+test('analytics event date key follows persisted server time instead of untrusted client time', () => {
+  const serverNow = new Date('2026-07-20T18:30:00.000Z');
+  assert.equal(
+    analyticsService.getAnalyticsEventDateKey('2026-01-01T00:00:00.000Z', serverNow),
+    '2026-07-21'
+  );
 });
 
 test('analytics range normalizes unknown values to 7d', () => {
@@ -77,16 +103,35 @@ test('calibrated backfill fits the current 74-user project scale', () => {
   });
   const summary = buildAnalyticsSummary(docs);
   assert.equal(summary.totals.users, 74);
-  assert.ok(summary.totals.sessions >= 190);
-  assert.ok(summary.totals.sessions <= 215);
-  assert.ok(summary.totals.pageViews >= 420);
-  assert.ok(summary.totals.pageViews <= 560);
+  assert.ok(summary.totals.sessions >= 310);
+  assert.ok(summary.totals.sessions <= 340);
+  assert.ok(summary.totals.pageViews >= 720);
+  assert.ok(summary.totals.pageViews <= 820);
   assert.ok(summary.conversions.escrowPaid >= 1);
-  assert.ok(summary.conversions.rate >= 0.4);
-  assert.ok(summary.conversions.rate <= 1.5);
+  assert.ok(summary.behaviour.bounceRate >= 21);
+  assert.ok(summary.behaviour.bounceRate <= 23);
+  assert.ok(summary.conversions.rate >= 1);
+  assert.ok(summary.conversions.rate <= 2);
   assert.ok(docs.every((doc) => doc.conversions.contacts <= doc.conversions.registrations));
   assert.ok(docs.every((doc) => doc.conversions.projectsCreated <= doc.conversions.contacts));
   assert.ok(docs.every((doc) => doc.conversions.escrowPaid <= doc.conversions.projectsCreated));
+});
+
+test('calibrated backfill keeps recent range rates plausible at the current project scale', () => {
+  const now = new Date('2026-07-20T12:00:00.000Z');
+  const docs = buildCalibratedBackfillMetrics({ now, targetUsers: 74 });
+
+  for (const range of ['1d', '7d', '30d', 'all']) {
+    const window = getRangeWindow(range, now);
+    const rangeDocs = docs.filter((doc) => doc.date >= window.dateKeys.start && doc.date <= window.dateKeys.end);
+    const summary = buildAnalyticsSummary(rangeDocs);
+    assert.ok(summary.behaviour.bounceRate >= 21 && summary.behaviour.bounceRate <= 23, `${range} bounce rate`);
+    if (range === '1d') {
+      assert.ok(summary.conversions.rate === 0 || (summary.conversions.rate >= 1 && summary.conversions.rate <= 2), '1d sparse conversion rate');
+    } else {
+      assert.ok(summary.conversions.rate >= 1 && summary.conversions.rate <= 2, `${range} conversion rate`);
+    }
+  }
 });
 
 test('calibrated backfill keeps observed metrics and budgets the remaining users', () => {

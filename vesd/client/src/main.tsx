@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
@@ -10,7 +11,6 @@ import { CategoryPage, DesignerProfilePage, DesignersPage, HelpPage, HomePage, P
 import { ForgotPasswordPage, LoginPage, RegisterPage, ResetPasswordPage, RoleSelectionPage, VerifyEmailPage } from './pages/AuthPages';
 import {
   AdminDashboard,
-  AdminAnalyticsPage,
   AdminDiscountsPage,
   AdminListPage,
   AdminSimplePage,
@@ -38,6 +38,10 @@ import {
   WorkspacePage
 } from './pages/DashboardPages';
 import './styles/index.css';
+
+const AdminAnalyticsPage = lazy(() => import('./pages/dashboard/AdminAnalyticsPage').then((module) => ({
+  default: module.AdminAnalyticsPage
+})));
 
 function AnalyticsTracker() {
   useAnalytics();
@@ -129,7 +133,14 @@ const router = createBrowserRouter([
       path: '/admin',
       children: [
         { index: true, element: <AdminDashboard /> },
-        { path: 'analytics', element: <AdminAnalyticsPage /> },
+        {
+          path: 'analytics',
+          element: (
+            <Suspense fallback={<div className="py-10 text-center text-muted">Đang tải báo cáo analytics...</div>}>
+              <AdminAnalyticsPage />
+            </Suspense>
+          )
+        },
         { path: 'users', element: <AdminListPage type="users" /> },
         { path: 'verification', element: <AdminSimplePage title="Xác minh designer" /> },
         { path: 'projects', element: <AdminListPage type="projects" /> },
