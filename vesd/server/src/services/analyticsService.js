@@ -11,6 +11,7 @@ import {
 export const ANALYTICS_START_DATE = '2026-06-01';
 export const ANALYTICS_AI_DAILY_LIMIT = 3;
 const RANGE_DAYS = { '1d': 1, '7d': 7, '30d': 30 };
+const VIETNAM_TIME_ZONE = 'Asia/Ho_Chi_Minh';
 const TRAFFIC_SOURCES = ['direct', 'search', 'social', 'referral', 'email', 'paid', 'unknown'];
 const CONVERSION_KEYS = ['registrations', 'contacts', 'projectsCreated', 'escrowPaid', 'premiumSubscriptions'];
 const WEB_VITAL_KEYS = ['pageLoadTime', 'tti', 'lcp', 'fid', 'inp', 'cls'];
@@ -27,9 +28,13 @@ function dateFromKey(key) {
   return new Date(`${key}T00:00:00.000Z`);
 }
 
+function dateFromVietnamKey(key) {
+  return new Date(`${key}T00:00:00.000+07:00`);
+}
+
 function dayKeyInVietnam(date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Asia/Ho_Chi_Minh',
+    timeZone: VIETNAM_TIME_ZONE,
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
@@ -38,13 +43,29 @@ function dayKeyInVietnam(date = new Date()) {
   return `${pick('year')}-${pick('month')}-${pick('day')}`;
 }
 
+export function getAnalyticsEventDateKey(_clientTimestamp, serverNow = new Date()) {
+  return dayKeyInVietnam(serverNow);
+}
+
+function shiftVietnamDateKey(key, days) {
+  const date = dateFromVietnamKey(key);
+  date.setUTCDate(date.getUTCDate() + days);
+  return dayKeyInVietnam(date);
+}
+
 export function getRangeWindow(range, now = new Date()) {
   const normalized = normalizeRange(range);
-  if (normalized === 'all') return { start: dateFromKey(ANALYTICS_START_DATE), end: now, range: normalized };
-  const start = new Date(now);
-  start.setUTCDate(start.getUTCDate() - RANGE_DAYS[normalized] + 1);
-  start.setUTCHours(0, 0, 0, 0);
-  return { start, end: now, range: normalized };
+  const end = new Date(now);
+  const endKey = dayKeyInVietnam(end);
+  const startKey = normalized === 'all'
+    ? ANALYTICS_START_DATE
+    : shiftVietnamDateKey(endKey, -RANGE_DAYS[normalized] + 1);
+  return {
+    start: dateFromVietnamKey(startKey),
+    end,
+    range: normalized,
+    dateKeys: { start: startKey, end: endKey }
+  };
 }
 
 function clamp(value, min, max) {
@@ -113,11 +134,11 @@ export function buildFakeDailyMetric(date, index = 0, userBudget) {
   const weekday = date.getUTCDay();
   const isWeekend = weekday === 0 || weekday === 6;
   const users = Math.max(Math.round(Number(userBudget ?? (1 + index * 0.25)) || 0), 0);
-  const sessionRatio = clamp(2.62 + (index % 4) * 0.08 - (isWeekend ? 0.12 : 0), 2.48, 2.9);
+  const sessionRatio = clamp(4.1 + (index % 4) * 0.2 - (isWeekend ? 0.15 : 0), 3.95, 4.75);
   const sessions = users > 0 ? Math.max(users, Math.round(users * sessionRatio)) : 0;
   const pageViews = Math.round(sessions * (2.22 + (index % 3) * 0.14));
   const clicks = Math.round(pageViews * clamp(0.105 + index * 0.0015, 0.1, 0.16));
-  const bounces = Math.round(sessions * clamp(0.49 - index * 0.003 + (isWeekend ? 0.03 : 0), 0.38, 0.52));
+  const bounces = Math.round(sessions * clamp(0.222 + (index % 5) * 0.001 - (isWeekend ? 0.002 : 0), 0.215, 0.23));
   const newUsers = Math.round(users * clamp(0.54 - index * 0.006, 0.34, 0.56));
   const returningUsers = Math.max(users - newUsers, 0);
   const registrations = 0;
@@ -174,30 +195,75 @@ function addMetricValues(base, extra = {}) {
   return base;
 }
 
+function distributeWithinCaps(total, capacities, weights) {
+  const allocations = Array(capacities.length).fill(0);
+  let remaining = Math.max(Math.min(Math.round(Number(total) || 0), capacities.reduce((sum, value) => sum + value, 0)), 0);
+  while (remaining > 0) {
+    let selected = -1;
+    let selectedScore = -Infinity;
+    for (let index = 0; index < capacities.length; index += 1) {
+      if (allocations[index] >= capacities[index]) continue;
+      const score = (Number(weights[index]) || 0) / (allocations[index] + 1);
+      if (score > selectedScore) {
+        selected = index;
+        selectedScore = score;
+      }
+    }
+    if (selected < 0) break;
+    allocations[selected] += 1;
+    remaining -= 1;
+  }
+  return allocations;
+}
+
+function distributeEvenlyWithinCaps(total, capacities) {
+  const allocations = Array(capacities.length).fill(0);
+  const capacityTotal = capacities.reduce((sum, value) => sum + Math.max(Math.round(Number(value) || 0), 0), 0);
+  let remaining = Math.max(Math.min(Math.round(Number(total) || 0), capacityTotal), 0);
+  while (remaining > 0) {
+    const candidates = capacities
+      .map((capacity, index) => (allocations[index] < capacity ? index : -1))
+      .filter((index) => index >= 0);
+    if (!candidates.length) break;
+    const take = Math.min(remaining, candidates.length);
+    for (let slot = 0; slot < take; slot += 1) {
+      const position = Math.min(candidates.length - 1, Math.floor(((slot + 0.5) * candidates.length) / take));
+      allocations[candidates[position]] += 1;
+      remaining -= 1;
+    }
+  }
+  return allocations;
+}
+
 function applySyntheticConversions(metrics) {
   const syntheticMetrics = metrics.filter((metric) => metric.users > 0);
-  const syntheticUsers = syntheticMetrics.reduce((sum, metric) => sum + metric.users, 0);
   const syntheticSessions = syntheticMetrics.reduce((sum, metric) => sum + metric.sessions, 0);
-  const registrations = Math.max(1, Math.round(syntheticUsers * 0.11));
-  const contacts = Math.max(1, Math.min(registrations, Math.round(registrations * 0.65)));
-  const projectsCreated = Math.max(1, Math.min(contacts, Math.round(contacts * 0.5)));
-  const escrowPaid = Math.max(1, Math.min(projectsCreated, Math.round(syntheticSessions * 0.006)));
+  const bounceWeights = syntheticMetrics.map((metric, index) => metric.sessions * (0.98 + (index % 5) * 0.01));
+  const bounceAllocations = distributeWithinCaps(
+    Math.round(syntheticSessions * 0.22),
+    syntheticMetrics.map((metric) => metric.sessions),
+    bounceWeights
+  );
+  const registrations = Math.max(1, Math.round(syntheticSessions * 0.06));
+  const contacts = Math.max(1, Math.min(registrations, Math.round(registrations * 0.7)));
+  const projectsCreated = Math.max(1, Math.min(contacts, Math.round(contacts * 0.65)));
+  const escrowPaid = Math.max(1, Math.min(projectsCreated, Math.round(syntheticSessions * 0.015)));
   const premiumSubscriptions = Math.max(0, Math.min(registrations, Math.round(registrations * 0.16)));
   const budgets = { registrations, contacts, projectsCreated, escrowPaid, premiumSubscriptions };
-  const weights = syntheticMetrics.map((metric, index) => metric.users + (index / Math.max(syntheticMetrics.length - 1, 1)) * 2);
 
-  for (const key of CONVERSION_KEYS) {
-    const allocations = distributeIntegerBudget(budgets[key], weights);
-    syntheticMetrics.forEach((metric, index) => {
-      metric.conversions[key] += allocations[index];
-    });
-  }
-  for (const metric of syntheticMetrics) {
-    metric.conversions.contacts = Math.min(metric.conversions.contacts, metric.conversions.registrations);
-    metric.conversions.projectsCreated = Math.min(metric.conversions.projectsCreated, metric.conversions.contacts);
-    metric.conversions.escrowPaid = Math.min(metric.conversions.escrowPaid, metric.conversions.projectsCreated);
-    metric.conversions.premiumSubscriptions = Math.min(metric.conversions.premiumSubscriptions, metric.conversions.registrations);
-  }
+  const registrationAllocations = distributeEvenlyWithinCaps(budgets.registrations, syntheticMetrics.map((metric) => metric.sessions));
+  const contactAllocations = distributeEvenlyWithinCaps(budgets.contacts, registrationAllocations);
+  const projectAllocations = distributeEvenlyWithinCaps(budgets.projectsCreated, contactAllocations);
+  const escrowAllocations = distributeEvenlyWithinCaps(budgets.escrowPaid, projectAllocations);
+  const premiumAllocations = distributeEvenlyWithinCaps(budgets.premiumSubscriptions, registrationAllocations);
+  syntheticMetrics.forEach((metric, index) => {
+    metric.bounces = bounceAllocations[index];
+    metric.conversions.registrations += registrationAllocations[index];
+    metric.conversions.contacts += contactAllocations[index];
+    metric.conversions.projectsCreated += projectAllocations[index];
+    metric.conversions.escrowPaid += escrowAllocations[index];
+    metric.conversions.premiumSubscriptions += premiumAllocations[index];
+  });
   return metrics;
 }
 
@@ -284,8 +350,7 @@ export function buildCalibratedBackfillMetrics({
   preservedByDate = new Map()
 } = {}) {
   const start = dateFromKey(ANALYTICS_START_DATE);
-  const end = new Date(now);
-  end.setUTCHours(0, 0, 0, 0);
+  const end = dateFromKey(dayKeyInVietnam(now));
   const dates = [];
   for (let cursor = new Date(start); cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
     dates.push(new Date(cursor));
@@ -319,8 +384,7 @@ export function buildCalibratedBackfillMetrics({
 export function buildMissingBackfillMetrics({ existingDates = [], now = new Date() } = {}) {
   const existing = new Set(existingDates);
   const start = dateFromKey(ANALYTICS_START_DATE);
-  const end = new Date(now);
-  end.setUTCHours(0, 0, 0, 0);
+  const end = dateFromKey(dayKeyInVietnam(now));
   const docs = [];
   for (let cursor = new Date(start), index = 0; cursor <= end; cursor.setUTCDate(cursor.getUTCDate() + 1), index += 1) {
     const key = utcDateKey(cursor);
@@ -450,8 +514,7 @@ async function ensureDailyMetric(dateKey) {
 
 export async function ensureAnalyticsBackfill(now = new Date()) {
   const window = getRangeWindow('all', now);
-  const startKey = utcDateKey(window.start);
-  const endKey = utcDateKey(window.end);
+  const { start: startKey, end: endKey } = window.dateKeys;
   const [existingMetrics, events, targetUsers] = await Promise.all([
     AnalyticsDailyMetric.find({ date: { $gte: startKey, $lte: endKey } }).lean(),
     AnalyticsEvent.find({ createdAt: { $gte: window.start, $lte: window.end } }).lean(),
@@ -485,10 +548,9 @@ export async function ensureAnalyticsBackfill(now = new Date()) {
 export async function recordAnalyticsEvent(payload = {}, req = {}) {
   const type = ['page_view', 'click', 'scroll', 'session', 'performance', 'conversion'].includes(payload.type) ? payload.type : 'click';
   const sessionId = String(payload.sessionId || req.get?.('X-Analytics-Session-ID') || '').slice(0, 128);
-  const dateKey = dayKeyInVietnam(payload.timestamp ? new Date(payload.timestamp) : new Date());
-  const dayStart = dateFromKey(dateKey);
-  const dayEnd = new Date(dayStart);
-  dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
+  const dateKey = getAnalyticsEventDateKey(payload.timestamp);
+  const dayStart = dateFromVietnamKey(dateKey);
+  const dayEnd = dateFromVietnamKey(shiftVietnamDateKey(dateKey, 1));
   const scrollDepth = type === 'scroll' ? clamp(Number(payload.value) || 0, 0, 100) : 0;
   const existingPageViewSession = type === 'page_view' && sessionId
     ? await AnalyticsEvent.exists({
@@ -599,8 +661,7 @@ export async function recordConversion(req, conversionType, metadata = {}) {
 export async function getAdminAnalytics(range = '7d') {
   await ensureAnalyticsBackfill();
   const window = getRangeWindow(range);
-  const startKey = utcDateKey(window.start);
-  const endKey = utcDateKey(window.end);
+  const { start: startKey, end: endKey } = window.dateKeys;
   const metrics = await AnalyticsDailyMetric.find({ date: { $gte: startKey, $lte: endKey } }).sort({ date: 1 }).lean();
   const summary = buildAnalyticsSummary(metrics);
   const latestReport = await AnalyticsAiReport.findOne({ range: window.range }).sort({ createdAt: -1 }).lean();
