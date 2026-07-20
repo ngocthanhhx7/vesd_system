@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { DesignerCard, DesignerProfilePage, getHomeDesignerPageItems } from './PublicPages';
 import { AdminAnalyticsPage, ProjectCard } from './DashboardPages';
-import { boundedPercent, buildLinePoints, chartState, formatDuration } from './dashboard/AdminAnalyticsPage';
 import { projectWorkflowRefreshKeys } from './dashboard/ProjectWorkflowPages';
 import { Metric } from './dashboard/shared/Metric';
 import { getOrCreateAnalyticsSession } from '../services/analytics';
@@ -51,6 +50,26 @@ function renderDesignerProfile() {
   );
 }
 
+function renderAnalyticsDashboard() {
+  const queryClient = new QueryClient();
+  queryClient.setQueryData(['admin-analytics', '7d'], {
+    summary: {
+      totals: { sessions: 120, users: 84, clicks: 31 },
+      behaviour: { bounceRate: 22.5, scrollDepth: 62, averageSessionDuration: 125, pagesPerSession: 2.4, clickThroughRate: 8 },
+      conversions: { rate: 1.67, registrations: 8, contacts: 5, projectsCreated: 3, escrowPaid: 2, premiumSubscriptions: 1 },
+      traffic: { sources: { direct: 70, search: 50 }, newVsReturning: { newUsers: 60, returningUsers: 24 } },
+      technical: { uptime: 99.9, pageLoadTime: 1.2, tti: 1.5, fid: 15, inp: 60 },
+      series: [{ date: '2026-07-20', sessions: 120, users: 84, pageViews: 200, bounceRate: 22.5, conversionRate: 1.67, pageLoadTime: 1.2, lcp: 1.8, inp: 60, cls: 0.02 }]
+    }
+  });
+
+  return renderToStaticMarkup(
+    <QueryClientProvider client={queryClient}>
+      <AdminAnalyticsPage />
+    </QueryClientProvider>
+  );
+}
+
 describe('component contracts', () => {
   it('DesignerCard exists', () => {
     expect(typeof DesignerCard).toBe('function');
@@ -73,23 +92,19 @@ describe('component contracts', () => {
     expect(getHomeDesignerPageItems(1, 7)).toEqual([1, 2, 3, 'ellipsis', 7]);
     expect(getHomeDesignerPageItems(5, 7)).toEqual([1, 'ellipsis', 4, 5, 6, 7]);
   });
-  it('builds line chart points without NaN for empty or flat data', () => {
-    expect(buildLinePoints([], 'sessions')).toBe('');
-    expect(buildLinePoints([{ sessions: 10 }, { sessions: 10 }], 'sessions')).toBe('0,50 100,50');
-  });
-  it('describes empty and single-point chart states', () => {
-    expect(chartState([], 'sessions')).toEqual({ kind: 'empty', value: 0 });
-    expect(chartState([{ sessions: 10 }], 'sessions')).toEqual({ kind: 'single', value: 10 });
-    expect(chartState([{ sessions: 10 }, { sessions: 12 }], 'sessions')).toEqual({ kind: 'line', value: 12 });
-  });
-  it('formats session duration as minutes and seconds', () => {
-    expect(formatDuration(0)).toBe('0s');
-    expect(formatDuration(125)).toBe('2m 5s');
-  });
-  it('bounds progress percentages for display', () => {
-    expect(boundedPercent(-10)).toBe(0);
-    expect(boundedPercent(58.6)).toBe(58.6);
-    expect(boundedPercent(858.91)).toBe(100);
+  it('renders accessible range buttons and chart regions instead of a range select', () => {
+    const html = renderAnalyticsDashboard();
+
+    expect(html).toContain('aria-pressed="true"');
+    expect(html).toContain('>Hôm nay</button>');
+    expect(html).toContain('>7 ngày</button>');
+    expect(html).toContain('role="region" aria-label="Xu hướng lưu lượng"');
+    expect(html).toContain('role="region" aria-label="Nguồn truy cập"');
+    expect(html).toContain('role="region" aria-label="Phễu chuyển đổi"');
+    expect(html).toContain('Người dùng mới');
+    expect(html).toContain('Quay lại');
+    expect(html).toContain('1,2s');
+    expect(html).not.toContain('<select');
   });
   it('refreshes money data after project workflow mutations', () => {
     expect(projectWorkflowRefreshKeys('project-1')).toContainEqual(['wallet']);
