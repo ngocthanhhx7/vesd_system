@@ -116,7 +116,7 @@ Các nhóm `AI và công nghệ mới`, `Minh họa và nghệ thuật`, `Chuy�
 
 Tạo cấu hình riêng cho mega-menu desktop mục tiêu hoặc cấu trúc dữ liệu hỗ trợ nhóm lồng `Khác`. Không phụ thuộc vào `hotMenu.slice(...)` theo vị trí vì cách này khiến desktop và mobile vô tình tác động lẫn nhau.
 
-Hàm tạo slug hiện tại được giữ tương thích. Mọi nhãn mới phải có URL xác định và được kiểm thử để tránh link rỗng hoặc sai route.
+Mỗi mục desktop dùng cặp `label`/`slug`: `label` khớp Figma, còn `slug` giữ URL tương ứng của mục cũ khi chỉ đổi cách gọi. Ví dụ `Thiết kế Website UI` tiếp tục dùng `thiet-ke-giao-dien-website`, `3D Product Render` dùng `render-san-pham-3d` và `3D Game Asset` dùng `asset-game-3d`. Mọi nhãn mới phải có URL xác định và được kiểm thử để tránh link rỗng hoặc sai route.
 
 ## 8. Responsive
 
