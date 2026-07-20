@@ -16,6 +16,7 @@ const TRAFFIC_SOURCES = ['direct', 'search', 'social', 'referral', 'email', 'pai
 const CONVERSION_KEYS = ['registrations', 'contacts', 'projectsCreated', 'escrowPaid', 'premiumSubscriptions'];
 const WEB_VITAL_KEYS = ['pageLoadTime', 'tti', 'lcp', 'fid', 'inp', 'cls'];
 const LEGACY_RETURNING_SESSIONS_PER_USER = 3;
+const TARGET_SCROLL_DEPTH = 64;
 
 export function normalizeRange(range) {
   return ['1d', '7d', '30d', 'all'].includes(range) ? range : '7d';
@@ -235,6 +236,8 @@ function calibrateMetricRates(metrics) {
   const premiumAllocations = distributeEvenlyWithinCaps(budgets.premiumSubscriptions, escrowAllocations);
   activeMetrics.forEach((metric, index) => {
     metric.bounces = round(metric.sessions * 0.22, 2);
+    metric.scrollDepthTotal = round(metric.sessions * TARGET_SCROLL_DEPTH, 2);
+    metric.scrollDepthEvents = metric.sessions;
     metric.conversions = {
       registrations: registrationAllocations[index],
       contacts: contactAllocations[index],
