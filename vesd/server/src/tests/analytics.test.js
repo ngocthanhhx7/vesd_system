@@ -339,6 +339,7 @@ test('calibrated observed traffic keeps bounce rate in range for every dashboard
     const window = getRangeWindow(range, now);
     const summary = buildAnalyticsSummary(docs.filter((doc) => doc.date >= window.dateKeys.start && doc.date <= window.dateKeys.end));
     assert.ok(summary.behaviour.bounceRate >= 21 && summary.behaviour.bounceRate <= 23, `${range}: ${summary.behaviour.bounceRate}`);
+    assert.ok(summary.behaviour.scrollDepth >= 60 && summary.behaviour.scrollDepth <= 70, `${range}: ${summary.behaviour.scrollDepth}`);
   }
 });
 
