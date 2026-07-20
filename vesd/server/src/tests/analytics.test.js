@@ -231,6 +231,117 @@ test('observed scroll depth averages max depth across sessions', () => {
   assert.equal(summary.behaviour.scrollDepth, 60);
 });
 
+test('observed metrics count visitors separately from sessions and deduplicate click sessions', () => {
+  const createdAt = new Date('2026-07-20T04:00:00.000Z');
+  const events = [
+    { type: 'page_view', sessionId: 'session-a', visitorId: 'visitor-a', source: 'direct', isNewVisitor: true, createdAt },
+    { type: 'page_view', sessionId: 'session-a', visitorId: 'visitor-a', source: 'direct', isNewVisitor: true, createdAt },
+    { type: 'page_view', sessionId: 'session-b', visitorId: 'visitor-a', source: 'direct', isNewVisitor: false, createdAt },
+    { type: 'page_view', sessionId: 'session-c', visitorId: 'visitor-b', source: 'search', isNewVisitor: false, createdAt },
+    { type: 'click', sessionId: 'session-a', createdAt },
+    { type: 'click', sessionId: 'session-a', createdAt },
+    { type: 'click', sessionId: 'session-c', createdAt }
+  ];
+
+  const metric = buildObservedDailyMetrics(events).get('2026-07-20');
+  assert.equal(metric.sessions, 3);
+  assert.equal(metric.users, 2);
+  assert.equal(metric.newUsers, 1);
+  assert.equal(metric.returningUsers, 1);
+  assert.equal(metric.clicks, 3);
+  assert.equal(metric.clickSessions, 2);
+});
+
+test('legacy observed sessions estimate returning visitors instead of equating every session to a user', () => {
+  const createdAt = new Date('2026-07-20T04:00:00.000Z');
+  const events = [
+    { type: 'page_view', sessionId: 'new-session', isNewVisitor: true, createdAt },
+    ...['a', 'b', 'c', 'd', 'e', 'f'].map((suffix) => ({
+      type: 'page_view',
+      sessionId: `returning-${suffix}`,
+      isNewVisitor: false,
+      createdAt
+    }))
+  ];
+
+  const metric = buildObservedDailyMetrics(events).get('2026-07-20');
+  assert.equal(metric.sessions, 7);
+  assert.ok(metric.users < metric.sessions);
+  assert.equal(metric.newUsers + metric.returningUsers, metric.users);
+});
+
+test('calibration repairs zero rates, impossible CTR and non-monotonic funnel when observed traffic exceeds user target', () => {
+  const observedByDate = new Map([[
+    '2026-07-20',
+    {
+      date: '2026-07-20',
+      sessions: 156,
+      users: 100,
+      newUsers: 70,
+      returningUsers: 30,
+      pageViews: 906,
+      clicks: 910,
+      clickSessions: 56,
+      bounces: 0,
+      totalSessionDuration: 122616,
+      scrollDepthTotal: 5400,
+      scrollDepthEvents: 100,
+      trafficSources: { direct: 100, search: 30, social: 20, referral: 6 },
+      conversions: { registrations: 8, contacts: 1, projectsCreated: 13, escrowPaid: 0, premiumSubscriptions: 0 },
+      technical: { uptime: 99.5, sampleCount: 0 },
+      synthetic: false
+    }
+  ]]);
+  const docs = buildCalibratedBackfillMetrics({
+    now: new Date('2026-07-20T12:00:00.000Z'),
+    targetUsers: 74,
+    observedByDate
+  });
+  const summary = buildAnalyticsSummary(docs);
+
+  assert.ok(summary.behaviour.bounceRate >= 21 && summary.behaviour.bounceRate <= 23);
+  assert.ok(summary.conversions.rate >= 1 && summary.conversions.rate <= 2);
+  assert.ok(summary.behaviour.clickThroughRate > 0 && summary.behaviour.clickThroughRate < 20);
+  assert.ok(summary.conversions.contacts <= summary.conversions.registrations);
+  assert.ok(summary.conversions.projectsCreated <= summary.conversions.contacts);
+  assert.ok(summary.conversions.escrowPaid <= summary.conversions.projectsCreated);
+  assert.ok(summary.conversions.premiumSubscriptions <= summary.conversions.escrowPaid);
+});
+
+test('calibrated observed traffic keeps bounce rate in range for every dashboard window', () => {
+  const observedByDate = new Map();
+  for (let day = 0; day < 30; day += 1) {
+    const date = new Date(Date.UTC(2026, 5, 21 + day));
+    const dateKey = date.toISOString().slice(0, 10);
+    const sessions = day === 29 ? 17 : day < 23 ? 5 : 7;
+    observedByDate.set(dateKey, {
+      date: dateKey,
+      sessions,
+      users: Math.max(1, Math.round(sessions * 0.7)),
+      newUsers: 1,
+      returningUsers: Math.max(0, Math.round(sessions * 0.7) - 1),
+      pageViews: sessions * 5,
+      clicks: sessions * 4,
+      clickSessions: Math.max(1, Math.round(sessions * 0.35)),
+      bounces: 0,
+      totalSessionDuration: sessions * 180,
+      scrollDepthTotal: sessions * 50,
+      trafficSources: { direct: sessions },
+      conversions: {},
+      technical: { uptime: 99.5, sampleCount: 0 },
+      synthetic: false
+    });
+  }
+  const now = new Date('2026-07-20T12:00:00.000Z');
+  const docs = buildCalibratedBackfillMetrics({ now, targetUsers: 74, observedByDate });
+
+  for (const range of ['1d', '7d', '30d', 'all']) {
+    const window = getRangeWindow(range, now);
+    const summary = buildAnalyticsSummary(docs.filter((doc) => doc.date >= window.dateKeys.start && doc.date <= window.dateKeys.end));
+    assert.ok(summary.behaviour.bounceRate >= 21 && summary.behaviour.bounceRate <= 23, `${range}: ${summary.behaviour.bounceRate}`);
+  }
+});
+
 test('analytics summary clamps legacy inflated scroll depth to 100 percent', () => {
   const summary = buildAnalyticsSummary([{
     date: '2026-06-22',

@@ -368,6 +368,7 @@ const analyticsEventSchema = new Schema(
   {
     type: { type: String, enum: ['page_view', 'click', 'scroll', 'session', 'performance', 'conversion'], required: true },
     sessionId: String,
+    visitorId: String,
     userId: { type: Schema.Types.ObjectId, ref: 'User' },
     path: String,
     title: String,
@@ -390,6 +391,7 @@ const analyticsDailyMetricSchema = new Schema(
     returningUsers: { type: Number, default: 0 },
     pageViews: { type: Number, default: 0 },
     clicks: { type: Number, default: 0 },
+    clickSessions: { type: Number, default: 0 },
     bounces: { type: Number, default: 0 },
     totalSessionDuration: { type: Number, default: 0 },
     scrollDepthTotal: { type: Number, default: 0 },
