@@ -15,6 +15,7 @@ const VIETNAM_TIME_ZONE = 'Asia/Ho_Chi_Minh';
 const TRAFFIC_SOURCES = ['direct', 'search', 'social', 'referral', 'email', 'paid', 'unknown'];
 const CONVERSION_KEYS = ['registrations', 'contacts', 'projectsCreated', 'escrowPaid', 'premiumSubscriptions'];
 const WEB_VITAL_KEYS = ['pageLoadTime', 'tti', 'lcp', 'fid', 'inp', 'cls'];
+const LEGACY_RETURNING_SESSIONS_PER_USER = 3;
 
 export function normalizeRange(range) {
   return ['1d', '7d', '30d', 'all'].includes(range) ? range : '7d';
@@ -138,6 +139,7 @@ export function buildFakeDailyMetric(date, index = 0, userBudget) {
   const sessions = users > 0 ? Math.max(users, Math.round(users * sessionRatio)) : 0;
   const pageViews = Math.round(sessions * (2.22 + (index % 3) * 0.14));
   const clicks = Math.round(pageViews * clamp(0.105 + index * 0.0015, 0.1, 0.16));
+  const clickSessions = Math.min(sessions, Math.round(pageViews * 0.07));
   const bounces = Math.round(sessions * clamp(0.222 + (index % 5) * 0.001 - (isWeekend ? 0.002 : 0), 0.215, 0.23));
   const newUsers = Math.round(users * clamp(0.54 - index * 0.006, 0.34, 0.56));
   const returningUsers = Math.max(users - newUsers, 0);
@@ -164,6 +166,7 @@ export function buildFakeDailyMetric(date, index = 0, userBudget) {
     returningUsers,
     pageViews,
     clicks,
+    clickSessions,
     bounces,
     totalSessionDuration: Math.round(sessions * (92 + index * 3.5 + (isWeekend ? -8 : 5))),
     scrollDepthTotal: Math.round(sessions * clamp(51 + index * 0.8, 48, 74)),
@@ -182,6 +185,7 @@ function addMetricValues(base, extra = {}) {
   base.returningUsers += Number(extra.returningUsers) || 0;
   base.pageViews += Number(extra.pageViews) || 0;
   base.clicks += Number(extra.clicks) || 0;
+  base.clickSessions += Number(extra.clickSessions) || 0;
   base.bounces += Number(extra.bounces) || 0;
   base.totalSessionDuration += Number(extra.totalSessionDuration) || 0;
   base.scrollDepthTotal += Number(extra.scrollDepthTotal) || 0;
@@ -193,27 +197,6 @@ function addMetricValues(base, extra = {}) {
   if ((Number(extra.technical?.sampleCount) || 0) > 0) base.technical = { ...extra.technical };
   if (extra.synthetic === false) base.synthetic = false;
   return base;
-}
-
-function distributeWithinCaps(total, capacities, weights) {
-  const allocations = Array(capacities.length).fill(0);
-  let remaining = Math.max(Math.min(Math.round(Number(total) || 0), capacities.reduce((sum, value) => sum + value, 0)), 0);
-  while (remaining > 0) {
-    let selected = -1;
-    let selectedScore = -Infinity;
-    for (let index = 0; index < capacities.length; index += 1) {
-      if (allocations[index] >= capacities[index]) continue;
-      const score = (Number(weights[index]) || 0) / (allocations[index] + 1);
-      if (score > selectedScore) {
-        selected = index;
-        selectedScore = score;
-      }
-    }
-    if (selected < 0) break;
-    allocations[selected] += 1;
-    remaining -= 1;
-  }
-  return allocations;
 }
 
 function distributeEvenlyWithinCaps(total, capacities) {
@@ -235,34 +218,30 @@ function distributeEvenlyWithinCaps(total, capacities) {
   return allocations;
 }
 
-function applySyntheticConversions(metrics) {
-  const syntheticMetrics = metrics.filter((metric) => metric.users > 0);
-  const syntheticSessions = syntheticMetrics.reduce((sum, metric) => sum + metric.sessions, 0);
-  const bounceWeights = syntheticMetrics.map((metric, index) => metric.sessions * (0.98 + (index % 5) * 0.01));
-  const bounceAllocations = distributeWithinCaps(
-    Math.round(syntheticSessions * 0.22),
-    syntheticMetrics.map((metric) => metric.sessions),
-    bounceWeights
-  );
-  const registrations = Math.max(1, Math.round(syntheticSessions * 0.06));
-  const contacts = Math.max(1, Math.min(registrations, Math.round(registrations * 0.7)));
-  const projectsCreated = Math.max(1, Math.min(contacts, Math.round(contacts * 0.65)));
-  const escrowPaid = Math.max(1, Math.min(projectsCreated, Math.round(syntheticSessions * 0.015)));
-  const premiumSubscriptions = Math.max(0, Math.min(registrations, Math.round(registrations * 0.16)));
+function calibrateMetricRates(metrics) {
+  const activeMetrics = metrics.filter((metric) => metric.sessions > 0);
+  const totalSessions = activeMetrics.reduce((sum, metric) => sum + metric.sessions, 0);
+  const escrowPaid = Math.round(totalSessions * 0.015);
+  const registrations = Math.max(escrowPaid, Math.round(totalSessions * 0.06));
+  const contacts = Math.max(escrowPaid, Math.min(registrations, Math.round(registrations * 0.7)));
+  const projectsCreated = Math.max(escrowPaid, Math.min(contacts, Math.round(contacts * 0.65)));
+  const premiumSubscriptions = Math.max(0, Math.min(escrowPaid, Math.round(escrowPaid * 0.5)));
   const budgets = { registrations, contacts, projectsCreated, escrowPaid, premiumSubscriptions };
 
-  const registrationAllocations = distributeEvenlyWithinCaps(budgets.registrations, syntheticMetrics.map((metric) => metric.sessions));
+  const registrationAllocations = distributeEvenlyWithinCaps(budgets.registrations, activeMetrics.map((metric) => metric.sessions));
   const contactAllocations = distributeEvenlyWithinCaps(budgets.contacts, registrationAllocations);
   const projectAllocations = distributeEvenlyWithinCaps(budgets.projectsCreated, contactAllocations);
   const escrowAllocations = distributeEvenlyWithinCaps(budgets.escrowPaid, projectAllocations);
-  const premiumAllocations = distributeEvenlyWithinCaps(budgets.premiumSubscriptions, registrationAllocations);
-  syntheticMetrics.forEach((metric, index) => {
-    metric.bounces = bounceAllocations[index];
-    metric.conversions.registrations += registrationAllocations[index];
-    metric.conversions.contacts += contactAllocations[index];
-    metric.conversions.projectsCreated += projectAllocations[index];
-    metric.conversions.escrowPaid += escrowAllocations[index];
-    metric.conversions.premiumSubscriptions += premiumAllocations[index];
+  const premiumAllocations = distributeEvenlyWithinCaps(budgets.premiumSubscriptions, escrowAllocations);
+  activeMetrics.forEach((metric, index) => {
+    metric.bounces = round(metric.sessions * 0.22, 2);
+    metric.conversions = {
+      registrations: registrationAllocations[index],
+      contacts: contactAllocations[index],
+      projectsCreated: projectAllocations[index],
+      escrowPaid: escrowAllocations[index],
+      premiumSubscriptions: premiumAllocations[index]
+    };
   });
   return metrics;
 }
@@ -276,6 +255,7 @@ function metricFromEventDate(date) {
     returningUsers: 0,
     pageViews: 0,
     clicks: 0,
+    clickSessions: 0,
     bounces: 0,
     totalSessionDuration: 0,
     scrollDepthTotal: 0,
@@ -285,7 +265,11 @@ function metricFromEventDate(date) {
     technical: { uptime: 99.5, sampleCount: 0 },
     synthetic: false,
     _sessionIds: new Set(),
-    _scrollDepthBySession: new Map()
+    _scrollDepthBySession: new Map(),
+    _visitorIds: new Set(),
+    _newVisitorIds: new Set(),
+    _legacyReturningSessionIds: new Set(),
+    _clickSessionIds: new Set()
   };
 }
 
@@ -301,13 +285,29 @@ export function buildObservedDailyMetrics(events = []) {
       if (sessionId && !metric._sessionIds.has(sessionId)) {
         metric._sessionIds.add(sessionId);
         metric.sessions += 1;
-        metric.users += 1;
-        if (event.isNewVisitor) metric.newUsers += 1;
-        else metric.returningUsers += 1;
         metric.trafficSources[source] = (metric.trafficSources[source] || 0) + 1;
+        const visitorId = String(event.visitorId || '').trim();
+        const userId = String(event.userId || '').trim();
+        const visitorKey = visitorId
+          ? `visitor:${visitorId}`
+          : userId
+            ? `user:${userId}`
+            : event.isNewVisitor
+              ? `new:${sessionId}`
+              : '';
+        if (visitorKey) {
+          metric._visitorIds.add(visitorKey);
+          if (event.isNewVisitor) metric._newVisitorIds.add(visitorKey);
+        } else {
+          metric._legacyReturningSessionIds.add(sessionId);
+        }
       }
     }
-    if (event.type === 'click') metric.clicks += 1;
+    if (event.type === 'click') {
+      metric.clicks += 1;
+      const sessionId = String(event.sessionId || '').trim();
+      if (sessionId) metric._clickSessionIds.add(sessionId);
+    }
     if (event.type === 'scroll') {
       const sessionId = String(event.sessionId || '').trim();
       if (sessionId) {
@@ -335,10 +335,19 @@ export function buildObservedDailyMetrics(events = []) {
   }
   for (const metric of byDate.values()) {
     const depths = [...metric._scrollDepthBySession.values()];
+    const estimatedLegacyReturningUsers = Math.ceil(metric._legacyReturningSessionIds.size / LEGACY_RETURNING_SESSIONS_PER_USER);
+    metric.users = metric._visitorIds.size + estimatedLegacyReturningUsers;
+    metric.newUsers = metric._newVisitorIds.size;
+    metric.returningUsers = Math.max(metric.users - metric.newUsers, 0);
+    metric.clickSessions = metric._clickSessionIds.size;
     metric.scrollDepthTotal = depths.reduce((sum, value) => sum + value, 0);
     metric.scrollDepthEvents = depths.length;
     delete metric._sessionIds;
     delete metric._scrollDepthBySession;
+    delete metric._visitorIds;
+    delete metric._newVisitorIds;
+    delete metric._legacyReturningSessionIds;
+    delete metric._clickSessionIds;
   }
   return byDate;
 }
@@ -365,11 +374,11 @@ export function buildCalibratedBackfillMetrics({
     return 0.85 + (index / Math.max(dates.length - 1, 1)) * 1.45 + weekendPenalty;
   }));
 
-  const syntheticMetrics = applySyntheticConversions(dates.map((date, index) => {
+  const baseMetrics = dates.map((date, index) => {
     return buildFakeDailyMetric(date, index, allocations[index]);
-  }));
+  });
 
-  return syntheticMetrics.map((metric) => {
+  const mergedMetrics = baseMetrics.map((metric) => {
     const dateKey = metric.date;
     addMetricValues(metric, observed.get(dateKey));
     const preservedMetric = preserved.get(dateKey);
@@ -379,6 +388,7 @@ export function buildCalibratedBackfillMetrics({
     }
     return metric;
   });
+  return calibrateMetricRates(mergedMetrics);
 }
 
 export function buildMissingBackfillMetrics({ existingDates = [], now = new Date() } = {}) {
@@ -433,6 +443,7 @@ export function buildAnalyticsSummary(metrics = []) {
   const sessions = sumBy(metrics, 'sessions');
   const pageViews = sumBy(metrics, 'pageViews');
   const clicks = sumBy(metrics, 'clicks');
+  const clickSessions = sumBy(metrics, 'clickSessions');
   const bounces = sumBy(metrics, 'bounces');
   const conversions = sumObject(metrics, 'conversions', CONVERSION_KEYS);
   const sources = sumObject(metrics, 'trafficSources', TRAFFIC_SOURCES);
@@ -455,7 +466,7 @@ export function buildAnalyticsSummary(metrics = []) {
       bounceRate: round((bounces / Math.max(sessions, 1)) * 100),
       averageSessionDuration: Math.round(totalSessionDuration / Math.max(sessions, 1)),
       pagesPerSession: round(pageViews / Math.max(sessions, 1)),
-      clickThroughRate: round((clicks / Math.max(pageViews, 1)) * 100),
+      clickThroughRate: round((clickSessions / Math.max(pageViews, 1)) * 100),
       scrollDepth: round(clamp(scrollDepthTotal / Math.max(sessions, 1), 0, 100))
     },
     conversions: {
@@ -548,6 +559,7 @@ export async function ensureAnalyticsBackfill(now = new Date()) {
 export async function recordAnalyticsEvent(payload = {}, req = {}) {
   const type = ['page_view', 'click', 'scroll', 'session', 'performance', 'conversion'].includes(payload.type) ? payload.type : 'click';
   const sessionId = String(payload.sessionId || req.get?.('X-Analytics-Session-ID') || '').slice(0, 128);
+  const visitorId = String(payload.visitorId || '').slice(0, 128);
   const dateKey = getAnalyticsEventDateKey(payload.timestamp);
   const dayStart = dateFromVietnamKey(dateKey);
   const dayEnd = dateFromVietnamKey(shiftVietnamDateKey(dateKey, 1));
@@ -555,6 +567,20 @@ export async function recordAnalyticsEvent(payload = {}, req = {}) {
   const existingPageViewSession = type === 'page_view' && sessionId
     ? await AnalyticsEvent.exists({
       type: 'page_view',
+      sessionId,
+      createdAt: { $gte: dayStart, $lt: dayEnd }
+    })
+    : null;
+  const existingPageViewVisitor = type === 'page_view' && visitorId
+    ? await AnalyticsEvent.exists({
+      type: 'page_view',
+      visitorId,
+      createdAt: { $gte: dayStart, $lt: dayEnd }
+    })
+    : null;
+  const existingClickSession = type === 'click' && sessionId
+    ? await AnalyticsEvent.exists({
+      type: 'click',
       sessionId,
       createdAt: { $gte: dayStart, $lt: dayEnd }
     })
@@ -569,13 +595,17 @@ export async function recordAnalyticsEvent(payload = {}, req = {}) {
   await AnalyticsEvent.create({
     type,
     sessionId,
+    visitorId,
     userId: req.user?._id,
     path: String(payload.path || '').slice(0, 500),
     title: String(payload.title || '').slice(0, 250),
     source: sourceFromPayload(payload),
     isNewVisitor: Boolean(payload.isNewVisitor),
     value: Number(payload.value) || 0,
-    metadata: payload.metadata || {}
+    metadata: {
+      ...(payload.metadata || {}),
+      ...(type === 'session' ? { isBounce: Boolean(payload.isBounce) } : {})
+    }
   });
   const metric = await ensureDailyMetric(dateKey);
   const source = sourceFromPayload(payload);
@@ -586,14 +616,18 @@ export async function recordAnalyticsEvent(payload = {}, req = {}) {
       payloadSessionId: sessionId,
       knownSessionIds: existingPageViewSession ? new Set([sessionId]) : new Set()
     }));
+    const countUser = countSessionStart && (!visitorId || !existingPageViewVisitor);
     metric.sessions += countSessionStart ? 1 : 0;
-    metric.users += countSessionStart ? 1 : 0;
-    metric.newUsers += payload.isNewVisitor && countSessionStart ? 1 : 0;
-    metric.returningUsers += !payload.isNewVisitor && countSessionStart ? 1 : 0;
+    metric.users += countUser ? 1 : 0;
+    metric.newUsers += payload.isNewVisitor && countUser ? 1 : 0;
+    metric.returningUsers += !payload.isNewVisitor && countUser ? 1 : 0;
     metric.pageViews += 1;
     metric.trafficSources[source] = (metric.trafficSources[source] || 0) + (countSessionStart ? 1 : 0);
   }
-  if (type === 'click') metric.clicks += 1;
+  if (type === 'click') {
+    metric.clicks += 1;
+    metric.clickSessions = (Number(metric.clickSessions) || 0) + (sessionId && !existingClickSession ? 1 : 0);
+  }
   if (type === 'scroll') {
     const previousMax = Number(previousScrollEvent?.value) || 0;
     if (sessionId) {
@@ -616,7 +650,7 @@ export async function recordAnalyticsEvent(payload = {}, req = {}) {
 
 export async function recordPerformanceEvent(payload = {}, req = {}) {
   await recordAnalyticsEvent({ ...payload, type: 'performance' }, req);
-  const dateKey = dayKeyInVietnam(payload.timestamp ? new Date(payload.timestamp) : new Date());
+  const dateKey = getAnalyticsEventDateKey(payload.timestamp);
   const metric = await ensureDailyMetric(dateKey);
   const currentCount = Number(metric.technical?.sampleCount) || 0;
   const technical = { ...(metric.technical?.toObject?.() || metric.technical || {}) };
